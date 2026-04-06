@@ -1,0 +1,25 @@
+server:
+  port: 8080
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/grh_msp
+    username: postgres
+    password: 1234
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+app:
+  jwt:
+    secret: 5A7234753778214125442A472D4B6150645367566B59703373367639792F423F
+    access-token-expiration: 900000
+    refresh-token-expiration: 604800000
+  cors:
+    allowed-origins: http://localhost:3000

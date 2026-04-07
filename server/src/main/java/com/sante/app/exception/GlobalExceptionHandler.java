@@ -18,28 +18,29 @@ import java.util.Map;
 @Slf4j
 public class GlobalExceptionHandler {
 
+    // Shared response builder keeps handlers concise while preserving status-specific behavior.
+    private ResponseEntity<ApiResponse<Void>> errorResponse(HttpStatus status, String message) {
+        return ResponseEntity.status(status).body(ApiResponse.error(message));
+    }
+
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                .body(ApiResponse.error(ex.getMessage()));
+        return errorResponse(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
     @ExceptionHandler(BadRequestException.class)
     public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                .body(ApiResponse.error(ex.getMessage()));
+        return errorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());
     }
 
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                .body(ApiResponse.error(ex.getMessage()));
+        return errorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<ApiResponse<Void>> handleForbidden(AccessDeniedException ex) {
-        return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(ApiResponse.error("Accès refusé. Droits insuffisants."));
+        return errorResponse(HttpStatus.FORBIDDEN, "Accès refusé. Droits insuffisants.");
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
@@ -57,14 +58,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(RedisConnectionFailureException.class)
     public ResponseEntity<ApiResponse<Void>> handleRedisUnavailable(RedisConnectionFailureException ex) {
         log.error("Redis indisponible: {}", ex.getMessage());
-        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
-                .body(ApiResponse.error("Service OTP temporairement indisponible (Redis inaccessible)."));
+        return errorResponse(HttpStatus.SERVICE_UNAVAILABLE, "Service OTP temporairement indisponible (Redis inaccessible).");
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGeneral(Exception ex) {
         log.error("Erreur inattendue: ", ex);
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("Une erreur interne s'est produite."));
+        return errorResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur interne s'est produite.");
     }
 }

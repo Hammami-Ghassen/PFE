@@ -45,7 +45,8 @@ public class LegacyAdminController {
     public ResponseEntity<ApiResponse<PersonnelAdminResponse>> updateRole(
             @PathVariable String matPers,
             @Valid @RequestBody UpdatePersonnelRoleRequest request) {
-        return ResponseEntity.ok(ApiResponse.success("Rôle mis à jour", legacyAdminService.updateRole(matPers, request.getCodUser())));
+        // Record accessor keeps request handling concise while service owns normalization/validation.
+        return ResponseEntity.ok(ApiResponse.success("Rôle mis à jour", legacyAdminService.updateRole(matPers, request.codUser())));
     }
 
     @GetMapping("/establishments")

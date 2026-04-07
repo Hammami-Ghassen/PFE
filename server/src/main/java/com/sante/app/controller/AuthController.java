@@ -32,14 +32,15 @@ public class AuthController {
     @PostMapping("/request-otp")
     @Operation(summary = "Demander un OTP avec MAT_PERS")
     public ResponseEntity<ApiResponse<Void>> requestOtp(@Valid @RequestBody RequestOtpRequest request) {
-        otpAuthService.requestOtp(request.getMatPers(), request.getChannel());
+        otpAuthService.requestOtp(request.matPers(), request.channel());
         return ResponseEntity.ok(ApiResponse.success("OTP envoyé avec succès.", null));
     }
 
     @PostMapping("/verify-otp")
     @Operation(summary = "Vérifier OTP et ouvrir une session")
     public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {
-        OtpAuthService.TokenSession session = otpAuthService.verifyOtp(request.getMatPers(), request.getOtp());
+        // Controller stays thin: request parsing + cookie headers while auth workflow lives in service layer.
+        OtpAuthService.TokenSession session = otpAuthService.verifyOtp(request.matPers(), request.otp());
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, buildRefreshCookie(session.refreshToken()).toString())
                 .body(ApiResponse.success(session.authResponse()));

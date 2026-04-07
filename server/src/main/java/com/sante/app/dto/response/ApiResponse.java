@@ -1,16 +1,7 @@
 package com.sante.app.dto.response;
 
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.AllArgsConstructor;
-
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-public class ApiResponse<T> {
-    private boolean success;
-    private String message;
-    private T data;
+// Record-based response DTO keeps the API envelope stable while removing boilerplate.
+public record ApiResponse<T>(boolean success, String message, T data) {
 
     public static <T> ApiResponse<T> success(T data) {
         return new ApiResponse<>(true, null, data);

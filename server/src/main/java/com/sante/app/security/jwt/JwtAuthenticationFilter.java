@@ -29,30 +29,22 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
+        // Keep the filter focused on access-token authentication only.
+        if (SecurityContextHolder.getContext().getAuthentication() == null) {
+            String token = extractToken(request);
+            if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
+                String tokenType = jwtTokenProvider.getTokenType(token);
+                String role = jwtTokenProvider.getRoleFromToken(token);
+                if ("access".equals(tokenType) && StringUtils.hasText(role)) {
+                    String matPers = jwtTokenProvider.getSubjectFromToken(token);
+                    List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
 
-        String token = extractToken(request);
-
-        if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
-            String tokenType = jwtTokenProvider.getTokenType(token);
-            if (!"access".equals(tokenType)) {
-                filterChain.doFilter(request, response);
-                return;
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(matPers, null, authorities);
+                    authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
             }
-
-            String matPers = jwtTokenProvider.getSubjectFromToken(token);
-            String role = jwtTokenProvider.getRoleFromToken(token);
-            if (!StringUtils.hasText(role)) {
-                filterChain.doFilter(request, response);
-                return;
-            }
-
-            List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + role));
-
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(matPers, null, authorities);
-            authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-
-            SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         filterChain.doFilter(request, response);

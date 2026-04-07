@@ -1,6 +1,7 @@
 package com.sante.app.repository;
 
 import com.sante.app.model.legacy.Personnel;
+import com.sante.app.repository.projection.AuthProfileProjection;
 import com.sante.app.repository.projection.PersonnelAdminProjection;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -52,4 +53,21 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
     @Modifying
     @Query(value = "UPDATE \"PERSONNEL\" SET \"COD_USER\" = :codUser WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
     int updateCodUser(@Param("matPers") String matPers, @Param("codUser") String codUser);
+
+    // Single-query profile projection reduces auth/profile hydration to one DB roundtrip.
+    @Query(value = """
+        SELECT p.\"MAT_PERS\" AS matPers,
+             p.\"PREN_PERS\" AS firstName,
+             p.\"NOM_PERS\" AS lastName,
+             p.\"COD_USER\" AS codUser,
+             p.\"COD_SOC\" AS codSoc,
+             s.\"LIB_SOC\" AS establishmentName,
+             a.\"ADR_ELECTRONIQUE\" AS email,
+             a.\"TEL_PERT_PERS\" AS phone
+        FROM \"PERSONNEL\" p
+        LEFT JOIN \"SOCIETE\" s ON s.\"COD_SOC\" = p.\"COD_SOC\"
+        LEFT JOIN \"ADR_PERS\" a ON a.\"MAT_PERS\" = p.\"MAT_PERS\"
+        WHERE p.\"MAT_PERS\" = :matPers
+        """, nativeQuery = true)
+    AuthProfileProjection findAuthProfileByMatPers(@Param("matPers") String matPers);
 }

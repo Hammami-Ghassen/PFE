@@ -57,8 +57,9 @@ public class LegacyAdminService {
 
     @Transactional(readOnly = true)
     public List<EstablishmentResponse> establishments() {
+        // Record constructor mapping removes repetitive builder boilerplate.
         return societeRepository.findAllByOrderByCodSocAsc().stream()
-                .map(s -> EstablishmentResponse.builder().codSoc(s.getCodSoc()).libSoc(s.getLibSoc()).build())
+                .map(s -> new EstablishmentResponse(s.getCodSoc(), s.getLibSoc()))
                 .toList();
     }
 
@@ -70,13 +71,12 @@ public class LegacyAdminService {
     }
 
     private PersonnelAdminResponse mapProjection(PersonnelAdminProjection p) {
-        return PersonnelAdminResponse.builder()
-                .matPers(p.getMatPers())
-                .codUser(p.getCodUser())
-                .codSoc(p.getCodSoc())
-                .establishmentName(p.getLibSoc())
-                .email(p.getAdrElectronique())
-                .phone(p.getTelPertPers())
-                .build();
+        return new PersonnelAdminResponse(
+            p.getMatPers(),
+            p.getCodUser(),
+            p.getCodSoc(),
+            p.getLibSoc(),
+            p.getAdrElectronique(),
+            p.getTelPertPers());
     }
 }

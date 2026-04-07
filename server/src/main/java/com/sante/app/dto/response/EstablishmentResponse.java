@@ -1,11 +1,5 @@
 package com.sante.app.dto.response;
 
-import lombok.Builder;
-import lombok.Data;
-
-@Data
-@Builder
-public class EstablishmentResponse {
-    private String codSoc;
-    private String libSoc;
+// Record-based response DTO removes builder/getter boilerplate while keeping payload shape unchanged.
+public record EstablishmentResponse(String codSoc, String libSoc) {
 }

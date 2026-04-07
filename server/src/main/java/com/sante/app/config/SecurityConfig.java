@@ -5,6 +5,7 @@ import com.sante.app.security.jwt.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -22,11 +23,12 @@ public class SecurityConfig {
     private final AuthEntryPoint authEntryPoint;
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
+    // Uses lambda DSL throughout to keep security rules concise and explicit.
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .csrf(AbstractHttpConfigurer::disable)
-            .cors(cors -> {})
+            .cors(Customizer.withDefaults())
             .exceptionHandling(ex -> ex.authenticationEntryPoint(authEntryPoint))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth

@@ -8,26 +8,19 @@ import com.sante.app.exception.UnauthorizedException;
 import com.sante.app.model.auth.AuthRefreshToken;
 import com.sante.app.model.legacy.AdrPers;
 import com.sante.app.model.legacy.Personnel;
-import com.sante.app.model.legacy.Societe;
 import com.sante.app.repository.AdrPersRepository;
-import com.sante.app.repository.AuthRefreshTokenRepository;
 import com.sante.app.repository.PersonnelRepository;
-import com.sante.app.repository.SocieteRepository;
-import com.sante.app.security.jwt.JwtProperties;
+import com.sante.app.repository.projection.AuthProfileProjection;
 import com.sante.app.security.jwt.JwtTokenProvider;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
-import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.HexFormat;
-import java.util.Optional;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,18 +29,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Slf4j
 public class OtpAuthService {
 
-    private static final int OTP_TTL_SECONDS = 300;
-    private static final int MAX_REFRESH_TOKEN_ATTEMPTS = 3;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final PersonnelRepository personnelRepository;
     private final AdrPersRepository adrPersRepository;
-    private final SocieteRepository societeRepository;
-    private final StringRedisTemplate redisTemplate;
     private final JwtTokenProvider jwtTokenProvider;
-    private final JwtProperties jwtProperties;
     private final LegacyRoleMapper legacyRoleMapper;
-    private final AuthRefreshTokenRepository authRefreshTokenRepository;
+    private final OtpStoreService otpStoreService;
+    private final AuthTokenService authTokenService;
+
+    // This service now orchestrates the auth workflow while delegating token and Redis concerns.
 
     @Transactional(readOnly = true)
     public void requestOtp(String matPers, OtpChannel channel) {
@@ -62,7 +53,7 @@ public class OtpAuthService {
         String otp = generateOtp();
         String hash = sha256(otp);
 
-        redisTemplate.opsForValue().set(redisKey(normalizedMatPers), hash, Duration.ofSeconds(OTP_TTL_SECONDS));
+        otpStoreService.storeOtpHash(normalizedMatPers, hash);
 
         log.info("Mock OTP dispatch via {} to {} for MAT_PERS {}", channel, maskTarget(target), normalizedMatPers);
         log.debug("DEV OTP for MAT_PERS {}: {}", normalizedMatPers, otp);
@@ -77,8 +68,7 @@ public class OtpAuthService {
         Personnel personnel = personnelRepository.findById(normalizedMatPers)
                 .orElseThrow(() -> new UnauthorizedException("MAT_PERS introuvable."));
 
-        String key = redisKey(normalizedMatPers);
-        String storedHash = redisTemplate.opsForValue().get(key);
+        String storedHash = otpStoreService.findOtpHash(normalizedMatPers);
         if (storedHash == null) {
             throw new UnauthorizedException("OTP expiré ou non demandé.");
         }
@@ -88,19 +78,12 @@ public class OtpAuthService {
             throw new UnauthorizedException("OTP invalide.");
         }
 
-        redisTemplate.delete(key);
+        otpStoreService.deleteOtp(normalizedMatPers);
 
         String appRole = legacyRoleMapper.toAppRole(personnel.getCodUser());
-        String accessToken = jwtTokenProvider.generateAccessToken(normalizedMatPers, appRole);
-        String refreshToken = issueAndPersistRefreshToken(normalizedMatPers);
-
-        AuthResponse authResponse = AuthResponse.builder()
-                .accessToken(accessToken)
-                .tokenType("Bearer")
-                .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
-                .matPers(normalizedMatPers)
-                .role(appRole)
-                .build();
+        String accessToken = authTokenService.generateAccessToken(normalizedMatPers, appRole);
+        String refreshToken = authTokenService.issueAndPersistRefreshToken(normalizedMatPers);
+        AuthResponse authResponse = authTokenService.toBearerAuthResponse(accessToken, normalizedMatPers, appRole);
 
         return TokenSession.builder()
                 .authResponse(authResponse)
@@ -114,20 +97,17 @@ public class OtpAuthService {
             throw new UnauthorizedException("Refresh token invalide.");
         }
 
-        String tokenHash = sha256(refreshToken);
-        AuthRefreshToken stored = authRefreshTokenRepository.findByTokenHash(tokenHash)
+        AuthRefreshToken stored = authTokenService.findByRawRefreshToken(refreshToken)
                 .orElseThrow(() -> new UnauthorizedException("Refresh token inconnu."));
 
         // Guard against legacy/corrupted rows that may exist from previous auth implementations.
         if (stored.getMatPers() == null || stored.getMatPers().isBlank() || stored.getExpiresAt() == null) {
-            stored.setRevoked(true);
-            stored.setRevokedAt(LocalDateTime.now());
-            authRefreshTokenRepository.save(stored);
+            authTokenService.revoke(stored);
             throw new UnauthorizedException("Session invalide. Reconnexion requise.");
         }
 
         if (Boolean.TRUE.equals(stored.getRevoked())) {
-            authRefreshTokenRepository.revokeAllByMatPers(stored.getMatPers(), LocalDateTime.now());
+            authTokenService.revokeAllByMatPers(stored.getMatPers());
             throw new UnauthorizedException("Refresh token révoqué. Reconnexion requise.");
         }
 
@@ -135,9 +115,7 @@ public class OtpAuthService {
             throw new UnauthorizedException("Refresh token expiré.");
         }
 
-        stored.setRevoked(true);
-        stored.setRevokedAt(LocalDateTime.now());
-        authRefreshTokenRepository.save(stored);
+        authTokenService.revoke(stored);
 
         Personnel personnel = personnelRepository.findById(stored.getMatPers())
                 .orElseThrow(() -> new UnauthorizedException("Personnel introuvable."));
@@ -146,19 +124,13 @@ public class OtpAuthService {
         String newAccessToken;
         String newRefreshToken;
         try {
-            newAccessToken = jwtTokenProvider.generateAccessToken(stored.getMatPers(), appRole);
-            newRefreshToken = issueAndPersistRefreshToken(stored.getMatPers());
+            newAccessToken = authTokenService.generateAccessToken(stored.getMatPers(), appRole);
+            newRefreshToken = authTokenService.issueAndPersistRefreshToken(stored.getMatPers());
         } catch (IllegalStateException e) {
             throw new UnauthorizedException("Session invalide. Reconnexion requise.");
         }
 
-        AuthResponse authResponse = AuthResponse.builder()
-                .accessToken(newAccessToken)
-                .tokenType("Bearer")
-                .expiresIn(jwtProperties.getAccessTokenExpiration() / 1000)
-                .matPers(stored.getMatPers())
-                .role(appRole)
-                .build();
+        AuthResponse authResponse = authTokenService.toBearerAuthResponse(newAccessToken, stored.getMatPers(), appRole);
 
         return TokenSession.builder()
                 .authResponse(authResponse)
@@ -172,37 +144,31 @@ public class OtpAuthService {
             return;
         }
 
-        String hash = sha256(refreshToken);
-        Optional<AuthRefreshToken> token = authRefreshTokenRepository.findByTokenHash(hash);
-        token.ifPresent(t -> {
-            t.setRevoked(true);
-            t.setRevokedAt(LocalDateTime.now());
-            authRefreshTokenRepository.save(t);
-            authRefreshTokenRepository.revokeAllByMatPers(t.getMatPers(), LocalDateTime.now());
+        authTokenService.findByRawRefreshToken(refreshToken).ifPresent(t -> {
+            authTokenService.revoke(t);
+            authTokenService.revokeAllByMatPers(t.getMatPers());
         });
     }
 
     @Transactional(readOnly = true)
     public AuthProfileResponse getProfile(String matPers) {
         String normalizedMatPers = normalizeMatPers(matPers);
-        Personnel personnel = personnelRepository.findById(normalizedMatPers)
-                .orElseThrow(() -> new UnauthorizedException("Personnel introuvable."));
+        AuthProfileProjection profile = personnelRepository.findAuthProfileByMatPers(normalizedMatPers);
+        if (profile == null) {
+            throw new UnauthorizedException("Personnel introuvable.");
+        }
 
-        AdrPers adrPers = adrPersRepository.findById(normalizedMatPers).orElse(null);
-        Societe societe = societeRepository.findById(personnel.getCodSoc()).orElse(null);
-
-        return AuthProfileResponse.builder()
-                .matPers(personnel.getMatPers())
-                .firstName(emptyToNull(personnel.getPrenPers()))
-                .lastName(emptyToNull(personnel.getNomPers()))
-                .fullName(buildFullName(personnel.getPrenPers(), personnel.getNomPers()))
-                .role(legacyRoleMapper.toAppRole(personnel.getCodUser()))
-                .codUser(personnel.getCodUser())
-                .codSoc(personnel.getCodSoc())
-                .establishmentName(societe == null ? null : societe.getLibSoc())
-                .email(adrPers == null ? null : adrPers.getAdrElectronique())
-                .phone(adrPers == null ? null : adrPers.getTelPertPers())
-                .build();
+        return new AuthProfileResponse(
+                profile.getMatPers(),
+                emptyToNull(profile.getFirstName()),
+                emptyToNull(profile.getLastName()),
+                buildFullName(profile.getFirstName(), profile.getLastName()),
+                legacyRoleMapper.toAppRole(profile.getCodUser()),
+                profile.getCodUser(),
+                profile.getCodSoc(),
+                profile.getEstablishmentName(),
+                profile.getEmail(),
+                profile.getPhone());
     }
 
     private String buildFullName(String firstName, String lastName) {
@@ -225,31 +191,6 @@ public class OtpAuthService {
             return null;
         }
         return value.trim();
-    }
-
-    private void persistRefreshToken(String matPers, String refreshToken) {
-        AuthRefreshToken token = new AuthRefreshToken();
-        token.setMatPers(matPers);
-        token.setTokenHash(sha256(refreshToken));
-        token.setExpiresAt(LocalDateTime.now().plusSeconds(jwtProperties.getRefreshTokenExpiration() / 1000));
-        token.setRevoked(false);
-        authRefreshTokenRepository.save(token);
-    }
-
-    private String issueAndPersistRefreshToken(String matPers) {
-        for (int attempt = 1; attempt <= MAX_REFRESH_TOKEN_ATTEMPTS; attempt++) {
-            String refreshToken = jwtTokenProvider.generateRefreshToken(matPers);
-            try {
-                persistRefreshToken(matPers, refreshToken);
-                return refreshToken;
-            } catch (DataIntegrityViolationException ex) {
-                if (attempt == MAX_REFRESH_TOKEN_ATTEMPTS) {
-                    throw new IllegalStateException("Impossible de générer un refresh token unique.", ex);
-                }
-                log.warn("Collision TOKEN_HASH detectee pour MAT_PERS {} (tentative {}).", matPers, attempt);
-            }
-        }
-        throw new IllegalStateException("Impossible de générer un refresh token unique.");
     }
 
     private String normalizeMatPers(String matPers) {
@@ -277,10 +218,6 @@ public class OtpAuthService {
         return target;
     }
 
-    private String redisKey(String matPers) {
-        return "otp:" + matPers;
-    }
-
     private String generateOtp() {
         return String.format("%06d", SECURE_RANDOM.nextInt(1_000_000));
     }
@@ -293,6 +230,7 @@ public class OtpAuthService {
     }
 
     private String sha256(String value) {
+        // OTP comparison still uses SHA-256 hashes so replay protection behavior remains unchanged.
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hash = digest.digest(value.getBytes(StandardCharsets.UTF_8));

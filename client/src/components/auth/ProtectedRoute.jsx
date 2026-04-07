@@ -1,16 +1,12 @@
 import React from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import useAuth from '../../hooks/useAuth';
+import GuardedRoute from './GuardedRoute';
 
 const ProtectedRoute = () => {
   const { auth } = useAuth();
-  const location = useLocation();
 
-  if (!auth.isAuthenticated) {
-    return <Navigate to="/login" state={{ from: location }} replace />;
-  }
-
-  return <Outlet />;
+  // Shared guard keeps auth redirects consistent while preserving original destination.
+  return <GuardedRoute allow={auth.isAuthenticated} redirectTo="/login" preserveFrom />;
 };
 
 export default ProtectedRoute;

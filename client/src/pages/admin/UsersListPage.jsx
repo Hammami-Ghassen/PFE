@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { getEstablishments, getUsers, updatePersonnelRole } from '../../services/userService';
+import usePersonnelPagination, { buildPageWindow } from '../../hooks/usePersonnelPagination';
+import useEstablishments from '../../hooks/useEstablishments';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/ui/Spinner';
@@ -9,83 +11,48 @@ import Spinner from '../../components/ui/Spinner';
 const roleOptions = ['ADMIN', 'DIRECTEUR', 'AGENT'];
 const PAGE_SIZE = 50;
 
-const buildPageWindow = (currentPage, totalPages) => {
-  if (totalPages <= 7) {
-    return Array.from({ length: totalPages }, (_, i) => i);
-  }
-
-  const pages = new Set([0, totalPages - 1, currentPage - 1, currentPage, currentPage + 1]);
-  return Array.from(pages)
-    .filter((page) => page >= 0 && page < totalPages)
-    .sort((a, b) => a - b);
-};
-
 const UsersListPage = () => {
   const axiosPrivate = useAxiosPrivate();
 
-  const [data, setData] = useState({ content: [], totalPages: 0, totalElements: 0 });
-  const [establishments, setEstablishments] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const fetchUsersPage = useCallback(
+    (params) => getUsers(axiosPrivate, params).catch((err) => {
+      toast.error('Erreur lors du chargement du personnel.');
+      throw err;
+    }),
+    [axiosPrivate]
+  );
 
-  const [page, setPage] = useState(0);
-  const [searchInput, setSearchInput] = useState('');
-  const [search, setSearch] = useState('');
-  const [codSoc, setCodSoc] = useState('');
+  const {
+    data,
+    loading,
+    page,
+    searchInput,
+    codSoc,
+    setPage,
+    setSearchInput,
+    submitSearch,
+    selectEstablishment,
+    refresh,
+  } = usePersonnelPagination(fetchUsersPage, PAGE_SIZE);
 
-  const inFlightKeyRef = useRef(null);
-  const establishmentsLoadedRef = useRef(false);
+  const loadEstablishments = useCallback(
+    () => getEstablishments(axiosPrivate),
+    [axiosPrivate]
+  );
+  const { establishments, error: establishmentsError } = useEstablishments(loadEstablishments);
 
-  const fetchPersonnel = useCallback(() => {
-    const requestKey = `${page}|${search}|${codSoc}|${PAGE_SIZE}`;
-    if (inFlightKeyRef.current === requestKey) {
-      return;
-    }
-
-    inFlightKeyRef.current = requestKey;
-    setLoading(true);
-    getUsers(axiosPrivate, { page, size: PAGE_SIZE, search, codSoc })
-      .then((personnelPage) => {
-        setData(personnelPage);
-        if (personnelPage.totalPages > 0 && page >= personnelPage.totalPages) {
-          setPage(personnelPage.totalPages - 1);
-        }
-      })
-      .catch(() => toast.error('Erreur lors du chargement du personnel.'))
-      .finally(() => {
-        inFlightKeyRef.current = null;
-        setLoading(false);
-      });
-  }, [axiosPrivate, page, search, codSoc]);
-
+  // Keeps user feedback explicit without triggering toast side effects during render.
   useEffect(() => {
-    fetchPersonnel();
-  }, [fetchPersonnel]);
-
-  useEffect(() => {
-    if (establishmentsLoadedRef.current) {
-      return;
+    if (establishmentsError) {
+      toast.error('Erreur lors du chargement des etablissements.');
     }
-
-    establishmentsLoadedRef.current = true;
-    getEstablishments(axiosPrivate)
-      .then((socList) => setEstablishments(socList))
-      .catch(() => {
-        establishmentsLoadedRef.current = false;
-        toast.error('Erreur lors du chargement des etablissements.');
-      });
-  }, [axiosPrivate]);
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    setPage(0);
-    setSearch(searchInput.trim().toUpperCase());
-  };
+  }, [establishmentsError]);
 
   const handleRoleChange = async (matPers, newRole) => {
     try {
       await updatePersonnelRole(axiosPrivate, matPers, newRole);
       toast.success('Role mis a jour.');
-      fetchPersonnel();
+      refresh();
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Mise a jour du role impossible.');
     }
@@ -94,7 +61,7 @@ const UsersListPage = () => {
   return (
     <div className="space-y-5">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <form onSubmit={handleSearch} className="flex gap-2 flex-1 max-w-xl">
+        <form onSubmit={submitSearch} className="flex gap-2 flex-1 max-w-xl">
           <input
             type="text"
             placeholder="Rechercher MAT_PERS..."
@@ -107,10 +74,7 @@ const UsersListPage = () => {
 
         <select
           value={codSoc}
-          onChange={(e) => {
-            setCodSoc(e.target.value);
-            setPage(0);
-          }}
+          onChange={(e) => selectEstablishment(e.target.value)}
           className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
         >
           <option value="">Tous les etablissements</option>

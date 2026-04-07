@@ -4,9 +4,10 @@ import toast from 'react-hot-toast';
 import useAuth from '../../hooks/useAuth';
 import { requestOtp, verifyOtp } from '../../services/authService';
 import axiosInstance from '../../api/axios';
-import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
+import LoginMatPersStep from '../../components/auth/LoginMatPersStep';
+import LoginOtpStep from '../../components/auth/LoginOtpStep';
 
 const LoginPage = () => {
   const [step, setStep] = useState(1);
@@ -75,49 +76,20 @@ const LoginPage = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && <Alert type="error" message={error} />}
 
+          {/* Step-specific UI is now delegated to small presentational components to keep container logic focused. */}
           {step === 1 ? (
-            <>
-              <Input
-                id="matPers"
-                label="Identifiant MAT_PERS"
-                type="text"
-                placeholder="Ex: 00091651"
-                maxLength={8}
-                value={matPers}
-                onChange={(e) => setMatPers(e.target.value.replace(/\D/g, ''))}
-                required
-              />
-              <div className="flex flex-col gap-1">
-                <label htmlFor="channel" className="text-sm font-medium text-gray-700">
-                  Canal OTP
-                </label>
-                <select
-                  id="channel"
-                  value={channel}
-                  onChange={(e) => setChannel(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ministere-500"
-                >
-                  <option value="EMAIL">Email</option>
-                  <option value="SMS">SMS</option>
-                </select>
-              </div>
-            </>
+            <LoginMatPersStep
+              matPers={matPers}
+              channel={channel}
+              onMatPersChange={(e) => setMatPers(e.target.value.replace(/\D/g, ''))}
+              onChannelChange={(e) => setChannel(e.target.value)}
+            />
           ) : (
-            <>
-              <Input
-                id="otp"
-                label="Code OTP (6 chiffres)"
-                type="text"
-                placeholder="Ex: 123456"
-                maxLength={6}
-                value={otp}
-                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
-                required
-              />
-              <Button type="button" variant="secondary" className="w-full" onClick={() => setStep(1)}>
-                Retour
-              </Button>
-            </>
+            <LoginOtpStep
+              otp={otp}
+              onOtpChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+              onBack={() => setStep(1)}
+            />
           )}
 
           <Button type="submit" loading={loading} className="w-full" size="lg">

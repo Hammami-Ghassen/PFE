@@ -4,6 +4,7 @@ import Card from '../../components/ui/Card';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Modal from '../../components/ui/Modal';
+import { submitEmployeeMock } from '../../services/addEmployeeMockService';
 
 const AddEmployeePage = () => {
   const [form, setForm] = useState({
@@ -27,7 +28,8 @@ const AddEmployeePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 600));
+    // Mock submission is intentionally isolated in a service to keep this component UI-focused.
+    await submitEmployeeMock(form);
     setSubmitting(false);
     setSuccess(true);
     toast.success('Soumission simulee (aucun endpoint backend appele).');

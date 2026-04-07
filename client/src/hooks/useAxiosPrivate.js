@@ -3,8 +3,7 @@ import { axiosPrivate } from '../api/axios';
 import useAuth from './useAuth';
 import { refreshToken as refreshTokenService } from '../services/authService';
 import axiosInstance from '../api/axios';
-
-let refreshPromise = null;
+import { runRefreshQueue } from '../api/axiosRetryQueue';
 
 const refreshSession = async (existingUser, setSession) => {
   const tokenData = await refreshTokenService();
@@ -24,6 +23,7 @@ const refreshSession = async (existingUser, setSession) => {
 const useAxiosPrivate = () => {
   const { auth, setSession, clearSession } = useAuth();
 
+  // Keeps the hook focused on interceptor wiring while queue logic lives in api/axiosRetryQueue.
   useEffect(() => {
     const requestIntercept = axiosPrivate.interceptors.request.use(
       (config) => {
@@ -46,13 +46,7 @@ const useAxiosPrivate = () => {
         ) {
           prevRequest._retry = true;
           try {
-            if (!refreshPromise) {
-              refreshPromise = refreshSession(auth.user, setSession).finally(() => {
-                refreshPromise = null;
-              });
-            }
-
-            const accessToken = await refreshPromise;
+            const accessToken = await runRefreshQueue(() => refreshSession(auth.user, setSession));
             prevRequest.headers = prevRequest.headers || {};
             prevRequest.headers.Authorization = `Bearer ${accessToken}`;
             return axiosPrivate(prevRequest);

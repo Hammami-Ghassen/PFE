@@ -19,13 +19,18 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class LegacyAdminService {
 
+    private static final int MIN_PAGE_SIZE = 1;
+    private static final int MAX_PAGE_SIZE = 200;
+
     private final PersonnelRepository personnelRepository;
     private final SocieteRepository societeRepository;
     private final LegacyRoleMapper roleMapper;
 
     @Transactional(readOnly = true)
     public Page<PersonnelAdminResponse> searchPersonnel(String search, String codSoc, int page, int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.ASC, "matPers"));
+        int sanitizedPage = Math.max(0, page);
+        int sanitizedSize = Math.min(MAX_PAGE_SIZE, Math.max(MIN_PAGE_SIZE, size));
+        Pageable pageable = PageRequest.of(sanitizedPage, sanitizedSize, Sort.by(Sort.Direction.ASC, "matPers"));
         String normalizedSearch = normalizeNullable(search);
         String normalizedCodSoc = normalizeNullable(codSoc);
         return personnelRepository.searchPersonnel(normalizedSearch, normalizedCodSoc, pageable)
@@ -52,7 +57,7 @@ public class LegacyAdminService {
 
     @Transactional(readOnly = true)
     public List<EstablishmentResponse> establishments() {
-        return societeRepository.findAllByOrderByLibSocAsc().stream()
+        return societeRepository.findAllByOrderByCodSocAsc().stream()
                 .map(s -> EstablishmentResponse.builder().codSoc(s.getCodSoc()).libSoc(s.getLibSoc()).build())
                 .toList();
     }

@@ -6,6 +6,7 @@ import Badge from '../ui/Badge';
 const Header = ({ title }) => {
   const { auth } = useAuth();
   const user = auth.user;
+  const displayName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.matPers;
 
   return (
     <header className="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shadow-sm">
@@ -15,8 +16,8 @@ const Header = ({ title }) => {
         <div className="flex items-center gap-2">
           <UserCircleIcon className="w-8 h-8 text-ministere-500" />
           <div className="hidden sm:block leading-tight">
-            <p className="text-sm font-medium text-gray-700">{user?.matPers}</p>
-            <p className="text-xs text-gray-400">COD_USER: {user?.codUser || '—'}</p>
+            <p className="text-sm font-medium text-gray-700">{displayName || 'Utilisateur'}</p>
+            <p className="text-xs text-gray-400">MAT_PERS: {user?.matPers || '—'}</p>
           </div>
         </div>
       </div>

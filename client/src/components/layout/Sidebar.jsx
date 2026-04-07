@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   HomeIcon,
+  ChartBarIcon,
   UsersIcon,
   UserPlusIcon,
   ArrowRightOnRectangleIcon,
@@ -13,7 +14,8 @@ import { logout } from '../../services/authService';
 import { ROLES } from '../../utils/constants';
 
 const navItems = [
-  { label: 'Tableau de bord', to: '/dashboard', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.EMPLOYEE] },
+  { label: 'Mes Informations', to: '/dashboard', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.EMPLOYEE] },
+  { label: 'Tableau de bord', to: '/powerbi-dashboard', icon: ChartBarIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR] },
   { label: 'Personnel', to: '/admin/users', icon: UsersIcon, roles: [ROLES.ADMIN] },
   { label: 'Ajouter Employe', to: '/admin/employees/new', icon: UserPlusIcon, roles: [ROLES.ADMIN] },
 ];

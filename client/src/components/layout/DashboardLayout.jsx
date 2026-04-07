@@ -4,7 +4,8 @@ import Sidebar from './Sidebar';
 import Header from './Header';
 
 const pageTitles = {
-  '/dashboard': 'Tableau de bord',
+  '/dashboard': 'Mes Informations',
+  '/powerbi-dashboard': 'Tableau de bord',
   '/admin/users': 'Gestion du Personnel',
   '/admin/employees/new': 'Ajout Employe (UI)',
 };

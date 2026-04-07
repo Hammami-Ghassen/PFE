@@ -7,6 +7,9 @@ import lombok.Data;
 @Builder
 public class AuthProfileResponse {
     private String matPers;
+    private String firstName;
+    private String lastName;
+    private String fullName;
     private String role;
     private String codUser;
     private String codSoc;

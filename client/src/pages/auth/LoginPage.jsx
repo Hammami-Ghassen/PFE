@@ -42,8 +42,9 @@ const LoginPage = () => {
           headers: { Authorization: `Bearer ${authData.accessToken}` },
         });
         const user = meRes.data.data;
+        const displayName = user.fullName || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.matPers;
         setSession(authData.accessToken, user);
-        toast.success(`Bienvenue ${user.matPers}`);
+        toast.success(`Bienvenue ${displayName}`);
         navigate(from, { replace: true });
       }
     } catch (err) {

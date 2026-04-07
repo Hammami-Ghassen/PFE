@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Base64;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -57,6 +58,7 @@ public class JwtTokenProvider {
     public String generateRefreshToken(String matPers) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("type", "refresh");
+        claims.put("jti", UUID.randomUUID().toString());
 
         return Jwts.builder()
                 .claims(claims)

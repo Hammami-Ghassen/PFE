@@ -12,5 +12,4 @@ public class AuthResponse {
     private Long expiresIn;
     private String matPers;
     private String role;
-    private UserResponse user;
 }

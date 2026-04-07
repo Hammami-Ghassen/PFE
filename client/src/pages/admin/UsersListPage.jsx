@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import toast from 'react-hot-toast';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { getEstablishments, getUsers, updatePersonnelRole } from '../../services/userService';
@@ -7,6 +7,18 @@ import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/ui/Spinner';
 
 const roleOptions = ['ADMIN', 'DIRECTEUR', 'AGENT'];
+const PAGE_SIZE = 50;
+
+const buildPageWindow = (currentPage, totalPages) => {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, i) => i);
+  }
+
+  const pages = new Set([0, totalPages - 1, currentPage - 1, currentPage, currentPage + 1]);
+  return Array.from(pages)
+    .filter((page) => page >= 0 && page < totalPages)
+    .sort((a, b) => a - b);
+};
 
 const UsersListPage = () => {
   const axiosPrivate = useAxiosPrivate();
@@ -20,23 +32,48 @@ const UsersListPage = () => {
   const [search, setSearch] = useState('');
   const [codSoc, setCodSoc] = useState('');
 
-  const fetchData = useCallback(() => {
+  const inFlightKeyRef = useRef(null);
+  const establishmentsLoadedRef = useRef(false);
+
+  const fetchPersonnel = useCallback(() => {
+    const requestKey = `${page}|${search}|${codSoc}|${PAGE_SIZE}`;
+    if (inFlightKeyRef.current === requestKey) {
+      return;
+    }
+
+    inFlightKeyRef.current = requestKey;
     setLoading(true);
-    Promise.all([
-      getUsers(axiosPrivate, { page, size: 10, search, codSoc }),
-      establishments.length ? Promise.resolve(establishments) : getEstablishments(axiosPrivate),
-    ])
-      .then(([personnelPage, socList]) => {
+    getUsers(axiosPrivate, { page, size: PAGE_SIZE, search, codSoc })
+      .then((personnelPage) => {
         setData(personnelPage);
-        setEstablishments(socList);
+        if (personnelPage.totalPages > 0 && page >= personnelPage.totalPages) {
+          setPage(personnelPage.totalPages - 1);
+        }
       })
       .catch(() => toast.error('Erreur lors du chargement du personnel.'))
-      .finally(() => setLoading(false));
-  }, [axiosPrivate, page, search, codSoc, establishments]);
+      .finally(() => {
+        inFlightKeyRef.current = null;
+        setLoading(false);
+      });
+  }, [axiosPrivate, page, search, codSoc]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    fetchPersonnel();
+  }, [fetchPersonnel]);
+
+  useEffect(() => {
+    if (establishmentsLoadedRef.current) {
+      return;
+    }
+
+    establishmentsLoadedRef.current = true;
+    getEstablishments(axiosPrivate)
+      .then((socList) => setEstablishments(socList))
+      .catch(() => {
+        establishmentsLoadedRef.current = false;
+        toast.error('Erreur lors du chargement des etablissements.');
+      });
+  }, [axiosPrivate]);
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -48,7 +85,7 @@ const UsersListPage = () => {
     try {
       await updatePersonnelRole(axiosPrivate, matPers, newRole);
       toast.success('Role mis a jour.');
-      fetchData();
+      fetchPersonnel();
     } catch (err) {
       toast.error(err?.response?.data?.message || 'Mise a jour du role impossible.');
     }
@@ -148,16 +185,22 @@ const UsersListPage = () => {
               >
                 ←
               </button>
-              {Array.from({ length: data.totalPages }, (_, i) => (
-                <button
-                  key={i}
-                  onClick={() => setPage(i)}
-                  className={`px-3 py-1 rounded border ${
-                    i === page ? 'bg-ministere-500 text-white border-ministere-500' : 'border-gray-200 hover:bg-gray-50'
-                  }`}
-                >
-                  {i + 1}
-                </button>
+              {buildPageWindow(page, data.totalPages).map((pageIndex, index, pages) => (
+                <React.Fragment key={pageIndex}>
+                  {index > 0 && pageIndex - pages[index - 1] > 1 && (
+                    <span className="px-1 text-gray-400" aria-hidden>
+                      ...
+                    </span>
+                  )}
+                  <button
+                    onClick={() => setPage(pageIndex)}
+                    className={`px-3 py-1 rounded border ${
+                      pageIndex === page ? 'bg-ministere-500 text-white border-ministere-500' : 'border-gray-200 hover:bg-gray-50'
+                    }`}
+                  >
+                    {pageIndex + 1}
+                  </button>
+                </React.Fragment>
               ))}
               <button
                 onClick={() => setPage((p) => Math.min(data.totalPages - 1, p + 1))}

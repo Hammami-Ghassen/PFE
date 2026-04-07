@@ -36,7 +36,7 @@ public class LegacyAdminController {
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String codSoc,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "50") int size) {
         return ResponseEntity.ok(ApiResponse.success(legacyAdminService.searchPersonnel(search, codSoc, page, size)));
     }
 

@@ -22,4 +22,10 @@ public class Personnel {
 
     @Column(name = "\"COD_SOC\"")
     private String codSoc;
+
+    @Column(name = "\"PREN_PERS\"")
+    private String prenPers;
+
+    @Column(name = "\"NOM_PERS\"")
+    private String nomPers;
 }

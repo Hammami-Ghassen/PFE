@@ -2,7 +2,24 @@ import { useEffect } from 'react';
 import { axiosPrivate } from '../api/axios';
 import useAuth from './useAuth';
 import { refreshToken as refreshTokenService } from '../services/authService';
-import { getMe } from '../services/authService';
+import axiosInstance from '../api/axios';
+
+let refreshPromise = null;
+
+const refreshSession = async (existingUser, setSession) => {
+  const tokenData = await refreshTokenService();
+  let user = existingUser;
+
+  if (!user) {
+    const meRes = await axiosInstance.get('/auth/me', {
+      headers: { Authorization: `Bearer ${tokenData.accessToken}` },
+    });
+    user = meRes.data.data;
+  }
+
+  setSession(tokenData.accessToken, user);
+  return tokenData.accessToken;
+};
 
 const useAxiosPrivate = () => {
   const { auth, setSession, clearSession } = useAuth();
@@ -22,16 +39,22 @@ const useAxiosPrivate = () => {
       (response) => response,
       async (error) => {
         const prevRequest = error?.config;
-        if (error?.response?.status === 401 && !prevRequest?._retry) {
+        if (
+          error?.response?.status === 401
+          && !prevRequest?._retry
+          && !String(prevRequest?.url || '').includes('/auth/refresh')
+        ) {
           prevRequest._retry = true;
           try {
-            const data = await refreshTokenService();
-            let user = auth.user;
-            if (!user) {
-              user = await getMe(axiosPrivate);
+            if (!refreshPromise) {
+              refreshPromise = refreshSession(auth.user, setSession).finally(() => {
+                refreshPromise = null;
+              });
             }
-            setSession(data.accessToken, user);
-            prevRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
+
+            const accessToken = await refreshPromise;
+            prevRequest.headers = prevRequest.headers || {};
+            prevRequest.headers.Authorization = `Bearer ${accessToken}`;
             return axiosPrivate(prevRequest);
           } catch (refreshError) {
             clearSession();

@@ -26,6 +26,7 @@ import java.util.Optional;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class OtpAuthService {
 
     private static final int OTP_TTL_SECONDS = 300;
+    private static final int MAX_REFRESH_TOKEN_ATTEMPTS = 3;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final PersonnelRepository personnelRepository;
@@ -90,8 +92,7 @@ public class OtpAuthService {
 
         String appRole = legacyRoleMapper.toAppRole(personnel.getCodUser());
         String accessToken = jwtTokenProvider.generateAccessToken(normalizedMatPers, appRole);
-        String refreshToken = jwtTokenProvider.generateRefreshToken(normalizedMatPers);
-        persistRefreshToken(normalizedMatPers, refreshToken);
+        String refreshToken = issueAndPersistRefreshToken(normalizedMatPers);
 
         AuthResponse authResponse = AuthResponse.builder()
                 .accessToken(accessToken)
@@ -117,6 +118,14 @@ public class OtpAuthService {
         AuthRefreshToken stored = authRefreshTokenRepository.findByTokenHash(tokenHash)
                 .orElseThrow(() -> new UnauthorizedException("Refresh token inconnu."));
 
+        // Guard against legacy/corrupted rows that may exist from previous auth implementations.
+        if (stored.getMatPers() == null || stored.getMatPers().isBlank() || stored.getExpiresAt() == null) {
+            stored.setRevoked(true);
+            stored.setRevokedAt(LocalDateTime.now());
+            authRefreshTokenRepository.save(stored);
+            throw new UnauthorizedException("Session invalide. Reconnexion requise.");
+        }
+
         if (Boolean.TRUE.equals(stored.getRevoked())) {
             authRefreshTokenRepository.revokeAllByMatPers(stored.getMatPers(), LocalDateTime.now());
             throw new UnauthorizedException("Refresh token révoqué. Reconnexion requise.");
@@ -134,9 +143,14 @@ public class OtpAuthService {
                 .orElseThrow(() -> new UnauthorizedException("Personnel introuvable."));
 
         String appRole = legacyRoleMapper.toAppRole(personnel.getCodUser());
-        String newAccessToken = jwtTokenProvider.generateAccessToken(stored.getMatPers(), appRole);
-        String newRefreshToken = jwtTokenProvider.generateRefreshToken(stored.getMatPers());
-        persistRefreshToken(stored.getMatPers(), newRefreshToken);
+        String newAccessToken;
+        String newRefreshToken;
+        try {
+            newAccessToken = jwtTokenProvider.generateAccessToken(stored.getMatPers(), appRole);
+            newRefreshToken = issueAndPersistRefreshToken(stored.getMatPers());
+        } catch (IllegalStateException e) {
+            throw new UnauthorizedException("Session invalide. Reconnexion requise.");
+        }
 
         AuthResponse authResponse = AuthResponse.builder()
                 .accessToken(newAccessToken)
@@ -179,13 +193,38 @@ public class OtpAuthService {
 
         return AuthProfileResponse.builder()
                 .matPers(personnel.getMatPers())
-            .role(legacyRoleMapper.toAppRole(personnel.getCodUser()))
+                .firstName(emptyToNull(personnel.getPrenPers()))
+                .lastName(emptyToNull(personnel.getNomPers()))
+                .fullName(buildFullName(personnel.getPrenPers(), personnel.getNomPers()))
+                .role(legacyRoleMapper.toAppRole(personnel.getCodUser()))
                 .codUser(personnel.getCodUser())
                 .codSoc(personnel.getCodSoc())
                 .establishmentName(societe == null ? null : societe.getLibSoc())
                 .email(adrPers == null ? null : adrPers.getAdrElectronique())
                 .phone(adrPers == null ? null : adrPers.getTelPertPers())
                 .build();
+    }
+
+    private String buildFullName(String firstName, String lastName) {
+        String normalizedFirst = emptyToNull(firstName);
+        String normalizedLast = emptyToNull(lastName);
+        if (normalizedFirst == null && normalizedLast == null) {
+            return null;
+        }
+        if (normalizedFirst == null) {
+            return normalizedLast;
+        }
+        if (normalizedLast == null) {
+            return normalizedFirst;
+        }
+        return normalizedFirst + " " + normalizedLast;
+    }
+
+    private String emptyToNull(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
     }
 
     private void persistRefreshToken(String matPers, String refreshToken) {
@@ -195,6 +234,22 @@ public class OtpAuthService {
         token.setExpiresAt(LocalDateTime.now().plusSeconds(jwtProperties.getRefreshTokenExpiration() / 1000));
         token.setRevoked(false);
         authRefreshTokenRepository.save(token);
+    }
+
+    private String issueAndPersistRefreshToken(String matPers) {
+        for (int attempt = 1; attempt <= MAX_REFRESH_TOKEN_ATTEMPTS; attempt++) {
+            String refreshToken = jwtTokenProvider.generateRefreshToken(matPers);
+            try {
+                persistRefreshToken(matPers, refreshToken);
+                return refreshToken;
+            } catch (DataIntegrityViolationException ex) {
+                if (attempt == MAX_REFRESH_TOKEN_ATTEMPTS) {
+                    throw new IllegalStateException("Impossible de générer un refresh token unique.", ex);
+                }
+                log.warn("Collision TOKEN_HASH detectee pour MAT_PERS {} (tentative {}).", matPers, attempt);
+            }
+        }
+        throw new IllegalStateException("Impossible de générer un refresh token unique.");
     }
 
     private String normalizeMatPers(String matPers) {

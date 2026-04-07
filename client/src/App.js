@@ -5,12 +5,15 @@ import { Toaster } from 'react-hot-toast';
 import PersistLogin from './components/auth/PersistLogin';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
+import RoleRoute from './components/auth/RoleRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 import LoginPage from './pages/auth/LoginPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
+import PowerBIDashboard from './pages/dashboard/PowerBIDashboard';
 import UsersListPage from './pages/admin/UsersListPage';
 import AddEmployeePage from './pages/admin/AddEmployeePage';
+import { ROLES } from './utils/constants';
 
 function App() {
   return (
@@ -32,6 +35,10 @@ function App() {
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+
+              <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.DIRECTEUR]} />}>
+                <Route path="/powerbi-dashboard" element={<PowerBIDashboard />} />
+              </Route>
 
               {/* Admin only */}
               <Route element={<AdminRoute />}>

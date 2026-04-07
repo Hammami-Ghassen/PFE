@@ -4,6 +4,7 @@ import Card from '../../components/ui/Card';
 
 const DashboardPage = () => {
   const { auth } = useAuth();
+  const displayName = auth.user?.fullName || [auth.user?.firstName, auth.user?.lastName].filter(Boolean).join(' ').trim() || auth.user?.matPers;
 
   return (
     <div className="space-y-6">
@@ -11,11 +12,11 @@ const DashboardPage = () => {
         <h2 className="text-2xl font-semibold text-gray-800">
           Bienvenue,{' '}
           <span className="text-ministere-600">
-            {auth.user?.matPers}
+            {displayName}
           </span>
         </h2>
         <p className="text-sm text-gray-500 mt-1">
-          Tableau de bord — Système OTP Ministère de la Santé
+          Mes Informations — Système OTP Ministère de la Santé
         </p>
       </div>
 

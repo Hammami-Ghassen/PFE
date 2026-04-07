@@ -8,7 +8,11 @@ import org.springframework.stereotype.Component;
 @ConfigurationProperties(prefix = "app.jwt")
 @Data
 public class JwtProperties {
-    private String secret;
+    private String privateKey;
+    private String publicKey;
     private long accessTokenExpiration;
     private long refreshTokenExpiration;
+    private String refreshCookieName;
+    private boolean refreshCookieSecure;
+    private String refreshCookieSameSite;
 }

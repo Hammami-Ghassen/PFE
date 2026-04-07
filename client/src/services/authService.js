@@ -1,14 +1,18 @@
 import axiosInstance from '../api/axios';
-import { TOKEN_KEY } from '../utils/constants';
 
-export const login = async (cin, password) => {
-  const response = await axiosInstance.post('/auth/login', { cin, password });
-  return response.data.data; // { accessToken, refreshToken, tokenType, expiresIn, user }
+export const requestOtp = async (matPers, channel) => {
+  const response = await axiosInstance.post('/auth/request-otp', { matPers, channel });
+  return response.data;
 };
 
-export const refreshToken = async (token) => {
-  const response = await axiosInstance.post('/auth/refresh', { refreshToken: token });
-  return response.data.data; // { accessToken, refreshToken, ... }
+export const verifyOtp = async (matPers, otp) => {
+  const response = await axiosInstance.post('/auth/verify-otp', { matPers, otp });
+  return response.data.data; // { accessToken, tokenType, expiresIn, matPers, role }
+};
+
+export const refreshToken = async () => {
+  const response = await axiosInstance.post('/auth/refresh');
+  return response.data.data; // { accessToken, tokenType, expiresIn, matPers, role }
 };
 
 export const logout = async (axiosPrivate) => {

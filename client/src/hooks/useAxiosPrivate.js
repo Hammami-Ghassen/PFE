@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { axiosPrivate } from '../api/axios';
 import useAuth from './useAuth';
 import { refreshToken as refreshTokenService } from '../services/authService';
-import { TOKEN_KEY } from '../utils/constants';
+import { getMe } from '../services/authService';
 
 const useAxiosPrivate = () => {
   const { auth, setSession, clearSession } = useAuth();
@@ -25,14 +25,12 @@ const useAxiosPrivate = () => {
         if (error?.response?.status === 401 && !prevRequest?._retry) {
           prevRequest._retry = true;
           try {
-            const storedRefreshToken = localStorage.getItem(TOKEN_KEY);
-            if (!storedRefreshToken) {
-              clearSession();
-              return Promise.reject(error);
+            const data = await refreshTokenService();
+            let user = auth.user;
+            if (!user) {
+              user = await getMe(axiosPrivate);
             }
-            const data = await refreshTokenService(storedRefreshToken);
-            localStorage.setItem(TOKEN_KEY, data.refreshToken);
-            setSession(data.accessToken, auth.user);
+            setSession(data.accessToken, user);
             prevRequest.headers['Authorization'] = `Bearer ${data.accessToken}`;
             return axiosPrivate(prevRequest);
           } catch (refreshError) {

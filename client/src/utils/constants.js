@@ -2,7 +2,6 @@ export const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8
 
 export const ROLES = {
   ADMIN: 'ADMIN',
-  USER: 'USER',
+  DIRECTEUR: 'DIRECTEUR',
+  EMPLOYEE: 'EMPLOYEE',
 };
-
-export const TOKEN_KEY = 'refreshToken';

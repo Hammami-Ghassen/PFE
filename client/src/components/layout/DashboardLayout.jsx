@@ -5,8 +5,8 @@ import Header from './Header';
 
 const pageTitles = {
   '/dashboard': 'Tableau de bord',
-  '/admin/users': 'Gestion des Utilisateurs',
-  '/admin/users/new': 'Nouvel Utilisateur',
+  '/admin/users': 'Gestion du Personnel',
+  '/admin/employees/new': 'Ajout Employe (UI)',
 };
 
 const DashboardLayout = () => {

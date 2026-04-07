@@ -1,6 +1,5 @@
 import React, { useEffect } from 'react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
-import Button from './Button';
 
 const Modal = ({ isOpen, onClose, title, children, footer }) => {
   useEffect(() => {

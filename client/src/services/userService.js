@@ -1,8 +1,19 @@
-export const getUsers = async (axiosPrivate, { page = 0, size = 10, search = '' } = {}) => {
+export const getUsers = async (axiosPrivate, { page = 0, size = 10, search = '', codSoc = '' } = {}) => {
   const params = { page, size };
   if (search) params.search = search;
-  const response = await axiosPrivate.get('/admin/users', { params });
-  return response.data.data; // Page<UserResponse>
+  if (codSoc) params.codSoc = codSoc;
+  const response = await axiosPrivate.get('/admin/personnel', { params });
+  return response.data.data; // Page<PersonnelAdminResponse>
+};
+
+export const getEstablishments = async (axiosPrivate) => {
+  const response = await axiosPrivate.get('/admin/personnel/establishments');
+  return response.data.data;
+};
+
+export const updatePersonnelRole = async (axiosPrivate, matPers, codUser) => {
+  const response = await axiosPrivate.patch(`/admin/personnel/${matPers}/role`, { codUser });
+  return response.data.data;
 };
 
 export const getUserById = async (axiosPrivate, id) => {
@@ -35,6 +46,7 @@ export const resetUserPassword = async (axiosPrivate, id) => {
 };
 
 export const getUserStats = async (axiosPrivate) => {
-  const response = await axiosPrivate.get('/admin/users/stats');
-  return response.data.data; // { total, active, inactive }
+  const response = await axiosPrivate.get('/admin/personnel', { params: { page: 0, size: 1 } });
+  const total = response.data.data.totalElements || 0;
+  return { total, active: total, inactive: 0 };
 };

@@ -15,10 +15,8 @@ const Header = ({ title }) => {
         <div className="flex items-center gap-2">
           <UserCircleIcon className="w-8 h-8 text-ministere-500" />
           <div className="hidden sm:block leading-tight">
-            <p className="text-sm font-medium text-gray-700">
-              {user?.prenom} {user?.nom}
-            </p>
-            <p className="text-xs text-gray-400">CIN: {user?.cin}</p>
+            <p className="text-sm font-medium text-gray-700">{user?.matPers}</p>
+            <p className="text-xs text-gray-400">COD_USER: {user?.codUser || '—'}</p>
           </div>
         </div>
       </div>

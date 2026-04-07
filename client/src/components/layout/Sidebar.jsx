@@ -3,18 +3,19 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   HomeIcon,
   UsersIcon,
+  UserPlusIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import Logo from './Logo';
 import useAuth from '../../hooks/useAuth';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { logout } from '../../services/authService';
-import toast from 'react-hot-toast';
 import { ROLES } from '../../utils/constants';
 
 const navItems = [
-  { label: 'Tableau de bord', to: '/dashboard', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.USER] },
-  { label: 'Utilisateurs', to: '/admin/users', icon: UsersIcon, roles: [ROLES.ADMIN] },
+  { label: 'Tableau de bord', to: '/dashboard', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.EMPLOYEE] },
+  { label: 'Personnel', to: '/admin/users', icon: UsersIcon, roles: [ROLES.ADMIN] },
+  { label: 'Ajouter Employe', to: '/admin/employees/new', icon: UserPlusIcon, roles: [ROLES.ADMIN] },
 ];
 
 const Sidebar = () => {

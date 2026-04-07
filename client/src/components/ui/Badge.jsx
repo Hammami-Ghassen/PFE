@@ -5,7 +5,9 @@ const Badge = ({ status, label }) => {
     active: 'bg-green-100 text-green-800',
     inactive: 'bg-red-100 text-red-800',
     ADMIN: 'bg-blue-100 text-blue-800',
-    USER: 'bg-gray-100 text-gray-700',
+    DIRECTEUR: 'bg-indigo-100 text-indigo-800',
+    EMPLOYEE: 'bg-gray-100 text-gray-700',
+    AGENT: 'bg-gray-100 text-gray-700',
   };
 
   const key = status ?? label;

@@ -10,8 +10,7 @@ import DashboardLayout from './components/layout/DashboardLayout';
 import LoginPage from './pages/auth/LoginPage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import UsersListPage from './pages/admin/UsersListPage';
-import CreateUserPage from './pages/admin/CreateUserPage';
-import EditUserPage from './pages/admin/EditUserPage';
+import AddEmployeePage from './pages/admin/AddEmployeePage';
 
 function App() {
   return (
@@ -37,8 +36,7 @@ function App() {
               {/* Admin only */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersListPage />} />
-                <Route path="/admin/users/new" element={<CreateUserPage />} />
-                <Route path="/admin/users/:id/edit" element={<EditUserPage />} />
+                <Route path="/admin/employees/new" element={<AddEmployeePage />} />
               </Route>
             </Route>
           </Route>

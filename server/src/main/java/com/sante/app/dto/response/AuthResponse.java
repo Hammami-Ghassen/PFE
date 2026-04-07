@@ -10,5 +10,7 @@ public class AuthResponse {
     private String refreshToken;
     private String tokenType;
     private Long expiresIn;
+    private String matPers;
+    private String role;
     private UserResponse user;
 }

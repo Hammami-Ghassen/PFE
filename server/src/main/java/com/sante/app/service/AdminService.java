@@ -17,14 +17,13 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @RequiredArgsConstructor
-public class LegacyAdminService {
+public class AdminService {
 
     private static final int MIN_PAGE_SIZE = 1;
     private static final int MAX_PAGE_SIZE = 200;
 
     private final PersonnelRepository personnelRepository;
     private final SocieteRepository societeRepository;
-    private final LegacyRoleMapper roleMapper;
 
     @Transactional(readOnly = true)
     public Page<PersonnelAdminResponse> searchPersonnel(String search, String codSoc, int page, int size) {
@@ -39,11 +38,9 @@ public class LegacyAdminService {
 
     @Transactional
     public PersonnelAdminResponse updateRole(String matPers, String codUser) {
-        String normalizedMatPers = matPers.trim().toUpperCase();
-        String normalizedCodUser = codUser.trim().toUpperCase();
-        roleMapper.validateCodUser(normalizedCodUser);
+        String normalizedMatPers = matPers.trim();
 
-        int updated = personnelRepository.updateCodUser(normalizedMatPers, normalizedCodUser);
+        int updated = personnelRepository.updateCodUser(normalizedMatPers, codUser);
         if (updated == 0) {
             throw new ResourceNotFoundException("Personnel introuvable pour MAT_PERS: " + normalizedMatPers);
         }

@@ -7,10 +7,13 @@ public record AuthProfileResponse(
         String lastName,
         String fullName,
         String role,
-        String codUser,
         String codSoc,
         String establishmentName,
         String email,
-        String phone
+        String phone,
+        String adresse,
+        String service,
+        String grade,
+        String posteTravail
 ) {
 }

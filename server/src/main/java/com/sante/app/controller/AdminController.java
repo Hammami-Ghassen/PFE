@@ -4,7 +4,7 @@ import com.sante.app.dto.request.UpdatePersonnelRoleRequest;
 import com.sante.app.dto.response.ApiResponse;
 import com.sante.app.dto.response.EstablishmentResponse;
 import com.sante.app.dto.response.PersonnelAdminResponse;
-import com.sante.app.service.LegacyAdminService;
+import com.sante.app.service.AdminService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -26,9 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
 @Tag(name = "Administration Personnel", description = "Recherche et gestion des rôles (legacy PERSONNEL)")
-public class LegacyAdminController {
+public class AdminController {
 
-    private final LegacyAdminService legacyAdminService;
+    private final AdminService legacyAdminService;
 
     @GetMapping
     @Operation(summary = "Rechercher le personnel par MAT_PERS et COD_SOC")

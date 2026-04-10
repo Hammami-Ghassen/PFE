@@ -32,10 +32,30 @@ const DashboardPage = () => {
             <span className="font-medium">Email :</span> {auth.user?.email || '—'}
           </p>
           <p>
-            <span className="font-medium">Rôle :</span> {auth.user?.role || auth.user?.codUser}
+            <span className="font-medium">Rôle :</span> {auth.user?.role}
           </p>
           <p>
             <span className="font-medium">Etablissement :</span> {auth.user?.establishmentName || '—'}
+          </p>
+        </div>
+      </Card>
+
+      <Card>
+        <h3 className="text-base font-semibold text-gray-700 mb-2">
+          Informations professionnelles
+        </h3>
+        <div className="text-sm text-gray-600 space-y-1">
+          <p>
+            <span className="font-medium">Adresse :</span> {auth.user?.adresse || '—'}
+          </p>
+          <p>
+            <span className="font-medium">Service :</span> {auth.user?.service || '—'}
+          </p>
+          <p>
+            <span className="font-medium">Grade :</span> {auth.user?.grade || '—'}
+          </p>
+          <p>
+            <span className="font-medium">Poste de travail :</span> {auth.user?.posteTravail || '—'}
           </p>
         </div>
       </Card>

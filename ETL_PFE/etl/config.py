@@ -6,7 +6,7 @@ SRC_DB = {
     "port": os.getenv("SRC_DB_PORT", "5432"),
     "name": os.getenv("SRC_DB_NAME", "grh_msp"),
     "user": os.getenv("SRC_DB_USER", "postgres"),
-    "password": os.getenv("SRC_DB_PASSWORD", "Idriss11438193"),
+    "password": os.getenv("SRC_DB_PASSWORD", "1234"),
 }
 
 DW_DB = {
@@ -14,7 +14,7 @@ DW_DB = {
     "port": os.getenv("DW_DB_PORT", "5432"),
     "name": os.getenv("DW_DB_NAME", "dw"),
     "user": os.getenv("DW_DB_USER", "postgres"),
-    "password": os.getenv("DW_DB_PASSWORD", "Idriss11438193"),
+    "password": os.getenv("DW_DB_PASSWORD", "1234"),
 }
 
 SNAPSHOT_DATE = os.getenv("SNAPSHOT_DATE", "2025-12-31")

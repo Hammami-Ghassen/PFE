@@ -13,7 +13,7 @@ import com.sante.app.exception.UnauthorizedException;
 import com.sante.app.model.legacy.Personnel;
 import com.sante.app.repository.AdrPersRepository;
 import com.sante.app.repository.PersonnelRepository;
-import com.sante.app.repository.projection.AuthProfileProjection;
+import com.sante.app.repository.projection.ProfileProjection;
 import com.sante.app.security.jwt.JwtTokenProvider;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -35,8 +35,6 @@ class OtpAuthServiceTest {
     @Mock
     private JwtTokenProvider jwtTokenProvider;
     @Mock
-    private LegacyRoleMapper legacyRoleMapper;
-    @Mock
     private OtpStoreService otpStoreService;
     @Mock
     private AuthTokenService authTokenService;
@@ -49,7 +47,6 @@ class OtpAuthServiceTest {
                 personnelRepository,
                 adrPersRepository,
                 jwtTokenProvider,
-                legacyRoleMapper,
                 otpStoreService,
                 authTokenService);
     }
@@ -66,11 +63,10 @@ class OtpAuthServiceTest {
         String storedHash = sha256(otp);
         when(personnelRepository.findById(matPers)).thenReturn(Optional.of(personnel));
         when(otpStoreService.findOtpHash(matPers)).thenReturn(storedHash);
-        when(legacyRoleMapper.toAppRole("AGENT")).thenReturn("EMPLOYEE");
-        when(authTokenService.generateAccessToken(matPers, "EMPLOYEE")).thenReturn("access-token");
+        when(authTokenService.generateAccessToken(matPers, "AGENT")).thenReturn("access-token");
         when(authTokenService.issueAndPersistRefreshToken(matPers)).thenReturn("refresh-token");
-        when(authTokenService.toBearerAuthResponse("access-token", matPers, "EMPLOYEE"))
-                .thenReturn(new AuthResponse("access-token", null, "Bearer", 900L, matPers, "EMPLOYEE"));
+        when(authTokenService.toBearerAuthResponse("access-token", matPers, "AGENT"))
+            .thenReturn(new AuthResponse("access-token", null, "Bearer", 900L, matPers, "AGENT"));
 
         OtpAuthService.TokenSession session = otpAuthService.verifyOtp(matPers, otp);
 
@@ -80,7 +76,7 @@ class OtpAuthServiceTest {
         verify(personnelRepository).findById("00091651");
         verify(otpStoreService).findOtpHash("00091651");
         verify(otpStoreService).deleteOtp("00091651");
-        verify(authTokenService).generateAccessToken(eq("00091651"), eq("EMPLOYEE"));
+        verify(authTokenService).generateAccessToken(eq("00091651"), eq("AGENT"));
     }
 
     @Test
@@ -93,12 +89,11 @@ class OtpAuthServiceTest {
         personnel.setCodUser("ADMIN");
 
         when(personnelRepository.findById(matPers)).thenReturn(Optional.of(personnel));
-        when(legacyRoleMapper.toAppRole("ADMIN")).thenReturn("ADMIN");
         when(authTokenService.generateAccessToken(any(), any())).thenReturn("access-token");
         when(authTokenService.issueAndPersistRefreshToken(any())).thenReturn("refresh-token");
         when(authTokenService.toBearerAuthResponse(any(), any(), any()))
                 .thenReturn(new AuthResponse("access-token", null, "Bearer", 900L, matPers, "ADMIN"));
-        when(otpStoreService.findOtpHash(matPers)).thenReturn(sha256(otp), null);
+        when(otpStoreService.findOtpHash(matPers)).thenReturn(sha256(otp)).thenReturn(null);
 
         otpAuthService.verifyOtp(matPers, otp);
 
@@ -110,7 +105,7 @@ class OtpAuthServiceTest {
     void getProfile_mapsProjectionFieldsWithoutChangingContract() {
         String matPers = "00091651";
 
-        AuthProfileProjection projection = org.mockito.Mockito.mock(AuthProfileProjection.class);
+        ProfileProjection projection = org.mockito.Mockito.mock(ProfileProjection.class);
         when(projection.getMatPers()).thenReturn(matPers);
         when(projection.getFirstName()).thenReturn("Ali");
         when(projection.getLastName()).thenReturn("Ben Salah");
@@ -119,9 +114,14 @@ class OtpAuthServiceTest {
         when(projection.getEstablishmentName()).thenReturn("Hopital Central");
         when(projection.getEmail()).thenReturn("ali@example.com");
         when(projection.getPhone()).thenReturn("20111222");
+        when(projection.getRue()).thenReturn("Rue Principale");
+        when(projection.getLibDeleg()).thenReturn("Tunis Centre");
+        when(projection.getLibGouv()).thenReturn("Tunis");
+        when(projection.getService()).thenReturn("Ressources Humaines");
+        when(projection.getGrade()).thenReturn("A1");
+        when(projection.getPosteTravail()).thenReturn("Charge de dossier");
 
         when(personnelRepository.findAuthProfileByMatPers(matPers)).thenReturn(projection);
-        when(legacyRoleMapper.toAppRole("AGENT")).thenReturn("EMPLOYEE");
 
         var profile = otpAuthService.getProfile(matPers);
 
@@ -129,12 +129,15 @@ class OtpAuthServiceTest {
         assertEquals("Ali", profile.firstName());
         assertEquals("Ben Salah", profile.lastName());
         assertEquals("Ali Ben Salah", profile.fullName());
-        assertEquals("EMPLOYEE", profile.role());
-        assertEquals("AGENT", profile.codUser());
+        assertEquals("AGENT", profile.role());
         assertEquals("010", profile.codSoc());
         assertEquals("Hopital Central", profile.establishmentName());
         assertEquals("ali@example.com", profile.email());
         assertEquals("20111222", profile.phone());
+        assertEquals("Rue Principale, Tunis Centre, Tunis", profile.adresse());
+        assertEquals("Ressources Humaines", profile.service());
+        assertEquals("A1", profile.grade());
+        assertEquals("Charge de dossier", profile.posteTravail());
     }
 
     @Test

@@ -64,7 +64,7 @@ class AuthControllerTest {
         when(jwtProperties.getRefreshCookieSameSite()).thenReturn("Strict");
         when(jwtProperties.getRefreshTokenExpiration()).thenReturn(604800000L);
 
-        AuthResponse authResponse = new AuthResponse("access-token", null, "Bearer", 900L, "00091651", "EMPLOYEE");
+        AuthResponse authResponse = new AuthResponse("access-token", null, "Bearer", 900L, "00091651", "AGENT");
         OtpAuthService.TokenSession session = new OtpAuthService.TokenSession(authResponse, "refresh-token-value");
         when(otpAuthService.verifyOtp(eq("00091651"), eq("123456"))).thenReturn(session);
 
@@ -91,12 +91,15 @@ class AuthControllerTest {
                 "Ali",
                 "Ben Salah",
                 "Ali Ben Salah",
-                "EMPLOYEE",
                 "AGENT",
                 "010",
                 "Hopital Central",
                 "ali@example.com",
-                "20111222");
+            "20111222",
+            "Rue Principale, Tunis Centre, Tunis",
+            "Ressources Humaines",
+            "A1",
+            "Charge de dossier");
         when(otpAuthService.getProfile("00091651")).thenReturn(profile);
 
         ResponseEntity<ApiResponse<AuthProfileResponse>> response = controller.me(authentication);

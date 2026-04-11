@@ -1,11 +1,11 @@
 # OTP Migration Summary and Current Architecture
 
 ## 1. Executive Summary
-This project has been migrated from a classic email/password + JWT flow toward a legacy-compatible OTP authentication model centered on `MAT_PERS` with Redis-backed OTP storage.
+This project has been migrated from a classic email/password + JWT flow toward OTP authentication model centered on `MAT_PERS` with Redis-backed OTP storage.
 
 The implementation now uses:
 - `MAT_PERS` as login identifier (strict 8-digit varchar, leading zeros preserved)
-- Legacy PostgreSQL quoted-uppercase tables (`"PERSONNEL"`, `"ADR_PERS"`, `"SOCIETE"`)
+- PostgreSQL quoted-uppercase tables (`"PERSONNEL"`, `"ADR_PERS"`, `"SOCIETE"`)
 - Redis for ephemeral OTP hash storage with a 300-second TTL
 - JWT-based stateless authorization and refresh token persistence (hashed)
 - Server-side pagination for personnel search (`Pageable`, default size `50`)
@@ -23,11 +23,10 @@ The implementation now uses:
 - Added real local env files:
   - `server/.env`
   - `client/.env`
-- Ensured `.env*` is ignored in `server/.gitignore`.
-- Removed bootstrap admin seeding in `server/src/main/java/com/sante/app/SanteApplication.java` to comply with legacy DB constraints.
+- Ensured `.env` is ignored in `server/.gitignore`.
 
-### 2.2 Legacy DB mappings and repositories
-Added legacy-focused entities with strict quoted-uppercase mappings:
+### 2.2 DB mappings and repositories
+Added entities with strict quoted-uppercase mappings:
 - `server/src/main/java/com/sante/app/model/legacy/Personnel.java`
 - `server/src/main/java/com/sante/app/model/legacy/AdrPers.java`
 - `server/src/main/java/com/sante/app/model/legacy/Societe.java`
@@ -48,13 +47,11 @@ Added request/response DTOs:
 - `UpdatePersonnelRoleRequest`
 - `AuthProfileResponse`, `PersonnelAdminResponse`, `EstablishmentResponse`
 
-Added role mapper service:
-- `server/src/main/java/com/sante/app/service/LegacyRoleMapper.java`
+Current role model:
+- Role values are consumed directly from database `COD_USER` (`ADMIN`, `DIRECTEUR`, `AGENT`)
+- No role-mapper layer and no `EMPLOYEE` translation in backend flow
+- `AuthProfileResponse` exposes `role` only (no duplicated `codUser` field)
 
-Role mapping currently used:
-- `ADMIN` -> `ADMIN`
-- `DIRECTEUR` -> `DIRECTEUR`
-- `AGENT` -> `EMPLOYEE`
 
 Added OTP/auth core service:
 - `server/src/main/java/com/sante/app/service/OtpAuthService.java`
@@ -67,7 +64,7 @@ Key behavior in `OtpAuthService`:
 - OTP key deleted immediately upon successful verification (anti-replay)
 - Access token + refresh token issuance after OTP verification
 - Refresh token hash persistence and rotation logic
-- `GET /api/auth/me` profile enrichment with `firstName`, `lastName`, and `fullName`
+- `GET /api/auth/me` profile enrichment with `firstName`, `lastName`, `fullName`, `adresse`, `service`, `grade`, and `posteTravail`
 
 ### 2.4 Controllers and endpoints
 Reworked auth controller to OTP/cookie-centric flow:
@@ -81,7 +78,7 @@ Endpoints:
 - `GET /api/auth/me`
 
 Added admin personnel controller:
-- `server/src/main/java/com/sante/app/controller/LegacyAdminController.java`
+- `server/src/main/java/com/sante/app/controller/AdminController.java`
 
 Admin endpoints:
 - `GET /api/admin/personnel` (search/filter + pageable metadata)
@@ -113,7 +110,7 @@ Login flow replacement:
 - New 2-step flow (MAT_PERS + channel -> OTP verify)
 
 Admin UI updates:
-- `client/src/pages/admin/UsersListPage.jsx` (legacy personnel management)
+- `client/src/pages/admin/UsersListPage.jsx` (personnel management)
 - `client/src/pages/admin/AddEmployeePage.jsx` (UI-only mocked submit)
 - `client/src/services/userService.js`
 - `client/src/App.js` routing
@@ -127,7 +124,7 @@ Admin UI updates:
 
 ### 2.7 Operational/runtime fixes
 - Added dedicated Redis unavailability handling in:
-  - `server/src/main/java/com/sante/app/exception/GlobalExceptionHandler.java`
+   - `server/src/main/java/com/sante/app/exception/GlobalExceptionHandler.java`
   - returns `503` with OTP service unavailable message
 - Set `spring.jpa.open-in-view: false` to reduce JPA warning noise
 - Added logger-level tuning for known non-blocking Spring Security warning
@@ -144,11 +141,21 @@ Applied in:
 - `GET /api/admin/personnel` now defaults to `size=50` and still returns `Page<PersonnelAdminResponse>`.
 - Frontend personnel list now uses compact page-window rendering based on backend `totalPages` to support large page counts without broken arrows.
 - Users list data fetch now has in-flight request deduplication guards to prevent accidental client-side request storms.
-- `/auth/me` now includes profile names from legacy `"PERSONNEL"` columns `"PREN_PERS"` and `"NOM_PERS"`.
+- `/auth/me` now includes profile names from `"PERSONNEL"` columns `"PREN_PERS"` and `"NOM_PERS"`.
 - Refresh flow now guards against malformed legacy refresh-token rows (`MAT_PERS` / `EXPIRES_AT` null) and returns controlled unauthorized responses instead of internal server errors.
 - Refresh JWT generation now includes a unique `jti` claim and persistence retries to avoid `TOKEN_HASH` unique-constraint collisions.
+- Authentication and profile response now use `COD_USER` directly as `role` (no mapper/translation and no `codUser` duplication in profile payload).
 - Existing `/dashboard` section is labeled `Mes Informations`.
 - New `Tableau de bord` page (`/powerbi-dashboard`) has a PowerBI placeholder and is visible/accessible only for `ADMIN` and `DIRECTEUR`.
+
+### 2.10 Profile enrichment (legacy SQL joins)
+- `/api/auth/me` now uses a dedicated native projection query in `PersonnelRepository` (no JPA relations added on entities).
+- Query joins legacy tables with quoted uppercase identifiers: `"PERSONNEL"`, `"ADR_PERS"`, `"DELEGATION"`, `"GOUVERNORAT"`, `"SERVICE"`, `"POSTE_TRAV"`, `"GRADE"`, and `"SOCIETE"`.
+- Address format is computed from joined fields as: `{RUE}, {LIB_DELEG}, {LIB_GOUV}` with null/blank-safe concatenation.
+- Service label is now hierarchical:
+   - if `SER_COD_SERV` is null: show current service only (`LIB_SERV`)
+   - else: show `{sous_service}, {service_mere}` using self-join on `"SERVICE"` (`COD_SERV` -> `SER_COD_SERV`).
+- `POSTE_TRAV` join was aligned to legacy table name `"POSTE_TRAV"` and key `COD_POST`.
 
 ## 3. Current Project Architecture
 
@@ -162,9 +169,9 @@ Layers:
 1. `controller/`:
    - HTTP interface and endpoint contracts
 2. `service/`:
-   - business logic (OTP workflow, token lifecycle, role mapping)
+   - business logic (OTP workflow, token lifecycle, direct role usage from `COD_USER`)
 3. `repository/`:
-   - data access to legacy PostgreSQL and refresh token storage
+   - data access to PostgreSQL and refresh token storage
 4. `model/`:
    - JPA entities for legacy tables and auth token persistence
 5. `security/`:
@@ -203,8 +210,9 @@ Session behavior:
 ### 4.1 Backend components
 - `AuthController`: entrypoint for OTP request/verify, refresh, logout, profile
 - `OtpAuthService`: core OTP generation/validation + token issuing logic
-- `LegacyAdminController`: admin-only personnel operations
-- `LegacyAdminService`: search/filter/update role logic against legacy tables
+- `AdminController`: admin-only personnel operations
+- `AdminService`: search/filter/update role logic
+- `AuthTokenService`: access/refresh token generation, hashing, persistence and revocation
 - `JwtTokenProvider`: signing and parsing JWT tokens
 - `JwtAuthenticationFilter`: populates Spring Security context from JWT
 - `GlobalExceptionHandler`: consistent API error handling
@@ -222,7 +230,7 @@ Session behavior:
 ### 5.1 OTP request flow
 1. User enters `MAT_PERS` + channel in frontend login step 1.
 2. Frontend calls `POST /api/auth/request-otp`.
-3. Backend validates `MAT_PERS` (`\d{8}`), loads personnel/contact from legacy tables.
+3. Backend validates `MAT_PERS` (`\d{8}`), then loads personnel and contact data.
 4. Backend generates OTP (CSPRNG), hashes it, stores hash in Redis with 300s TTL.
 5. Backend logs mock dispatch (currently no real SMTP/SMS provider wired).
 6. Backend returns success response.
@@ -237,6 +245,13 @@ Session behavior:
 7. Refresh token is written as secure cookie; access token returned in response body.
 8. Frontend stores access token in auth context and calls `/api/auth/me` for profile.
 
+### 5.6 Profile data hydration flow (`/api/auth/me`)
+1. Frontend calls `GET /api/auth/me` with bearer access token.
+2. Backend resolves `MAT_PERS` from JWT principal.
+3. Repository executes one native SQL query with LEFT JOINs across personnel, address, delegation, gouvernorat, service (including parent service), poste, grade, and societe.
+4. Service layer formats `adresse` and normalizes empty values to `null`.
+5. API returns enriched profile payload consumed by `DashboardPage` (`Mes Informations`).
+
 ### 5.3 Authenticated request flow
 1. Frontend sends bearer access token via Axios interceptor.
 2. Backend `JwtAuthenticationFilter` validates token and sets authorities.
@@ -248,7 +263,7 @@ Session behavior:
 ### 5.4 Admin personnel flow
 1. Admin opens personnel page.
 2. Frontend requests personnel list and establishments.
-3. Backend queries legacy tables with search/filter (`MAT_PERS`, `COD_SOC`) and returns paged results (`content`, `totalPages`, `totalElements`, ...).
+3. Backend queries tables with search/filter (`MAT_PERS`, `COD_SOC`) and returns paged results (`content`, `totalPages`, `totalElements`, ...).
 4. Establishment filter list is sorted by `COD_SOC` ascending.
 5. Frontend renders list and allows role update (`COD_USER`).
 6. Frontend pagination uses server metadata and supports deep navigation across many pages.
@@ -258,12 +273,12 @@ Session behavior:
 1. `/dashboard` is the authenticated user information page (`Mes Informations`).
 2. `/powerbi-dashboard` is a dedicated BI dashboard placeholder route.
 3. Sidebar shows `Tableau de bord` only for `ADMIN` and `DIRECTEUR`.
-4. Route-level guard redirects `EMPLOYEE` users away from `/powerbi-dashboard`.
+4. Route-level guard redirects `AGENT` users away from `/powerbi-dashboard`.
 
 ## 6. Current Known Limitations
 1. OTP delivery is still mocked (log-based), not integrated with real SMTP/SMS gateways.
 2. JWT key handling depends on correct RSA key material in env vars; invalid key format causes token generation failures.
-3. Running backend currently requires proper Maven setup (wrapper files are not present in repository root server folder).
+3. Running backend requires valid runtime dependencies/configuration (PostgreSQL legacy schema, Redis, JWT key material, and environment variables).
 4. PowerBI integration is currently a UI placeholder pending embed URL/token/workspace configuration.
 
 ## 7. Recommended Next Steps
@@ -282,13 +297,14 @@ Session behavior:
 - Backend OTP/Auth:
   - `server/src/main/java/com/sante/app/controller/AuthController.java`
   - `server/src/main/java/com/sante/app/service/OtpAuthService.java`
+  - `server/src/main/java/com/sante/app/service/AuthTokenService.java`
   - `server/src/main/java/com/sante/app/security/jwt/JwtTokenProvider.java`
   - `server/src/main/java/com/sante/app/security/jwt/JwtAuthenticationFilter.java`
-- Backend Admin Legacy:
-  - `server/src/main/java/com/sante/app/controller/LegacyAdminController.java`
-  - `server/src/main/java/com/sante/app/service/LegacyAdminService.java`
+- Backend Admin:
+  - `server/src/main/java/com/sante/app/controller/AdminController.java`
+  - `server/src/main/java/com/sante/app/service/AdminService.java`
   - `server/src/main/java/com/sante/app/repository/PersonnelRepository.java`
-   - `server/src/main/java/com/sante/app/repository/SocieteRepository.java`
+  - `server/src/main/java/com/sante/app/repository/SocieteRepository.java`
 - Frontend Auth/UI:
   - `client/src/pages/auth/LoginPage.jsx`
   - `client/src/hooks/useAxiosPrivate.js`

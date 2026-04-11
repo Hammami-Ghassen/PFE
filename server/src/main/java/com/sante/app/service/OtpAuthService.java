@@ -10,13 +10,14 @@ import com.sante.app.model.legacy.AdrPers;
 import com.sante.app.model.legacy.Personnel;
 import com.sante.app.repository.AdrPersRepository;
 import com.sante.app.repository.PersonnelRepository;
-import com.sante.app.repository.projection.AuthProfileProjection;
+import com.sante.app.repository.projection.ProfileProjection;
 import com.sante.app.security.jwt.JwtTokenProvider;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
@@ -34,7 +35,6 @@ public class OtpAuthService {
     private final PersonnelRepository personnelRepository;
     private final AdrPersRepository adrPersRepository;
     private final JwtTokenProvider jwtTokenProvider;
-    private final LegacyRoleMapper legacyRoleMapper;
     private final OtpStoreService otpStoreService;
     private final AuthTokenService authTokenService;
 
@@ -43,7 +43,7 @@ public class OtpAuthService {
     @Transactional(readOnly = true)
     public void requestOtp(String matPers, OtpChannel channel) {
         String normalizedMatPers = normalizeMatPers(matPers);
-        Personnel personnel = personnelRepository.findById(normalizedMatPers)
+        personnelRepository.findById(normalizedMatPers)
                 .orElseThrow(() -> new UnauthorizedException("MAT_PERS introuvable."));
 
         AdrPers adrPers = adrPersRepository.findById(normalizedMatPers)
@@ -57,9 +57,6 @@ public class OtpAuthService {
 
         log.info("Mock OTP dispatch via {} to {} for MAT_PERS {}", channel, maskTarget(target), normalizedMatPers);
         log.debug("DEV OTP for MAT_PERS {}: {}", normalizedMatPers, otp);
-
-        // Keep role lookup touched for early validation during request phase.
-        legacyRoleMapper.toAppRole(personnel.getCodUser());
     }
 
     @Transactional
@@ -80,7 +77,7 @@ public class OtpAuthService {
 
         otpStoreService.deleteOtp(normalizedMatPers);
 
-        String appRole = legacyRoleMapper.toAppRole(personnel.getCodUser());
+        String appRole = personnel.getCodUser();
         String accessToken = authTokenService.generateAccessToken(normalizedMatPers, appRole);
         String refreshToken = authTokenService.issueAndPersistRefreshToken(normalizedMatPers);
         AuthResponse authResponse = authTokenService.toBearerAuthResponse(accessToken, normalizedMatPers, appRole);
@@ -120,7 +117,7 @@ public class OtpAuthService {
         Personnel personnel = personnelRepository.findById(stored.getMatPers())
                 .orElseThrow(() -> new UnauthorizedException("Personnel introuvable."));
 
-        String appRole = legacyRoleMapper.toAppRole(personnel.getCodUser());
+        String appRole = personnel.getCodUser();
         String newAccessToken;
         String newRefreshToken;
         try {
@@ -153,7 +150,7 @@ public class OtpAuthService {
     @Transactional(readOnly = true)
     public AuthProfileResponse getProfile(String matPers) {
         String normalizedMatPers = normalizeMatPers(matPers);
-        AuthProfileProjection profile = personnelRepository.findAuthProfileByMatPers(normalizedMatPers);
+        ProfileProjection profile = personnelRepository.findAuthProfileByMatPers(normalizedMatPers);
         if (profile == null) {
             throw new UnauthorizedException("Personnel introuvable.");
         }
@@ -163,12 +160,33 @@ public class OtpAuthService {
                 emptyToNull(profile.getFirstName()),
                 emptyToNull(profile.getLastName()),
                 buildFullName(profile.getFirstName(), profile.getLastName()),
-                legacyRoleMapper.toAppRole(profile.getCodUser()),
                 profile.getCodUser(),
                 profile.getCodSoc(),
                 profile.getEstablishmentName(),
                 profile.getEmail(),
-                profile.getPhone());
+                profile.getPhone(),
+                buildAdresse(profile.getRue(), profile.getLibDeleg(), profile.getLibGouv()),
+                emptyToNull(profile.getService()),
+                emptyToNull(profile.getGrade()),
+                emptyToNull(profile.getPosteTravail()));
+    }
+
+    private String buildAdresse(String rue, String libDeleg, String libGouv) {
+        ArrayList<String> parts = new ArrayList<>(3);
+        addIfPresent(parts, rue);
+        addIfPresent(parts, libDeleg);
+        addIfPresent(parts, libGouv);
+        if (parts.isEmpty()) {
+            return null;
+        }
+        return String.join(", ", parts);
+    }
+
+    private void addIfPresent(ArrayList<String> parts, String value) {
+        String normalized = emptyToNull(value);
+        if (normalized != null) {
+            parts.add(normalized);
+        }
     }
 
     private String buildFullName(String firstName, String lastName) {

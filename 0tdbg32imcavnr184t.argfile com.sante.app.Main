@@ -1,0 +1,553 @@
+[1mdiff --git a/server/.gitignore b/server/.gitignore[m
+[1mindex 5df94c3..8709664 100644[m
+[1m--- a/server/.gitignore[m
+[1m+++ b/server/.gitignore[m
+[36m@@ -35,7 +35,7 @@[m [mbuild/[m
+ .vscode/[m
+ [m
+ # env files[m
+[31m-.env*[m
+[32m+[m[32m.env[m
+ [m
+ ### Mac OS ###[m
+ .DS_Store[m
+[1mdiff --git a/server/src/main/java/com/sante/app/SanteApplication.java b/server/src/main/java/com/sante/app/SanteApplication.java[m
+[1mdeleted file mode 100644[m
+[1mindex 430d144..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/SanteApplication.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,14 +0,0 @@[m
+[31m-package com.sante.app;[m
+[31m-[m
+[31m-import org.springframework.boot.SpringApplication;[m
+[31m-import org.springframework.boot.autoconfigure.SpringBootApplication;[m
+[31m-import org.springframework.boot.context.properties.EnableConfigurationProperties;[m
+[31m-[m
+[31m-@SpringBootApplication[m
+[31m-@EnableConfigurationProperties[m
+[31m-public class SanteApplication {[m
+[31m-[m
+[31m-    public static void main(String[] args) {[m
+[31m-        SpringApplication.run(SanteApplication.class, args);[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/config/CorsConfig.java b/server/src/main/java/com/sante/app/config/CorsConfig.java[m
+[1mdeleted file mode 100644[m
+[1mindex 38da7ee..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/config/CorsConfig.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,30 +0,0 @@[m
+[31m-package com.sante.app.config;[m
+[31m-[m
+[31m-import org.springframework.beans.factory.annotation.Value;[m
+[31m-import org.springframework.context.annotation.Bean;[m
+[31m-import org.springframework.context.annotation.Configuration;[m
+[31m-import org.springframework.web.cors.CorsConfiguration;[m
+[31m-import org.springframework.web.cors.CorsConfigurationSource;[m
+[31m-import org.springframework.web.cors.UrlBasedCorsConfigurationSource;[m
+[31m-[m
+[31m-import java.util.List;[m
+[31m-[m
+[31m-@Configuration[m
+[31m-public class CorsConfig {[m
+[31m-[m
+[31m-    @Value("${app.cors.allowed-origins}")[m
+[31m-    private String allowedOrigins;[m
+[31m-[m
+[31m-    @Bean[m
+[31m-    public CorsConfigurationSource corsConfigurationSource() {[m
+[31m-        CorsConfiguration config = new CorsConfiguration();[m
+[31m-        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));[m
+[31m-        config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));[m
+[31m-        config.setAllowedHeaders(List.of("*"));[m
+[31m-        config.setAllowCredentials(true);[m
+[31m-[m
+[31m-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();[m
+[31m-        source.registerCorsConfiguration("/api/**", config);[m
+[31m-        return source;[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/config/OpenApiConfig.java b/server/src/main/java/com/sante/app/config/OpenApiConfig.java[m
+[1mdeleted file mode 100644[m
+[1mindex 8318268..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/config/OpenApiConfig.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,30 +0,0 @@[m
+[31m-package com.sante.app.config;[m
+[31m-[m
+[31m-import io.swagger.v3.oas.models.Components;[m
+[31m-import io.swagger.v3.oas.models.OpenAPI;[m
+[31m-import io.swagger.v3.oas.models.info.Info;[m
+[31m-import io.swagger.v3.oas.models.security.SecurityRequirement;[m
+[31m-import io.swagger.v3.oas.models.security.SecurityScheme;[m
+[31m-import org.springframework.context.annotation.Bean;[m
+[31m-import org.springframework.context.annotation.Configuration;[m
+[31m-[m
+[31m-@Configuration[m
+[31m-public class OpenApiConfig {[m
+[31m-[m
+[31m-    @Bean[m
+[31m-    public OpenAPI openAPI() {[m
+[31m-        final String securitySchemeName = "bearerAuth";[m
+[31m-        return new OpenAPI()[m
+[31m-                .info(new Info()[m
+[31m-                        .title("Ministère de la Santé — API")[m
+[31m-                        .description("Système de Gestion des Utilisateurs")[m
+[31m-                        .version("1.0.0"))[m
+[31m-                .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))[m
+[31m-                .components(new Components()[m
+[31m-                        .addSecuritySchemes(securitySchemeName, new SecurityScheme()[m
+[31m-                                .name(securitySchemeName)[m
+[31m-                                .type(SecurityScheme.Type.HTTP)[m
+[31m-                                .scheme("bearer")[m
+[31m-                                .bearerFormat("JWT")));[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/config/SecurityConfig.java b/server/src/main/java/com/sante/app/config/SecurityConfig.java[m
+[1mdeleted file mode 100644[m
+[1mindex 28f217c..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/config/SecurityConfig.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,43 +0,0 @@[m
+[31m-package com.sante.app.config;[m
+[31m-[m
+[31m-import com.sante.app.security.AuthEntryPoint;[m
+[31m-import com.sante.app.security.jwt.JwtAuthenticationFilter;[m
+[31m-import lombok.RequiredArgsConstructor;[m
+[31m-import org.springframework.context.annotation.Bean;[m
+[31m-import org.springframework.context.annotation.Configuration;[m
+[31m-import org.springframework.security.config.Customizer;[m
+[31m-import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;[m
+[31m-import org.springframework.security.config.annotation.web.builders.HttpSecurity;[m
+[31m-import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;[m
+[31m-import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;[m
+[31m-import org.springframework.security.config.http.SessionCreationPolicy;[m
+[31m-import org.springframework.security.web.SecurityFilterChain;[m
+[31m-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;[m
+[31m-[m
+[31m-@Configuration[m
+[31m-@EnableWebSecurity[m
+[31m-@EnableMethodSecurity[m
+[31m-@RequiredArgsConstructor[m
+[31m-public class SecurityConfig {[m
+[31m-[m
+[31m-    private final AuthEntryPoint authEntryPoint;[m
+[31m-    private final JwtAuthenticationFilter jwtAuthenticationFilter;[m
+[31m-[m
+[31m-    // Uses lambda DSL throughout to keep security rules concise and explicit.[m
+[31m-    @Bean[m
+[31m-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {[m
+[31m-        http[m
+[31m-            .csrf(AbstractHttpConfigurer::disable)[m
+[31m-            .cors(Customizer.withDefaults())[m
+[31m-            .exceptionHandling(ex -> ex.authenticationEntryPoint(authEntryPoint))[m
+[31m-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))[m
+[31m-            .authorizeHttpRequests(auth -> auth[m
+[31m-                .requestMatchers("/api/auth/request-otp", "/api/auth/verify-otp", "/api/auth/refresh").permitAll()[m
+[31m-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()[m
+[31m-                .anyRequest().authenticated()[m
+[31m-            )[m
+[31m-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);[m
+[31m-[m
+[31m-        return http.build();[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/controller/AuthController.java b/server/src/main/java/com/sante/app/controller/AuthController.java[m
+[1mdeleted file mode 100644[m
+[1mindex a74d5d1..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/controller/AuthController.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,97 +0,0 @@[m
+[31m-package com.sante.app.controller;[m
+[31m-[m
+[31m-import com.sante.app.dto.request.RequestOtpRequest;[m
+[31m-import com.sante.app.dto.request.VerifyOtpRequest;[m
+[31m-import com.sante.app.dto.response.ApiResponse;[m
+[31m-import com.sante.app.dto.response.AuthProfileResponse;[m
+[31m-import com.sante.app.dto.response.AuthResponse;[m
+[31m-import com.sante.app.exception.UnauthorizedException;[m
+[31m-import com.sante.app.security.jwt.JwtProperties;[m
+[31m-import com.sante.app.service.OtpAuthService;[m
+[31m-import io.swagger.v3.oas.annotations.Operation;[m
+[31m-import io.swagger.v3.oas.annotations.tags.Tag;[m
+[31m-import jakarta.validation.Valid;[m
+[31m-import lombok.RequiredArgsConstructor;[m
+[31m-import org.springframework.http.HttpHeaders;[m
+[31m-import org.springframework.http.ResponseCookie;[m
+[31m-import org.springframework.http.ResponseEntity;[m
+[31m-import org.springframework.security.core.Authentication;[m
+[31m-import org.springframework.web.bind.annotation.*;[m
+[31m-[m
+[31m-import java.time.Duration;[m
+[31m-[m
+[31m-@RestController[m
+[31m-@RequestMapping("/api/auth")[m
+[31m-@RequiredArgsConstructor[m
+[31m-@Tag(name = "Authentification", description = "Endpoints d'authentification")[m
+[31m-public class AuthController {[m
+[31m-[m
+[31m-    private final OtpAuthService otpAuthService;[m
+[31m-    private final JwtProperties jwtProperties;[m
+[31m-[m
+[31m-    @PostMapping("/request-otp")[m
+[31m-    @Operation(summary = "Demander un OTP avec MAT_PERS")[m
+[31m-    public ResponseEntity<ApiResponse<Void>> requestOtp(@Valid @RequestBody RequestOtpRequest request) {[m
+[31m-        otpAuthService.requestOtp(request.matPers(), request.channel());[m
+[31m-        return ResponseEntity.ok(ApiResponse.success("OTP envoyé avec succès.", null));[m
+[31m-    }[m
+[31m-[m
+[31m-    @PostMapping("/verify-otp")[m
+[31m-    @Operation(summary = "Vérifier OTP et ouvrir une session")[m
+[31m-    public ResponseEntity<ApiResponse<AuthResponse>> verifyOtp(@Valid @RequestBody VerifyOtpRequest request) {[m
+[31m-        // Controller stays thin: request parsing + cookie headers while auth workflow lives in service layer.[m
+[31m-        OtpAuthService.TokenSession session = otpAuthService.verifyOtp(request.matPers(), request.otp());[m
+[31m-        return ResponseEntity.ok()[m
+[31m-                .header(HttpHeaders.SET_COOKIE, buildRefreshCookie(session.refreshToken()).toString())[m
+[31m-                .body(ApiResponse.success(session.authResponse()));[m
+[31m-    }[m
+[31m-[m
+[31m-    @PostMapping("/refresh")[m
+[31m-    @Operation(summary = "Renouveler l'access token via cookie HttpOnly")[m
+[31m-    public ResponseEntity<ApiResponse<AuthResponse>> refresh([m
+[31m-            @CookieValue(name = "${app.jwt.refresh-cookie-name}", required = false) String refreshToken) {[m
+[31m-        if (refreshToken == null || refreshToken.isBlank()) {[m
+[31m-            throw new UnauthorizedException("Refresh token manquant.");[m
+[31m-        }[m
+[31m-        OtpAuthService.TokenSession session = otpAuthService.refresh(refreshToken);[m
+[31m-        return ResponseEntity.ok()[m
+[31m-                .header(HttpHeaders.SET_COOKIE, buildRefreshCookie(session.refreshToken()).toString())[m
+[31m-                .body(ApiResponse.success(session.authResponse()));[m
+[31m-    }[m
+[31m-[m
+[31m-    @GetMapping("/me")[m
+[31m-    @Operation(summary = "Profil connecté (MAT_PERS)")[m
+[31m-    public ResponseEntity<ApiResponse<AuthProfileResponse>> me(Authentication authentication) {[m
+[31m-        return ResponseEntity.ok(ApiResponse.success(otpAuthService.getProfile((String) authentication.getPrincipal())));[m
+[31m-    }[m
+[31m-[m
+[31m-    @PostMapping("/logout")[m
+[31m-    @Operation(summary = "Déconnexion et révocation du refresh token")[m
+[31m-    public ResponseEntity<ApiResponse<Void>> logout([m
+[31m-            @CookieValue(name = "${app.jwt.refresh-cookie-name}", required = false) String refreshToken) {[m
+[31m-        otpAuthService.logout(refreshToken);[m
+[31m-        return ResponseEntity.ok()[m
+[31m-                .header(HttpHeaders.SET_COOKIE, clearRefreshCookie().toString())[m
+[31m-                .body(ApiResponse.success("Déconnexion réussie.", null));[m
+[31m-    }[m
+[31m-[m
+[31m-    private ResponseCookie buildRefreshCookie(String value) {[m
+[31m-        return ResponseCookie.from(jwtProperties.getRefreshCookieName(), value)[m
+[31m-                .httpOnly(true)[m
+[31m-                .secure(jwtProperties.isRefreshCookieSecure())[m
+[31m-                .sameSite(jwtProperties.getRefreshCookieSameSite())[m
+[31m-                .path("/api/auth")[m
+[31m-                .maxAge(Duration.ofMillis(jwtProperties.getRefreshTokenExpiration()))[m
+[31m-                .build();[m
+[31m-    }[m
+[31m-[m
+[31m-    private ResponseCookie clearRefreshCookie() {[m
+[31m-        return ResponseCookie.from(jwtProperties.getRefreshCookieName(), "")[m
+[31m-                .httpOnly(true)[m
+[31m-                .secure(jwtProperties.isRefreshCookieSecure())[m
+[31m-                .sameSite(jwtProperties.getRefreshCookieSameSite())[m
+[31m-                .path("/api/auth")[m
+[31m-                .maxAge(Duration.ZERO)[m
+[31m-                .build();[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/controller/LegacyAdminController.java b/server/src/main/java/com/sante/app/controller/LegacyAdminController.java[m
+[1mdeleted file mode 100644[m
+[1mindex 7fd4c33..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/controller/LegacyAdminController.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,57 +0,0 @@[m
+[31m-package com.sante.app.controller;[m
+[31m-[m
+[31m-import com.sante.app.dto.request.UpdatePersonnelRoleRequest;[m
+[31m-import com.sante.app.dto.response.ApiResponse;[m
+[31m-import com.sante.app.dto.response.EstablishmentResponse;[m
+[31m-import com.sante.app.dto.response.PersonnelAdminResponse;[m
+[31m-import com.sante.app.service.LegacyAdminService;[m
+[31m-import io.swagger.v3.oas.annotations.Operation;[m
+[31m-import io.swagger.v3.oas.annotations.tags.Tag;[m
+[31m-import jakarta.validation.Valid;[m
+[31m-import java.util.List;[m
+[31m-import lombok.RequiredArgsConstructor;[m
+[31m-import org.springframework.data.domain.Page;[m
+[31m-import org.springframework.http.ResponseEntity;[m
+[31m-import org.springframework.security.access.prepost.PreAuthorize;[m
+[31m-import org.springframework.web.bind.annotation.GetMapping;[m
+[31m-import org.springframework.web.bind.annotation.PatchMapping;[m
+[31m-import org.springframework.web.bind.annotation.PathVariable;[m
+[31m-import org.springframework.web.bind.annotation.RequestBody;[m
+[31m-import org.springframework.web.bind.annotation.RequestMapping;[m
+[31m-import org.springframework.web.bind.annotation.RequestParam;[m
+[31m-import org.springframework.web.bind.annotation.RestController;[m
+[31m-[m
+[31m-@RestController[m
+[31m-@RequestMapping("/api/admin/personnel")[m
+[31m-@RequiredArgsConstructor[m
+[31m-@PreAuthorize("hasRole('ADMIN')")[m
+[31m-@Tag(name = "Administration Personnel", description = "Recherche et gestion des rôles (legacy PERSONNEL)")[m
+[31m-public class LegacyAdminController {[m
+[31m-[m
+[31m-    private final LegacyAdminService legacyAdminService;[m
+[31m-[m
+[31m-    @GetMapping[m
+[31m-    @Operation(summary = "Rechercher le personnel par MAT_PERS et COD_SOC")[m
+[31m-    public ResponseEntity<ApiResponse<Page<PersonnelAdminResponse>>> search([m
+[31m-            @RequestParam(required = false) String search,[m
+[31m-            @RequestParam(required = false) String codSoc,[m
+[31m-            @RequestParam(defaultValue = "0") int page,[m
+[31m-            @RequestParam(defaultValue = "50") int size) {[m
+[31m-        return ResponseEntity.ok(ApiResponse.success(legacyAdminService.searchPersonnel(search, codSoc, page, size)));[m
+[31m-    }[m
+[31m-[m
+[31m-    @PatchMapping("/{matPers}/role")[m
+[31m-    @Operation(summary = "Mettre à jour COD_USER d'un personnel")[m
+[31m-    public ResponseEntity<ApiResponse<PersonnelAdminResponse>> updateRole([m
+[31m-            @PathVariable String matPers,[m
+[31m-            @Valid @RequestBody UpdatePersonnelRoleRequest request) {[m
+[31m-        // Record accessor keeps request handling concise while service owns normalization/validation.[m
+[31m-        return ResponseEntity.ok(ApiResponse.success("Rôle mis à jour", legacyAdminService.updateRole(matPers, request.codUser())));[m
+[31m-    }[m
+[31m-[m
+[31m-    @GetMapping("/establishments")[m
+[31m-    @Operation(summary = "Lister les établissements SOCIETE")[m
+[31m-    public ResponseEntity<ApiResponse<List<EstablishmentResponse>>> establishments() {[m
+[31m-        return ResponseEntity.ok(ApiResponse.success(legacyAdminService.establishments()));[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/request/OtpChannel.java b/server/src/main/java/com/sante/app/dto/request/OtpChannel.java[m
+[1mdeleted file mode 100644[m
+[1mindex ec5023c..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/request/OtpChannel.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,6 +0,0 @@[m
+[31m-package com.sante.app.dto.request;[m
+[31m-[m
+[31m-public enum OtpChannel {[m
+[31m-    EMAIL,[m
+[31m-    SMS[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/request/RequestOtpRequest.java b/server/src/main/java/com/sante/app/dto/request/RequestOtpRequest.java[m
+[1mdeleted file mode 100644[m
+[1mindex 95690b7..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/request/RequestOtpRequest.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,15 +0,0 @@[m
+[31m-package com.sante.app.dto.request;[m
+[31m-[m
+[31m-import jakarta.validation.constraints.NotBlank;[m
+[31m-import jakarta.validation.constraints.NotNull;[m
+[31m-import jakarta.validation.constraints.Pattern;[m
+[31m-[m
+[31m-// Record-based request DTO removes Lombok boilerplate without changing validation or JSON fields.[m
+[31m-public record RequestOtpRequest([m
+[31m-        @NotBlank(message = "MAT_PERS est obligatoire")[m
+[31m-        @Pattern(regexp = "\\d{8}", message = "MAT_PERS doit contenir exactement 8 chiffres")[m
+[31m-        String matPers,[m
+[31m-        @NotNull(message = "Le canal OTP est obligatoire")[m
+[31m-        OtpChannel channel[m
+[31m-) {[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/request/UpdatePersonnelRoleRequest.java b/server/src/main/java/com/sante/app/dto/request/UpdatePersonnelRoleRequest.java[m
+[1mdeleted file mode 100644[m
+[1mindex f8694a2..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/request/UpdatePersonnelRoleRequest.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,10 +0,0 @@[m
+[31m-package com.sante.app.dto.request;[m
+[31m-[m
+[31m-import jakarta.validation.constraints.NotBlank;[m
+[31m-[m
+[31m-// Record-based request DTO removes Lombok boilerplate without changing validation or JSON fields.[m
+[31m-public record UpdatePersonnelRoleRequest([m
+[31m-        @NotBlank(message = "COD_USER est obligatoire")[m
+[31m-        String codUser[m
+[31m-) {[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/request/VerifyOtpRequest.java b/server/src/main/java/com/sante/app/dto/request/VerifyOtpRequest.java[m
+[1mdeleted file mode 100644[m
+[1mindex 5ec18a1..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/request/VerifyOtpRequest.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,15 +0,0 @@[m
+[31m-package com.sante.app.dto.request;[m
+[31m-[m
+[31m-import jakarta.validation.constraints.NotBlank;[m
+[31m-import jakarta.validation.constraints.Pattern;[m
+[31m-[m
+[31m-// Record-based request DTO removes Lombok boilerplate without changing validation or JSON fields.[m
+[31m-public record VerifyOtpRequest([m
+[31m-        @NotBlank(message = "MAT_PERS est obligatoire")[m
+[31m-        @Pattern(regexp = "\\d{8}", message = "MAT_PERS doit contenir exactement 8 chiffres")[m
+[31m-        String matPers,[m
+[31m-        @NotBlank(message = "OTP est obligatoire")[m
+[31m-        @Pattern(regexp = "\\d{6}", message = "OTP doit contenir exactement 6 chiffres")[m
+[31m-        String otp[m
+[31m-) {[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/response/ApiResponse.java b/server/src/main/java/com/sante/app/dto/response/ApiResponse.java[m
+[1mdeleted file mode 100644[m
+[1mindex 7d2e41a..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/response/ApiResponse.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,17 +0,0 @@[m
+[31m-package com.sante.app.dto.response;[m
+[31m-[m
+[31m-// Record-based response DTO keeps the API envelope stable while removing boilerplate.[m
+[31m-public record ApiResponse<T>(boolean success, String message, T data) {[m
+[31m-[m
+[31m-    public static <T> ApiResponse<T> success(T data) {[m
+[31m-        return new ApiResponse<>(true, null, data);[m
+[31m-    }[m
+[31m-[m
+[31m-    public static <T> ApiResponse<T> success(String message, T data) {[m
+[31m-        return new ApiResponse<>(true, message, data);[m
+[31m-    }[m
+[31m-[m
+[31m-    public static <T> ApiResponse<T> error(String message) {[m
+[31m-        return new ApiResponse<>(false, message, null);[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/response/AuthProfileResponse.java b/server/src/main/java/com/sante/app/dto/response/AuthProfileResponse.java[m
+[1mdeleted file mode 100644[m
+[1mindex 029cf5b..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/response/AuthProfileResponse.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,16 +0,0 @@[m
+[31m-package com.sante.app.dto.response;[m
+[31m-[m
+[31m-// Record-based response DTO removes builder/getter boilerplate while keeping payload shape unchanged.[m
+[31m-public record AuthProfileResponse([m
+[31m-        String matPers,[m
+[31m-        String firstName,[m
+[31m-        String lastName,[m
+[31m-        String fullName,[m
+[31m-        String role,[m
+[31m-        String codUser,[m
+[31m-        String codSoc,[m
+[31m-        String establishmentName,[m
+[31m-        String email,[m
+[31m-        String phone[m
+[31m-) {[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/response/AuthResponse.java b/server/src/main/java/com/sante/app/dto/response/AuthResponse.java[m
+[1mdeleted file mode 100644[m
+[1mindex 8937065..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/response/AuthResponse.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,12 +0,0 @@[m
+[31m-package com.sante.app.dto.response;[m
+[31m-[m
+[31m-// Record-based response DTO removes builder/getter boilerplate while keeping payload shape unchanged.[m
+[31m-public record AuthResponse([m
+[31m-        String accessToken,[m
+[31m-        String refreshToken,[m
+[31m-        String tokenType,[m
+[31m-        Long expiresIn,[m
+[31m-        String matPers,[m
+[31m-        String role[m
+[31m-) {[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/response/EstablishmentResponse.java b/server/src/main/java/com/sante/app/dto/response/EstablishmentResponse.java[m
+[1mdeleted file mode 100644[m
+[1mindex b6bc1ea..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/response/EstablishmentResponse.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,5 +0,0 @@[m
+[31m-package com.sante.app.dto.response;[m
+[31m-[m
+[31m-// Record-based response DTO removes builder/getter boilerplate while keeping payload shape unchanged.[m
+[31m-public record EstablishmentResponse(String codSoc, String libSoc) {[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/dto/response/PersonnelAdminResponse.java b/server/src/main/java/com/sante/app/dto/response/PersonnelAdminResponse.java[m
+[1mdeleted file mode 100644[m
+[1mindex 2814cfd..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/dto/response/PersonnelAdminResponse.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,12 +0,0 @@[m
+[31m-package com.sante.app.dto.response;[m
+[31m-[m
+[31m-// Record-based response DTO removes builder/getter boilerplate while keeping payload shape unchanged.[m
+[31m-public record PersonnelAdminResponse([m
+[31m-        String matPers,[m
+[31m-        String codUser,[m
+[31m-        String codSoc,[m
+[31m-        String establishmentName,[m
+[31m-        String email,[m
+[31m-        String phone[m
+[31m-) {[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/exception/BadRequestException.java b/server/src/main/java/com/sante/app/exception/BadRequestException.java[m
+[1mdeleted file mode 100644[m
+[1mindex 731b4b3..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/exception/BadRequestException.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,7 +0,0 @@[m
+[31m-package com.sante.app.exception;[m
+[31m-[m
+[31m-public class BadRequestException extends RuntimeException {[m
+[31m-    public BadRequestException(String message) {[m
+[31m-        super(message);[m
+[31m-    }[m
+[31m-}[m
+[1mdiff --git a/server/src/main/java/com/sante/app/exception/GlobalExceptionHandler.java b/server/src/main/java/com/sante/app/exception/GlobalExceptionHandler.java[m
+[1mdeleted file mode 100644[m
+[1mindex 133b019..0000000[m
+[1m--- a/server/src/main/java/com/sante/app/exception/GlobalExceptionHandler.java[m
+[1m+++ /dev/null[m
+[36m@@ -1,69 +0,0 @@[m
+[31m-package com.sante.app.exception;[m
+[31m-[m
+[31m-import com.sante.app.dto.response.ApiResponse;[m
+[31m-import lombok.extern.slf4j.Slf4j;[m
+[31m-import org.springframework.data.redis.RedisConnectionFailureException;[m
+[31m-import org.springframework.http.HttpStatus;[m
+[31m-import org.springframework.http.ResponseEntity;[m
+[31m-import org.springframework.security.access.AccessDeniedException;[m
+[31m-import org.springframework.validation.FieldError;[m
+[31m-import org.springframework.web.bind.MethodArgumentNotValidException;[m
+[31m-import org.springframework.web.bind.annotation.ExceptionHandler;[m
+[31m-import org.springframework.web.bind.annotation.RestControllerAdvice;[m
+[31m-[m
+[31m-import java.util.HashMap;[m
+[31m-import java.util.Map;[m
+[31m-[m
+[31m-@RestControllerAdvice[m
+[31m-@Slf4j[m
+[31m-public class GlobalExceptionHandler {[m
+[31m-[m
+[31m-    // Shared response builder keeps handlers concise while preserving status-specific behavior.[m
+[31m-    private ResponseEntity<ApiResponse<Void>> errorResponse(HttpStatus status, String message) {[m
+[31m-        return ResponseEntity.status(status).body(ApiResponse.error(message));[m
+[31m-    }[m
+[31m-[m
+[31m-    @ExceptionHandler(ResourceNotFoundException.class)[m
+[31m-    public ResponseEntity<ApiResponse<Void>> handleNotFound(ResourceNotFoundException ex) {[m
+[31m-        return errorResponse(HttpStatus.NOT_FOUND, ex.getMessage());[m
+[31m-    }[m
+[31m-[m
+[31m-    @ExceptionHandler(BadRequestException.class)[m
+[31m-    public ResponseEntity<ApiResponse<Void>> handleBadRequest(BadRequestException ex) {[m
+[31m-        return errorResponse(HttpStatus.BAD_REQUEST, ex.getMessage());[m
+[31m-    }[m
+[31m-[m
+[31m-    @ExceptionHandler(UnauthorizedException.class)[m
+[31m-    public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException ex) {[m
+[31m-        return errorResponse(HttpStatus.UNAUTHORIZED, ex.getMessage());[m
+[31m-    }[m
+[31m-[m
+[31m-    @ExceptionHandler(AccessDeniedException.class)[m
+[31m-    public ResponseEntity<ApiResponse<Void>> handleForbidden(AccessDeniedException ex) {[m
+[31m-        return errorResponse(HttpStatus.FORBIDDEN, "Accès refusé. Droits insuffisants.");[m
+[31m-    }[m
+[31m-[m
+[31m-    @ExceptionHandler(MethodArgumentNotValidException.class)[m
+[31m-    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidation(MethodArgumentNotValidException ex) {[m
+[31m-        Map<String, String> errors = new HashMap<>();[m
+[31m-        ex.getBindingResult().getAllErrors().forEach(error -> {[m
+[31m-            String fieldName = ((FieldError) error).getField();[m
+[31m-            String errorMessage = error.getDefaultMessage();[m
+[31m-            errors.put(fiel

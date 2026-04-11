@@ -1,6 +1,6 @@
 package com.sante.app.repository.projection;
 
-public interface AuthProfileProjection {
+public interface ProfileProjection {
 
     String getMatPers();
 
@@ -17,4 +17,16 @@ public interface AuthProfileProjection {
     String getEmail();
 
     String getPhone();
+
+    String getRue();
+
+    String getLibDeleg();
+
+    String getLibGouv();
+
+    String getService();
+
+    String getGrade();
+
+    String getPosteTravail();
 }

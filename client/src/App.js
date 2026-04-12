@@ -13,6 +13,7 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import PowerBIDashboard from './pages/dashboard/PowerBIDashboard';
 import UsersListPage from './pages/admin/UsersListPage';
 import AddEmployeePage from './pages/admin/AddEmployeePage';
+import CorrectionRequestsPage from './pages/admin/CorrectionRequestsPage';
 import { ROLES } from './utils/constants';
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
               {/* Admin only */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersListPage />} />
+                <Route path="/admin/corrections" element={<CorrectionRequestsPage />} />
                 <Route path="/admin/employees/new" element={<AddEmployeePage />} />
               </Route>
             </Route>

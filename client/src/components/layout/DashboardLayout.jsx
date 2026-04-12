@@ -7,6 +7,7 @@ const pageTitles = {
   '/dashboard': 'Mes Informations',
   '/powerbi-dashboard': 'Tableau de bord',
   '/admin/users': 'Gestion du Personnel',
+  '/admin/corrections': 'Demandes de correction',
   '/admin/employees/new': 'Ajout Employe (UI)',
 };
 

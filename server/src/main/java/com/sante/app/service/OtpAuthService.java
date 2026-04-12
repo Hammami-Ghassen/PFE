@@ -225,7 +225,7 @@ public class OtpAuthService {
     private String resolveTarget(OtpChannel channel, AdrPers adrPers) {
         return switch (channel) {
             case EMAIL -> requireTarget(adrPers.getAdrElectronique(), "Adresse email indisponible.");
-            case SMS -> requireTarget(adrPers.getTelPertPers(), "Numéro de téléphone indisponible.");
+            case SMS -> requireTarget(adrPers.getTelPortPers(), "Numéro de téléphone indisponible.");
         };
     }
 

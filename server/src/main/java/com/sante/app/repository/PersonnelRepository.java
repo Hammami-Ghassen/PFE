@@ -18,7 +18,7 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
                    p."COD_SOC" AS codSoc,
                    s."LIB_SOC" AS libSoc,
                    a."ADR_ELECTRONIQUE" AS adrElectronique,
-                   a."TEL_PERT_PERS" AS telPertPers
+                   a."TEL_PORT_PERS" AS telPortPers
             FROM "PERSONNEL" p
             LEFT JOIN "SOCIETE" s ON s."COD_SOC" = p."COD_SOC"
             LEFT JOIN "ADR_PERS" a ON a."MAT_PERS" = p."MAT_PERS"
@@ -42,11 +42,13 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
                    p."COD_SOC" AS codSoc,
                    s."LIB_SOC" AS libSoc,
                    a."ADR_ELECTRONIQUE" AS adrElectronique,
-                   a."TEL_PERT_PERS" AS telPertPers
+                   a."TEL_PORT_PERS" AS telPortPers
             FROM "PERSONNEL" p
             LEFT JOIN "SOCIETE" s ON s."COD_SOC" = p."COD_SOC"
             LEFT JOIN "ADR_PERS" a ON a."MAT_PERS" = p."MAT_PERS"
             WHERE p."MAT_PERS" = :matPers
+           ORDER BY p."MAT_PERS"
+           LIMIT 1
             """, nativeQuery = true)
     PersonnelAdminProjection findAdminProjectionByMatPers(@Param("matPers") String matPers);
 
@@ -63,7 +65,7 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
              p."COD_SOC" AS codSoc,
              s."LIB_SOC" AS establishmentName,
              a."ADR_ELECTRONIQUE" AS email,
-             a."TEL_PERT_PERS" AS phone,
+             a."TEL_PORT_PERS" AS phone,
              a."RUE" AS rue,
              d."LIB_DELEG" AS libDeleg,
              gouv."LIB_GOUV" AS libGouv,
@@ -87,6 +89,22 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
               AND g."COD_CAT" = p."COD_CAT"
               AND g."COD_CATEG" = p."COD_CATEG"
         WHERE p."MAT_PERS" = :matPers
+              ORDER BY p."MAT_PERS"
+              LIMIT 1
         """, nativeQuery = true)
     ProfileProjection findAuthProfileByMatPers(@Param("matPers") String matPers);
+
+       @Query(value = "SELECT \"NOM_PERS\" FROM \"PERSONNEL\" WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
+       String findNomPersByMatPers(@Param("matPers") String matPers);
+
+       @Query(value = "SELECT \"PREN_PERS\" FROM \"PERSONNEL\" WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
+       String findPrenomPersByMatPers(@Param("matPers") String matPers);
+
+       @Modifying
+       @Query(value = "UPDATE \"PERSONNEL\" SET \"NOM_PERS\" = :nom WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
+       int updateNomPers(@Param("matPers") String matPers, @Param("nom") String nom);
+
+       @Modifying
+       @Query(value = "UPDATE \"PERSONNEL\" SET \"PREN_PERS\" = :prenom WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
+       int updatePrenomPers(@Param("matPers") String matPers, @Param("prenom") String prenom);
 }

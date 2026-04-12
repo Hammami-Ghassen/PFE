@@ -6,5 +6,5 @@ public interface PersonnelAdminProjection {
     String getCodSoc();
     String getLibSoc();
     String getAdrElectronique();
-    String getTelPertPers();
+    String getTelPortPers();
 }

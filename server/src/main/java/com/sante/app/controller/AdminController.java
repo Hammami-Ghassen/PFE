@@ -28,7 +28,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Administration Personnel", description = "Recherche et gestion des rôles (legacy PERSONNEL)")
 public class AdminController {
 
-    private final AdminService legacyAdminService;
+    private final AdminService AdminService;
 
     @GetMapping
     @Operation(summary = "Rechercher le personnel par MAT_PERS et COD_SOC")
@@ -37,7 +37,7 @@ public class AdminController {
             @RequestParam(required = false) String codSoc,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        return ResponseEntity.ok(ApiResponse.success(legacyAdminService.searchPersonnel(search, codSoc, page, size)));
+        return ResponseEntity.ok(ApiResponse.success(AdminService.searchPersonnel(search, codSoc, page, size)));
     }
 
     @PatchMapping("/{matPers}/role")
@@ -46,12 +46,12 @@ public class AdminController {
             @PathVariable String matPers,
             @Valid @RequestBody UpdatePersonnelRoleRequest request) {
         // Record accessor keeps request handling concise while service owns normalization/validation.
-        return ResponseEntity.ok(ApiResponse.success("Rôle mis à jour", legacyAdminService.updateRole(matPers, request.codUser())));
+        return ResponseEntity.ok(ApiResponse.success("Rôle mis à jour", AdminService.updateRole(matPers, request.codUser())));
     }
 
     @GetMapping("/establishments")
     @Operation(summary = "Lister les établissements SOCIETE")
     public ResponseEntity<ApiResponse<List<EstablishmentResponse>>> establishments() {
-        return ResponseEntity.ok(ApiResponse.success(legacyAdminService.establishments()));
+        return ResponseEntity.ok(ApiResponse.success(AdminService.establishments()));
     }
 }

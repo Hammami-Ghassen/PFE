@@ -169,7 +169,7 @@ Layers:
 1. `controller/`:
    - HTTP interface and endpoint contracts
 2. `service/`:
-   - business logic (OTP workflow, token lifecycle, direct role usage from `COD_USER`)
+   - business logic (OTP workflow, token lifecycle, profile enrichment, direct role usage from `COD_USER`)
 3. `repository/`:
    - data access to PostgreSQL and refresh token storage
 4. `model/`:
@@ -178,6 +178,8 @@ Layers:
    - JWT generation/validation and security context filter
 6. `exception/`:
    - centralized error translation to API responses
+7. `config/`:
+   - CORS, OpenAPI and Spring Security wiring
 
 Security model:
 - Stateless API security
@@ -205,14 +207,118 @@ Session behavior:
 - refresh token handled via HttpOnly cookie
 - refresh is attempted automatically on 401 via single-refresh queue, then failed requests are retried with the new bearer token
 
+## 3.4 Detailed module map
+
+### Backend file map (`server/src/main/java/com/sante/app`)
+- Bootstrap:
+   - `SanteApplication.java`
+- Config:
+   - `config/CorsConfig.java`
+   - `config/OpenApiConfig.java`
+   - `config/SecurityConfig.java`
+- Controllers:
+   - `controller/AuthController.java`
+   - `controller/AdminController.java`
+- DTO request:
+   - `dto/request/OtpChannel.java`
+   - `dto/request/RequestOtpRequest.java`
+   - `dto/request/VerifyOtpRequest.java`
+   - `dto/request/UpdatePersonnelRoleRequest.java`
+- DTO response:
+   - `dto/response/ApiResponse.java`
+   - `dto/response/AuthResponse.java`
+   - `dto/response/AuthProfileResponse.java`
+   - `dto/response/PersonnelAdminResponse.java`
+   - `dto/response/EstablishmentResponse.java`
+- Models:
+   - `model/legacy/Personnel.java`
+   - `model/legacy/AdrPers.java`
+   - `model/legacy/Societe.java`
+   - `model/auth/AuthRefreshToken.java`
+- Repositories:
+   - `repository/PersonnelRepository.java`
+   - `repository/AdrPersRepository.java`
+   - `repository/SocieteRepository.java`
+   - `repository/AuthRefreshTokenRepository.java`
+   - `repository/projection/PersonnelAdminProjection.java`
+   - `repository/projection/ProfileProjection.java`
+- Services:
+   - `service/OtpAuthService.java`
+   - `service/AuthTokenService.java`
+   - `service/OtpStoreService.java`
+   - `service/AdminService.java`
+- Security:
+   - `security/AuthEntryPoint.java`
+   - `security/jwt/JwtAuthenticationFilter.java`
+   - `security/jwt/JwtProperties.java`
+   - `security/jwt/JwtTokenProvider.java`
+- Exception handling:
+   - `exception/BadRequestException.java`
+   - `exception/UnauthorizedException.java`
+   - `exception/ResourceNotFoundException.java`
+   - `exception/GlobalExceptionHandler.java`
+
+### Frontend file map (`client/src`)
+- Entry:
+   - `index.js`
+   - `App.js`
+   - `index.css`
+- API:
+   - `api/axios.js`
+   - `api/axiosRetryQueue.js`
+   - `api/axiosRetryQueue.test.js`
+- Context:
+   - `context/AuthContext.jsx`
+- Hooks:
+   - `hooks/useAuth.js`
+   - `hooks/useAxiosPrivate.js`
+   - `hooks/useEstablishments.js`
+   - `hooks/usePersonnelPagination.js`
+   - `hooks/usePersonnelPagination.test.js`
+- Auth components:
+   - `components/auth/PersistLogin.jsx`
+   - `components/auth/ProtectedRoute.jsx`
+   - `components/auth/GuardedRoute.jsx`
+   - `components/auth/AdminRoute.jsx`
+   - `components/auth/RoleRoute.jsx`
+   - `components/auth/LoginMatPersStep.jsx`
+   - `components/auth/LoginOtpStep.jsx`
+- Layout:
+   - `components/layout/DashboardLayout.jsx`
+   - `components/layout/Header.jsx`
+   - `components/layout/Sidebar.jsx`
+   - `components/layout/Logo.jsx`
+- UI components:
+   - `components/ui/Alert.jsx`
+   - `components/ui/Badge.jsx`
+   - `components/ui/Button.jsx`
+   - `components/ui/Card.jsx`
+   - `components/ui/Input.jsx`
+   - `components/ui/Modal.jsx`
+   - `components/ui/Spinner.jsx`
+- Pages:
+   - `pages/auth/LoginPage.jsx`
+   - `pages/dashboard/DashboardPage.jsx`
+   - `pages/dashboard/PowerBIDashboard.jsx`
+   - `pages/admin/UsersListPage.jsx`
+   - `pages/admin/AddEmployeePage.jsx`
+- Services and utils:
+   - `services/authService.js`
+   - `services/userService.js`
+   - `services/addEmployeeMockService.js`
+   - `utils/constants.js`
+   - `utils/helpers.js`
+
 ## 4. Main Components and Responsibilities
 
 ### 4.1 Backend components
 - `AuthController`: entrypoint for OTP request/verify, refresh, logout, profile
-- `OtpAuthService`: core OTP generation/validation + token issuing logic
+- `OtpAuthService`: core OTP generation/validation + token issuing + profile hydration/mapping
 - `AdminController`: admin-only personnel operations
 - `AdminService`: search/filter/update role logic
 - `AuthTokenService`: access/refresh token generation, hashing, persistence and revocation
+- `OtpStoreService`: Redis-backed OTP hash storage (`otp:{MAT_PERS}` + TTL)
+- `PersonnelRepository`: native SQL search/update/profile projection including legacy joins for profile enrichment
 - `JwtTokenProvider`: signing and parsing JWT tokens
 - `JwtAuthenticationFilter`: populates Spring Security context from JWT
 - `GlobalExceptionHandler`: consistent API error handling
@@ -223,6 +329,7 @@ Session behavior:
 - `useAxiosPrivate`: injects bearer token and retries after refresh
 - `UsersListPage`: admin personnel list/search/filter/role update
 - `AddEmployeePage`: UI-only employee creation form (mock submit)
+- `DashboardPage`: authenticated profile view (`Mes Informations`) including enriched fields (`adresse`, `service`, `grade`, `posteTravail`)
 - `Sidebar/Header`: role-aware navigation and identity display
 
 ## 5. Data Flow (End-to-End)
@@ -293,26 +400,95 @@ Session behavior:
    - strict CORS origins
    - secure cookie flags and TLS-only deployment
 
-## 8. Quick File Index (Most Important)
-- Backend OTP/Auth:
-  - `server/src/main/java/com/sante/app/controller/AuthController.java`
-  - `server/src/main/java/com/sante/app/service/OtpAuthService.java`
-  - `server/src/main/java/com/sante/app/service/AuthTokenService.java`
-  - `server/src/main/java/com/sante/app/security/jwt/JwtTokenProvider.java`
-  - `server/src/main/java/com/sante/app/security/jwt/JwtAuthenticationFilter.java`
-- Backend Admin:
-  - `server/src/main/java/com/sante/app/controller/AdminController.java`
-  - `server/src/main/java/com/sante/app/service/AdminService.java`
-  - `server/src/main/java/com/sante/app/repository/PersonnelRepository.java`
-  - `server/src/main/java/com/sante/app/repository/SocieteRepository.java`
-- Frontend Auth/UI:
-  - `client/src/pages/auth/LoginPage.jsx`
-  - `client/src/hooks/useAxiosPrivate.js`
-  - `client/src/components/auth/PersistLogin.jsx`
-  - `client/src/pages/admin/UsersListPage.jsx`
-  - `client/src/pages/admin/AddEmployeePage.jsx`
+## 8. Key File Index (Complete Application Scope)
+
+### 8.1 Backend (`server/`)
+- Runtime and config:
+   - `server/pom.xml`
+   - `server/src/main/resources/application.yml`
+   - `server/src/main/java/com/sante/app/SanteApplication.java`
+   - `server/src/main/java/com/sante/app/config/SecurityConfig.java`
+   - `server/src/main/java/com/sante/app/config/CorsConfig.java`
+   - `server/src/main/java/com/sante/app/config/OpenApiConfig.java`
+- Auth/profile APIs:
+   - `server/src/main/java/com/sante/app/controller/AuthController.java`
+   - `server/src/main/java/com/sante/app/service/OtpAuthService.java`
+   - `server/src/main/java/com/sante/app/service/AuthTokenService.java`
+   - `server/src/main/java/com/sante/app/service/OtpStoreService.java`
+   - `server/src/main/java/com/sante/app/repository/PersonnelRepository.java`
+   - `server/src/main/java/com/sante/app/repository/projection/ProfileProjection.java`
+- Admin APIs:
+   - `server/src/main/java/com/sante/app/controller/AdminController.java`
+   - `server/src/main/java/com/sante/app/service/AdminService.java`
+   - `server/src/main/java/com/sante/app/repository/projection/PersonnelAdminProjection.java`
+   - `server/src/main/java/com/sante/app/repository/SocieteRepository.java`
+- Security and tokens:
+   - `server/src/main/java/com/sante/app/security/AuthEntryPoint.java`
+   - `server/src/main/java/com/sante/app/security/jwt/JwtTokenProvider.java`
+   - `server/src/main/java/com/sante/app/security/jwt/JwtAuthenticationFilter.java`
+   - `server/src/main/java/com/sante/app/security/jwt/JwtProperties.java`
+   - `server/src/main/java/com/sante/app/model/auth/AuthRefreshToken.java`
+   - `server/src/main/java/com/sante/app/repository/AuthRefreshTokenRepository.java`
+- Legacy entities and exceptions:
+   - `server/src/main/java/com/sante/app/model/legacy/Personnel.java`
+   - `server/src/main/java/com/sante/app/model/legacy/AdrPers.java`
+   - `server/src/main/java/com/sante/app/model/legacy/Societe.java`
+   - `server/src/main/java/com/sante/app/exception/GlobalExceptionHandler.java`
+   - `server/src/main/java/com/sante/app/exception/BadRequestException.java`
+   - `server/src/main/java/com/sante/app/exception/UnauthorizedException.java`
+   - `server/src/main/java/com/sante/app/exception/ResourceNotFoundException.java`
+
+### 8.2 Frontend (`client/`)
+- Runtime and build:
+   - `client/package.json`
+   - `client/tailwind.config.js`
+   - `client/postcss.config.js`
+   - `client/public/index.html`
+   - `client/src/index.js`
+   - `client/src/App.js`
+- Auth/session flow:
+   - `client/src/services/authService.js`
+   - `client/src/context/AuthContext.jsx`
+   - `client/src/components/auth/PersistLogin.jsx`
+   - `client/src/hooks/useAxiosPrivate.js`
+   - `client/src/api/axios.js`
+   - `client/src/api/axiosRetryQueue.js`
+- Routing, guards, layout:
+   - `client/src/components/auth/ProtectedRoute.jsx`
+   - `client/src/components/auth/GuardedRoute.jsx`
+   - `client/src/components/auth/AdminRoute.jsx`
    - `client/src/components/auth/RoleRoute.jsx`
+   - `client/src/components/layout/DashboardLayout.jsx`
+   - `client/src/components/layout/Header.jsx`
+   - `client/src/components/layout/Sidebar.jsx`
+- Pages and features:
+   - `client/src/pages/auth/LoginPage.jsx`
+   - `client/src/pages/dashboard/DashboardPage.jsx`
    - `client/src/pages/dashboard/PowerBIDashboard.jsx`
+   - `client/src/pages/admin/UsersListPage.jsx`
+   - `client/src/pages/admin/AddEmployeePage.jsx`
+   - `client/src/services/userService.js`
+   - `client/src/services/addEmployeeMockService.js`
+   - `client/src/hooks/usePersonnelPagination.js`
+   - `client/src/hooks/useEstablishments.js`
+- Shared UI and utilities:
+   - `client/src/components/ui/Alert.jsx`
+   - `client/src/components/ui/Badge.jsx`
+   - `client/src/components/ui/Button.jsx`
+   - `client/src/components/ui/Card.jsx`
+   - `client/src/components/ui/Input.jsx`
+   - `client/src/components/ui/Modal.jsx`
+   - `client/src/components/ui/Spinner.jsx`
+   - `client/src/utils/constants.js`
+   - `client/src/utils/helpers.js`
+
+### 8.3 Automated tests currently present
+- Backend:
+   - `server/src/test/java/com/sante/app/controller/AuthControllerTest.java`
+   - `server/src/test/java/com/sante/app/service/OtpAuthServiceTest.java`
+- Frontend:
+   - `client/src/api/axiosRetryQueue.test.js`
+   - `client/src/hooks/usePersonnelPagination.test.js`
 
 ---
 Generated as project root summary documentation for current migration status and architecture overview.

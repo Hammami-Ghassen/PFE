@@ -20,6 +20,6 @@ public class AdrPers {
     @Column(name = "\"ADR_ELECTRONIQUE\"")
     private String adrElectronique;
 
-    @Column(name = "\"TEL_PERT_PERS\"")
-    private String telPertPers;
+    @Column(name = "\"TEL_PORT_PERS\"")
+    private String telPortPers;
 }

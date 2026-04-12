@@ -5,6 +5,7 @@ import {
   ChartBarIcon,
   UsersIcon,
   UserPlusIcon,
+  ClipboardDocumentListIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import Logo from './Logo';
@@ -17,6 +18,7 @@ const navItems = [
   { label: 'Mes Informations', to: '/dashboard', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Tableau de bord', to: '/powerbi-dashboard', icon: ChartBarIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR] },
   { label: 'Personnel', to: '/admin/users', icon: UsersIcon, roles: [ROLES.ADMIN] },
+  { label: 'Demandes correction', to: '/admin/corrections', icon: ClipboardDocumentListIcon, roles: [ROLES.ADMIN] },
   { label: 'Ajouter Employe', to: '/admin/employees/new', icon: UserPlusIcon, roles: [ROLES.ADMIN] },
 ];
 

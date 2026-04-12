@@ -74,6 +74,6 @@ public class AdminService {
             p.getCodSoc(),
             p.getLibSoc(),
             p.getAdrElectronique(),
-            p.getTelPertPers());
+            p.getTelPortPers());
     }
 }

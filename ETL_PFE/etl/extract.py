@@ -20,6 +20,12 @@ def run_extract() -> dict[str, pd.DataFrame]:
     FROM public."TYP_CONGE"
 """, engine)
 
+    societe = pd.read_sql_query("""
+    SELECT
+        "COD_SOC", "COD_GOUV", "LIB_SOC"
+    FROM public."SOCIETE"
+""", engine)
+
     gouvernorat = pd.read_sql_query("""
     SELECT
         "COD_GOUV", "LIB_GOUV", "LIB_GOUV_A"
@@ -34,8 +40,20 @@ def run_extract() -> dict[str, pd.DataFrame]:
 
     grade = pd.read_sql_query("""
     SELECT
-        "ID_GRADE", "COD_GRAD", "LIB_GRAD", "COD_CAT"
+        "COD_CATEG", "COD_GRAD", "LIB_GRAD", "COD_CAT"
     FROM public."GRADE"
+""", engine)
+    
+    etat_paie = pd.read_sql_query("""
+    SELECT
+        "COD_ETAT", "LIB_ETAT"
+    FROM public."ETAT_PAIE"
+""", engine)
+    
+    motif_j = pd.read_sql_query("""
+    SELECT
+        "COD_M", "TYP_CNG", "LIB_MOT"
+    FROM public."MOTIF_J"
 """, engine)
 
     dem_cng = pd.read_sql_query("""
@@ -76,5 +94,8 @@ def run_extract() -> dict[str, pd.DataFrame]:
         "gouvernorat": gouvernorat,
         "service": service,
         "grade": grade,
-        "typ_conge": typ_conge
+        "typ_conge": typ_conge,
+        "etat_paie": etat_paie,
+        "motif_j": motif_j,
+        "societe": societe,
     }

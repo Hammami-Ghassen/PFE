@@ -5,9 +5,9 @@ from etl.config import get_dw_engine
 
 
 DIM_ORDER = [
-    "d_temps", "d_service", "d_gouvernorat", "d_grade", "d_etat_act",
+    "d_temps", "d_societe", "d_service", "d_gouvernorat", "d_grade", "d_etat_act",
     "d_sexe", "d_personnel", "d_motif_conge", "d_statut_demande_conge",
-    "d_type_conge", "d_type_pointage", "d_etat_retard"
+    "d_type_pointage", "d_etat_retard"
 ]
 
 
@@ -15,7 +15,7 @@ def truncate_tables():
     engine = get_dw_engine()
     with engine.begin() as conn:
         conn.execute(text("TRUNCATE TABLE f_pointage_retard, f_demande_conge, f_effectif_snapshot RESTART IDENTITY"))
-        conn.execute(text("TRUNCATE TABLE d_etat_retard, d_type_pointage, d_statut_demande_conge, d_type_conge, d_motif_conge, d_personnel, d_sexe, d_etat_act, d_grade, d_gouvernorat, d_service, d_temps RESTART IDENTITY"))
+        conn.execute(text("TRUNCATE TABLE d_etat_retard, d_type_pointage, d_statut_demande_conge, d_motif_conge, d_societe, d_personnel, d_sexe, d_etat_act, d_grade, d_gouvernorat, d_service, d_temps RESTART IDENTITY"))
 
 def load_dimensions(dimensions: dict):
     engine = get_dw_engine()
@@ -37,6 +37,7 @@ def load_fact_effectif(fact: pd.DataFrame):
     d_temps = get_dim("d_temps")[["id_temps", "date_complete"]]
     d_temps["date_complete"] = pd.to_datetime(d_temps["date_complete"], errors="coerce").dt.normalize()
 
+    d_societe = get_dim("d_societe")[["id_societe", "code_societe"]]
     d_personnel = get_dim("d_personnel")[["id_personnel", "matricule"]]
     d_service = get_dim("d_service")[["id_service", "code_service"]]
     d_gouvernorat = get_dim("d_gouvernorat")[["id_gouvernorat", "code_gouvernorat"]]
@@ -44,6 +45,7 @@ def load_fact_effectif(fact: pd.DataFrame):
     d_etat_act = get_dim("d_etat_act")[["id_etat_act", "code_etat_act"]]
     d_sexe = get_dim("d_sexe")[["id_sexe", "code_sexe"]]
 
+    fact = fact.merge(d_societe, left_on="code_soc", right_on="code_societe", how="left")
     fact = fact.merge(d_temps, left_on="snapshot_date", right_on="date_complete", how="left")
     fact = fact.merge(d_personnel, on="matricule", how="left")
     fact = fact.merge(d_service, on="code_service", how="left")
@@ -56,7 +58,7 @@ def load_fact_effectif(fact: pd.DataFrame):
         fact[col] = pd.to_numeric(fact[col], errors="coerce").astype("Int64")
 
     fact = fact[[
-        "id_temps", "id_personnel", "id_service", "id_gouvernorat",
+        "id_temps", "id_personnel", "id_societe", "id_service", "id_gouvernorat",
         "id_grade", "id_etat_act", "id_sexe", "nb_agent", "age", "anciennete_jours"
     ]]
 
@@ -69,6 +71,7 @@ def load_fact_effectif(fact: pd.DataFrame):
         dtype={
             "id_temps": Integer(),
             "id_personnel": Integer(),
+            "id_societe": Integer(),
             "id_service": Integer(),
             "id_gouvernorat": Integer(),
             "id_grade": Integer(),
@@ -90,16 +93,15 @@ def load_fact_conge(fact: pd.DataFrame):
 
     d_temps = get_dim("d_temps")[["id_temps", "date_complete"]]
     d_temps["date_complete"] = pd.to_datetime(d_temps["date_complete"], errors="coerce").dt.normalize()
-
+    d_societe = get_dim("d_societe")[["id_societe", "code_societe"]]
     d_personnel = get_dim("d_personnel")[["id_personnel", "matricule"]]
     d_service = get_dim("d_service")[["id_service", "code_service"]]
     d_motif = get_dim("d_motif_conge")[["id_motif_conge", "code_motif_conge"]]
     d_statut = get_dim("d_statut_demande_conge")[[
     "id_statut_demande_conge",
-    "valid_code", "etat_cng_code", "planifier_code", "cloture_code", "sign_cng_code"
+    "valid_code"
 ]]
 
-    d_type_conge = get_dim("d_type_conge")[["id_type_conge", "code_type_conge"]]
 
     d_temps_debut = d_temps.rename(columns={"id_temps": "id_temps_debut", "date_complete": "date_debut"})
     d_temps_fin = d_temps.rename(columns={"id_temps": "id_temps_fin", "date_complete": "date_fin"})
@@ -109,26 +111,26 @@ def load_fact_conge(fact: pd.DataFrame):
     fact = fact.merge(d_personnel, on="matricule", how="left")
     fact = fact.merge(d_service, on="code_service", how="left")
     fact = fact.merge(d_motif, on="code_motif_conge", how="left")
-    fact = fact.merge(d_statut, on=["valid_code", "etat_cng_code", "planifier_code", "cloture_code", "sign_cng_code"], how="left")
-    fact = fact.merge(d_type_conge, on="code_type_conge", how="left")
+    fact = fact.merge(d_statut, on=["valid_code"], how="left")
+    fact = fact.merge(d_societe, left_on="code_soc", right_on="code_societe", how="left")
 
     fact = fact.drop_duplicates(subset=["code_soc", "num_demande_conge", "id_personnel"])
 
     for col in [
-        "id_temps_debut", "id_temps_fin", "id_personnel", "id_service",
-        "id_motif_conge", "id_statut_demande_conge", "id_type_conge", "nb_demande", "nb_justificatifs"
+        "id_temps_debut", "id_temps_fin", "id_personnel", "id_service", "id_societe",
+        "id_motif_conge", "id_statut_demande_conge", "nb_demande", "nb_justificatifs"
     ]:
         fact[col] = pd.to_numeric(fact[col], errors="coerce").astype("Int64")
 
-    for col in ["nbr_jours", "nbr_heures", "nbr_jours_cal"]:
+    for col in ["nbr_jours"]:
         fact[col] = pd.to_numeric(fact[col], errors="coerce")
 
     fact["est_justifie"] = fact["est_justifie"].fillna(False).astype(bool)
 
     fact = fact[[
         "code_soc", "num_demande_conge", "id_temps_debut", "id_temps_fin", "id_personnel",
-        "id_service", "id_motif_conge", "id_statut_demande_conge", "id_type_conge", "nb_demande",
-        "nbr_jours", "nbr_heures", "nbr_jours_cal", "est_justifie", "nb_justificatifs"
+        "id_service", "id_motif_conge", "id_statut_demande_conge", "nb_demande",
+        "nbr_jours", "est_justifie", "nb_justificatifs"
     ]]
 
     fact.to_sql(
@@ -142,15 +144,13 @@ def load_fact_conge(fact: pd.DataFrame):
             "num_demande_conge": String(50),
             "id_temps_debut": Integer(),
             "id_temps_fin": Integer(),
+            "id_societe": Integer(),
             "id_personnel": Integer(),
             "id_service": Integer(),
             "id_motif_conge": Integer(),
             "id_statut_demande_conge": Integer(),
-            "id_type_conge": Integer(),
             "nb_demande": Integer(),
             "nbr_jours": Numeric(12, 2),
-            "nbr_heures": Numeric(12, 2),
-            "nbr_jours_cal": Numeric(12, 2),
             "est_justifie": Boolean(),
             "nb_justificatifs": Integer(),
         },
@@ -168,6 +168,8 @@ def load_fact_pointage(fact: pd.DataFrame):
 
     d_personnel = get_dim("d_personnel")[["id_personnel", "matricule"]].copy()
     d_personnel["matricule"] = d_personnel["matricule"].astype("string").str.strip()
+    d_societe = get_dim("d_societe")[["id_societe", "code_societe"]].copy()
+    d_societe["code_societe"] = d_societe["code_societe"].astype("string").str.strip()
 
     d_service = get_dim("d_service")[["id_service", "code_service"]].copy()
     d_service["code_service"] = d_service["code_service"].astype("string").str.strip()
@@ -186,7 +188,7 @@ def load_fact_pointage(fact: pd.DataFrame):
     map_service = d_service.drop_duplicates("code_service").set_index("code_service")["id_service"]
     map_type = d_type.drop_duplicates("code_type_pointage").set_index("code_type_pointage")["id_type_pointage"]
     map_retard = d_retard.drop_duplicates("code_etat_retard").set_index("code_etat_retard")["id_etat_retard"]
-
+    map_societe = d_societe.drop_duplicates("code_societe").set_index("code_societe")["id_societe"]
     # -----------------------------
     # Traitement par chunks AVANT conversions lourdes
     # -----------------------------
@@ -202,38 +204,39 @@ def load_fact_pointage(fact: pd.DataFrame):
         chunk["code_service"] = chunk["code_service"].astype("string").str.strip()
         chunk["code_type_pointage"] = chunk["code_type_pointage"].astype("string").str.strip()
         chunk["code_etat_retard"] = chunk["code_etat_retard"].astype("string").str.strip()
-
+        chunk["code_soc"] = chunk["code_soc"].astype("string").str.strip()
+        chunk["id_societe"] = chunk["code_soc"].map(map_societe)
         # mapping sur le chunk
         chunk["id_temps"] = chunk["date_point"].map(map_temps)
         chunk["id_personnel"] = chunk["matricule"].map(map_personnel)
         chunk["id_service"] = chunk["code_service"].map(map_service)
         chunk["id_type_pointage"] = chunk["code_type_pointage"].map(map_type)
         chunk["id_etat_retard"] = chunk["code_etat_retard"].map(map_retard)
+        chunk["id_etat_retard"] = chunk["id_etat_retard"].fillna(0)
 
         # conversions sur le chunk seulement
         for col in [
-            "id_temps", "id_personnel", "id_service",
+            "id_temps", "id_personnel", "id_service", "id_societe",
             "id_type_pointage", "id_etat_retard",
-            "nb_pointage", "nb_retard"
+            "nb_pointage"
         ]:
             chunk[col] = pd.to_numeric(chunk[col], errors="coerce")
 
         for col in ["ret_min", "duree_tot"]:
             chunk[col] = pd.to_numeric(chunk[col], errors="coerce")
 
-        chunk["est_retard"] = chunk["est_retard"].fillna(False).astype(bool)
 
         chunk = chunk[[
-            "id_temps", "id_personnel", "id_service", "id_type_pointage", "id_etat_retard",
-            "nb_pointage", "nb_retard", "est_retard", "ret_min", "duree_tot"
+            "id_temps", "id_personnel", "id_service", "id_type_pointage", "id_etat_retard", "id_societe",
+            "nb_pointage", "ret_min", "duree_tot"
         ]]
 
         chunk = chunk.dropna(subset=["id_temps", "id_personnel"])
 
         for col in [
-            "id_temps", "id_personnel", "id_service",
+            "id_temps", "id_personnel", "id_service", "id_societe",
             "id_type_pointage", "id_etat_retard",
-            "nb_pointage", "nb_retard"
+            "nb_pointage"
         ]:
             chunk[col] = chunk[col].astype("Int64")
 
@@ -246,12 +249,11 @@ def load_fact_pointage(fact: pd.DataFrame):
             dtype={
                 "id_temps": Integer(),
                 "id_personnel": Integer(),
+                "id_societe": Integer(),
                 "id_service": Integer(),
                 "id_type_pointage": Integer(),
                 "id_etat_retard": Integer(),
                 "nb_pointage": Integer(),
-                "nb_retard": Integer(),
-                "est_retard": Boolean(),
                 "ret_min": Numeric(12, 2),
                 "duree_tot": Numeric(12, 2),
             },

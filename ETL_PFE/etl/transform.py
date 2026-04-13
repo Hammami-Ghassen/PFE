@@ -70,7 +70,7 @@ def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, t
     d_grade = (
     d_grade[["COD_CATEG", "COD_GRAD", "LIB_GRAD", "COD_CAT"]]
     .dropna(subset=["COD_GRAD"])
-    .drop_duplicates(subset=["COD_GRAD"])
+    .drop_duplicates(subset=["COD_CATEG", "COD_CAT", "COD_GRAD"])
     .rename(columns={
         "COD_CATEG": "code_categ",
         "COD_GRAD": "code_grade",
@@ -245,7 +245,7 @@ def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, t
 def build_fact_effectif(personnel, societe):
     df = personnel.copy()
 
-    for col in ["MAT_PERS", "COD_SOC", "COD_SERV", "COD_GRAD", "ETAT_ACT", "SEXE"]:
+    for col in ["MAT_PERS", "COD_SOC", "COD_SERV", "COD_CATEG", "COD_CAT", "COD_GRAD", "ETAT_ACT", "SEXE"]:
         df[col] = clean_text(df[col])
 
     soc = societe.copy()
@@ -270,7 +270,9 @@ def build_fact_effectif(personnel, societe):
         "matricule": df["MAT_PERS"],
         "code_soc": df["COD_SOC"],
         "code_service": df["COD_SERV"],
-        "code_gouvernorat": df["COD_GOUV_TRAVAIL"],   # gouvernorat du lieu de travail
+        "code_gouvernorat": df["COD_GOUV_TRAVAIL"], # gouvernorat du lieu de travail
+        "code_categ": df["COD_CATEG"],
+        "code_cat": df["COD_CAT"],
         "code_grade": df["COD_GRAD"],
         "code_etat_act": df["ETAT_ACT"],
         "code_sexe": df["SEXE"],

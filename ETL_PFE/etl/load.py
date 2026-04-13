@@ -41,7 +41,7 @@ def load_fact_effectif(fact: pd.DataFrame):
     d_personnel = get_dim("d_personnel")[["id_personnel", "matricule"]]
     d_service = get_dim("d_service")[["id_service", "code_service"]]
     d_gouvernorat = get_dim("d_gouvernorat")[["id_gouvernorat", "code_gouvernorat"]]
-    d_grade = get_dim("d_grade")[["id_grade", "code_grade"]]
+    d_grade = get_dim("d_grade")[["id_grade", "code_categ", "code_cat", "code_grade"]]
     d_etat_act = get_dim("d_etat_act")[["id_etat_act", "code_etat_act"]]
     d_sexe = get_dim("d_sexe")[["id_sexe", "code_sexe"]]
 
@@ -50,7 +50,7 @@ def load_fact_effectif(fact: pd.DataFrame):
     fact = fact.merge(d_personnel, on="matricule", how="left")
     fact = fact.merge(d_service, on="code_service", how="left")
     fact = fact.merge(d_gouvernorat, on="code_gouvernorat", how="left")
-    fact = fact.merge(d_grade, on="code_grade", how="left")
+    fact = fact.merge(d_grade, on=["code_categ", "code_cat", "code_grade"], how="left")
     fact = fact.merge(d_etat_act, on="code_etat_act", how="left")
     fact = fact.merge(d_sexe, on="code_sexe", how="left")
 
@@ -88,12 +88,14 @@ def load_fact_conge(fact: pd.DataFrame):
     engine = get_dw_engine()
     fact = fact.copy()
 
+    fact["code_soc"] = fact["code_soc"].astype("string").str.strip()
     fact["date_debut"] = pd.to_datetime(fact["date_debut"], errors="coerce").dt.normalize()
     fact["date_fin"] = pd.to_datetime(fact["date_fin"], errors="coerce").dt.normalize()
 
     d_temps = get_dim("d_temps")[["id_temps", "date_complete"]]
     d_temps["date_complete"] = pd.to_datetime(d_temps["date_complete"], errors="coerce").dt.normalize()
-    d_societe = get_dim("d_societe")[["id_societe", "code_societe"]]
+    d_societe = get_dim("d_societe")[["id_societe", "code_societe"]].copy()
+    d_societe["code_societe"] = d_societe["code_societe"].astype("string").str.strip()
     d_personnel = get_dim("d_personnel")[["id_personnel", "matricule"]]
     d_service = get_dim("d_service")[["id_service", "code_service"]]
     d_motif = get_dim("d_motif_conge")[["id_motif_conge", "code_motif_conge"]]
@@ -129,7 +131,7 @@ def load_fact_conge(fact: pd.DataFrame):
 
     fact = fact[[
         "code_soc", "num_demande_conge", "id_temps_debut", "id_temps_fin", "id_personnel",
-        "id_service", "id_motif_conge", "id_statut_demande_conge", "nb_demande",
+        "id_societe", "id_service", "id_motif_conge", "id_statut_demande_conge", "nb_demande",
         "nbr_jours", "est_justifie", "nb_justificatifs"
     ]]
 

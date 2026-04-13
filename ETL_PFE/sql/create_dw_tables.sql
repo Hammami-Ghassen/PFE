@@ -26,10 +26,11 @@ CREATE TABLE IF NOT EXISTS d_gouvernorat (
 
 CREATE TABLE IF NOT EXISTS d_grade (
     id_grade SERIAL PRIMARY KEY,
-    code_grade VARCHAR(50) UNIQUE NOT NULL,
+    code_grade VARCHAR(50) NOT NULL,
     libelle_grade VARCHAR(255),
-    code_categ VARCHAR(50),
-    code_cat VARCHAR(50)
+    code_categ VARCHAR(50) NOT NULL,
+    code_cat VARCHAR(50) NOT NULL,
+    CONSTRAINT uq_d_grade UNIQUE (code_categ, code_cat, code_grade)
 );
 
 CREATE TABLE IF NOT EXISTS d_etat_act (

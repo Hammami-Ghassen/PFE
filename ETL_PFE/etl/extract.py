@@ -8,7 +8,7 @@ def run_extract() -> dict[str, pd.DataFrame]:
         SELECT
             "COD_SOC", "MAT_PERS", "NOM_PERS", "PREN_PERS",
             "SEXE", "DAT_EMB", "DAT_NAIS",
-            "COD_SERV", "COD_GOUV", "COD_GRAD", "ETAT_ACT"
+            "COD_SERV", "COD_GOUV", "COD_CATEG", "COD_CAT", "COD_GRAD", "ETAT_ACT"
         FROM public."PERSONNEL"
     """, engine)
 

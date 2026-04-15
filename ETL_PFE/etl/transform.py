@@ -285,21 +285,25 @@ def build_fact_effectif(personnel, societe):
 
 def build_fact_conge(dem_cng, justif, personnel):
     dem = dem_cng.copy()
-    for col in ["COD_SOC", "MAT_PERS", "NUM_DCNG", "CODE_M", "VALID",  "NAT_CNG"]:
+
+    for col in ["COD_SOC", "MAT_PERS", "CODE_M", "VALID"]:
         dem[col] = clean_text(dem[col])
+
+    # harmoniser le type de la clé métier avant le merge
+    dem["NUM_DCNG"] = dem["NUM_DCNG"].astype("string").str.strip()
 
     dem["DAT_DEBUT"] = pd.to_datetime(dem["DAT_DEBUT"], errors="coerce")
     dem["DAT_FIN"] = pd.to_datetime(dem["DAT_FIN"], errors="coerce")
-
     dem["NBR_JOURS"] = pd.to_numeric(dem["NBR_JOURS"], errors="coerce")
-    dem["NBR_HEURE"] = pd.to_numeric(dem["NBR_HEURE"], errors="coerce")
-    dem["NBR_JOURS_CAL"] = pd.to_numeric(dem["NBR_JOURS_CAL"], errors="coerce")
 
+    # une ligne par demande
     dem = dem.drop_duplicates(subset=["COD_SOC", "MAT_PERS", "NUM_DCNG"])
 
     j = justif.copy()
-    for col in ["COD_SOC", "MAT_PERS", "NUM_DCNG"]:
+    for col in ["COD_SOC", "MAT_PERS"]:
         j[col] = clean_text(j[col])
+
+    j["NUM_DCNG"] = j["NUM_DCNG"].astype("string").str.strip()
 
     j = (
         j.groupby(["COD_SOC", "MAT_PERS", "NUM_DCNG"], dropna=False)
@@ -307,6 +311,7 @@ def build_fact_conge(dem_cng, justif, personnel):
         .reset_index(name="nb_justificatifs")
     )
 
+    # récupérer le service depuis personnel
     pers = personnel.copy()
     pers["MAT_PERS"] = clean_text(pers["MAT_PERS"])
     pers["COD_SERV"] = clean_text(pers["COD_SERV"])
@@ -314,35 +319,40 @@ def build_fact_conge(dem_cng, justif, personnel):
 
     fact = dem.merge(j, how="left", on=["COD_SOC", "MAT_PERS", "NUM_DCNG"])
     fact = fact.merge(pers, how="left", on="MAT_PERS")
+
     fact["nb_justificatifs"] = fact["nb_justificatifs"].fillna(0).astype(int)
     fact["est_justifie"] = fact["nb_justificatifs"] > 0
 
     fact = fact.rename(columns={
         "COD_SOC": "code_soc",
-        "NUM_DCNG": "num_demande_conge",
         "DAT_DEBUT": "date_debut",
         "DAT_FIN": "date_fin",
         "MAT_PERS": "matricule",
         "COD_SERV": "code_service",
         "CODE_M": "code_motif_conge",
         "VALID": "valid_code",
-        "NAT_CNG": "code_type_conge",
         "NBR_JOURS": "nbr_jours",
     })
 
     fact["nb_demande"] = 1
-
     fact["nbr_jours"] = pd.to_numeric(fact["nbr_jours"], errors="coerce")
 
+    # code_soc reste seulement pour permettre le mapping vers id_societe dans load.py
     fact = fact[[
-        "code_soc", "num_demande_conge", "date_debut", "date_fin",
-        "matricule", "code_service",
-        "code_motif_conge", "valid_code","code_type_conge",
-        "nb_demande", "nbr_jours",
-        "est_justifie", "nb_justificatifs"
+        "date_debut",
+        "date_fin",
+        "code_soc",
+        "matricule",
+        "code_service",
+        "code_motif_conge",
+        "valid_code",
+        "nb_demande",
+        "nbr_jours",
+        "est_justifie",
+        "nb_justificatifs",
     ]]
 
-    fact = fact.drop_duplicates(subset=["code_soc", "num_demande_conge", "matricule"])
+    fact = fact.drop_duplicates(subset=["code_soc", "matricule", "date_debut", "date_fin", "code_motif_conge"])
     return fact
 
 def build_fact_pointage_retard(pointer, retard, personnel):

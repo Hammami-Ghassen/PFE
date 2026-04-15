@@ -98,8 +98,6 @@ CREATE TABLE IF NOT EXISTS f_effectif_snapshot (
 
 CREATE TABLE IF NOT EXISTS f_demande_conge (
     id_demande_conge BIGSERIAL PRIMARY KEY,
-    code_soc VARCHAR(50),
-    num_demande_conge VARCHAR(50),
     id_temps_debut INT,
     id_temps_fin INT,
     id_personnel INT,

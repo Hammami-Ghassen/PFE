@@ -91,18 +91,27 @@ def load_fact_conge(fact: pd.DataFrame):
     fact["code_soc"] = fact["code_soc"].astype("string").str.strip()
     fact["date_debut"] = pd.to_datetime(fact["date_debut"], errors="coerce").dt.normalize()
     fact["date_fin"] = pd.to_datetime(fact["date_fin"], errors="coerce").dt.normalize()
+    fact["code_service"] = fact["code_service"].astype("string").str.strip()
+    fact["code_motif_conge"] = fact["code_motif_conge"].astype("string").str.strip()
+    fact["valid_code"] = fact["valid_code"].astype("string").str.strip()
+    fact["matricule"] = fact["matricule"].astype("string").str.strip()
 
-    d_temps = get_dim("d_temps")[["id_temps", "date_complete"]]
+
+    d_temps = get_dim("d_temps")[["id_temps", "date_complete"]].copy()
     d_temps["date_complete"] = pd.to_datetime(d_temps["date_complete"], errors="coerce").dt.normalize()
     d_societe = get_dim("d_societe")[["id_societe", "code_societe"]].copy()
     d_societe["code_societe"] = d_societe["code_societe"].astype("string").str.strip()
-    d_personnel = get_dim("d_personnel")[["id_personnel", "matricule"]]
-    d_service = get_dim("d_service")[["id_service", "code_service"]]
-    d_motif = get_dim("d_motif_conge")[["id_motif_conge", "code_motif_conge"]]
+    d_personnel = get_dim("d_personnel")[["id_personnel", "matricule"]].copy()
+    d_personnel["matricule"] = d_personnel["matricule"].astype("string").str.strip()
+    d_service = get_dim("d_service")[["id_service", "code_service"]].copy()
+    d_service["code_service"] = d_service["code_service"].astype("string").str.strip()
+    d_motif = get_dim("d_motif_conge")[["id_motif_conge", "code_motif_conge"]].copy()
+    d_motif["code_motif_conge"] = d_motif["code_motif_conge"].astype("string").str.strip()
     d_statut = get_dim("d_statut_demande_conge")[[
     "id_statut_demande_conge",
     "valid_code"
-]]
+]].copy()
+    d_statut["valid_code"] = d_statut["valid_code"].astype("string").str.strip()
 
 
     d_temps_debut = d_temps.rename(columns={"id_temps": "id_temps_debut", "date_complete": "date_debut"})
@@ -116,7 +125,7 @@ def load_fact_conge(fact: pd.DataFrame):
     fact = fact.merge(d_statut, on=["valid_code"], how="left")
     fact = fact.merge(d_societe, left_on="code_soc", right_on="code_societe", how="left")
 
-    fact = fact.drop_duplicates(subset=["code_soc", "num_demande_conge", "id_personnel"])
+    fact = fact.drop_duplicates(subset=["code_soc", "id_personnel", "id_temps_debut", "id_temps_fin", "id_motif_conge"])
 
     for col in [
         "id_temps_debut", "id_temps_fin", "id_personnel", "id_service", "id_societe",
@@ -130,7 +139,7 @@ def load_fact_conge(fact: pd.DataFrame):
     fact["est_justifie"] = fact["est_justifie"].fillna(False).astype(bool)
 
     fact = fact[[
-        "code_soc", "num_demande_conge", "id_temps_debut", "id_temps_fin", "id_personnel",
+        "id_temps_debut", "id_temps_fin", "id_personnel",
         "id_societe", "id_service", "id_motif_conge", "id_statut_demande_conge", "nb_demande",
         "nbr_jours", "est_justifie", "nb_justificatifs"
     ]]
@@ -142,8 +151,6 @@ def load_fact_conge(fact: pd.DataFrame):
         index=False,
         chunksize=1000,
         dtype={
-            "code_soc": String(50),
-            "num_demande_conge": String(50),
             "id_temps_debut": Integer(),
             "id_temps_fin": Integer(),
             "id_societe": Integer(),

@@ -6,6 +6,9 @@ import {
   UsersIcon,
   UserPlusIcon,
   ClipboardDocumentListIcon,
+  DocumentPlusIcon,
+  CalendarDaysIcon,
+  ClipboardDocumentCheckIcon,
   ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 import Logo from './Logo';
@@ -17,6 +20,9 @@ import { ROLES } from '../../utils/constants';
 const navItems = [
   { label: 'Mes Informations', to: '/dashboard', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Tableau de bord', to: '/powerbi-dashboard', icon: ChartBarIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR] },
+  { label: 'Deposer un conge', to: '/leave/submit', icon: DocumentPlusIcon, roles: [ROLES.AGENT, ROLES.DIRECTEUR] },
+  { label: 'Mes demandes de conge', to: '/leave/my-requests', icon: CalendarDaysIcon, roles: [ROLES.AGENT, ROLES.DIRECTEUR] },
+  { label: 'Validation conges', to: '/leave/validation', icon: ClipboardDocumentCheckIcon, roles: [ROLES.DIRECTEUR] },
   { label: 'Personnel', to: '/admin/users', icon: UsersIcon, roles: [ROLES.ADMIN] },
   { label: 'Demandes correction', to: '/admin/corrections', icon: ClipboardDocumentListIcon, roles: [ROLES.ADMIN] },
   { label: 'Ajouter Employe', to: '/admin/employees/new', icon: UserPlusIcon, roles: [ROLES.ADMIN] },

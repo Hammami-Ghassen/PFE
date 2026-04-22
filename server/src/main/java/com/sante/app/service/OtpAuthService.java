@@ -67,7 +67,7 @@ public class OtpAuthService {
 
         String storedHash = otpStoreService.findOtpHash(normalizedMatPers);
         if (storedHash == null) {
-            throw new UnauthorizedException("OTP expiré ou non demandé.");
+            throw new UnauthorizedException("OTP non valide ou expiré.");
         }
 
         String incomingHash = sha256(otp);

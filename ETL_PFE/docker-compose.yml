@@ -1,0 +1,30 @@
+services:
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: etl-pfe-airflow:2.10.5-python3.11
+    container_name: etl-pfe-airflow
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      AIRFLOW__CORE__EXECUTOR: SequentialExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////opt/airflow/airflow.db
+      AIRFLOW__CORE__LOAD_EXAMPLES: "False"
+      AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "True"
+      _AIRFLOW_WWW_USER_USERNAME: admin
+      _AIRFLOW_WWW_USER_PASSWORD: admin
+      PYTHONPATH: /opt/airflow:/opt/airflow/etl
+      SRC_DB_HOST: ${SRC_DB_HOST_DOCKER:-host.docker.internal}
+      DW_DB_HOST: ${DW_DB_HOST_DOCKER:-host.docker.internal}
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./dags:/opt/airflow/dags
+      - ./logs:/opt/airflow/logs
+      - ./plugins:/opt/airflow/plugins
+      - ./etl:/opt/airflow/etl
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    command: standalone

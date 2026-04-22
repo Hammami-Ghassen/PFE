@@ -5,6 +5,7 @@ const Input = ({
   label,
   id,
   type = 'text',
+  icon: Icon,
   error,
   required = false,
   className = '',
@@ -22,13 +23,18 @@ const Input = ({
           {required && <span className="text-red-500 ml-1">*</span>}
         </label>
       )}
-      <div className="relative">
+      <div className="relative flex items-center">
+        {Icon && (
+          <div className="absolute left-3 text-gray-400">
+            <Icon className="w-5 h-5" />
+          </div>
+        )}
         <input
           id={id}
           type={inputType}
-          className={`w-full px-4 py-2.5 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-transparent transition-all duration-200 ${
-            error ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'
-          } ${isPassword ? 'pr-10' : ''}`}
+          className={`w-full px-4 py-3 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-transparent transition-all duration-200 ${
+            error ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'
+          } ${isPassword ? 'pr-10' : ''} ${Icon ? 'pl-10' : ''}`}
           {...props}
         />
         {isPassword && (

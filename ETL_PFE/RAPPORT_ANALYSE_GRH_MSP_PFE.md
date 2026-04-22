@@ -420,3 +420,11 @@ La base grh_msp est suffisante pour un PFE BI solide si le perimetre initial est
 - Pointage/Retard
 
 Le modele cible recommande est une constellation de plusieurs etoiles, une etoile par theme, avec dimensions partagees (Temps, Personnel, Service, Region).
+
+## 12) Commentaire implementation ETL_PFE (Airflow)
+
+Dans le dossier ETL_PFE, une implementation Airflow a ete ajoutee pour industrialiser le pipeline ETL:
+- orchestration d'un DAG `etl_pipeline` avec les taches extract -> transform -> load;
+- configuration Docker (`Dockerfile`, `docker-compose.yml`) pour executer Airflow en local;
+- parametrage via variables d'environnement (`.env.example`) pour les connexions source et data warehouse;
+- organisation des dossiers `dags/`, `etl/`, `logs/`, `plugins/` afin de faciliter l'exploitation et la maintenance.

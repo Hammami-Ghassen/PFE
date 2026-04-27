@@ -36,8 +36,17 @@ public class DemCng {
     @Column(name = "\"MOTIF_CNG\"", length = 1000)
     private String motifCng;
 
+    @Column(name = "\"MOTIF_REFUS\"", length = 1000)
+    private String motifRefus;
+
     @Column(name = "\"NBR_JOURS\"", precision = 7, scale = 3)
     private BigDecimal nbrJours;
+
+    @Column(name = "\"NBR_JOURS_CAL\"", precision = 7, scale = 3)
+    private BigDecimal nbrJoursCal;
+
+    @Column(name = "\"SOLD_CNG\"", precision = 7, scale = 3)
+    private BigDecimal soldCng;
 
     @Column(name = "\"ANNEE_CNG\"")
     private Integer anneeCng;

@@ -32,7 +32,7 @@ const AddEmployeePage = () => {
     await submitEmployeeMock(form);
     setSubmitting(false);
     setSuccess(true);
-    toast.success('Soumission simulee (aucun endpoint backend appele).');
+    toast.success('Soumission simulée (aucun endpoint backend appelé).');
   };
 
   return (
@@ -132,7 +132,7 @@ const AddEmployeePage = () => {
         title="Soumission Simulée"
         footer={<Button onClick={() => setSuccess(false)}>Fermer</Button>}
       >
-        <p className="text-sm text-gray-700">La mise en page du formulaire est terminée. L'insertion reste simulée (mockée).</p>
+        <p className="text-sm text-gray-700">La mise en page du formulaire est terminée. L'insertion reste simulée (mock).</p>
       </Modal>
     </div>
   );

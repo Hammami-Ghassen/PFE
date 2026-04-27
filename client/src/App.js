@@ -14,7 +14,6 @@ import PowerBIDashboard from './pages/dashboard/PowerBIDashboard';
 import UsersListPage from './pages/admin/UsersListPage';
 import AddEmployeePage from './pages/admin/AddEmployeePage';
 import CorrectionRequestsPage from './pages/admin/CorrectionRequestsPage';
-import LeaveSubmitPage from './pages/leave/LeaveSubmitPage';
 import MyLeaveRequestsPage from './pages/leave/MyLeaveRequestsPage';
 import LeaveValidationPage from './pages/leave/LeaveValidationPage';
 import { ROLES } from './utils/constants';
@@ -45,7 +44,6 @@ function App() {
               </Route>
 
               <Route element={<RoleRoute allowedRoles={[ROLES.AGENT, ROLES.DIRECTEUR]} />}>
-                <Route path="/leave/submit" element={<LeaveSubmitPage />} />
                 <Route path="/leave/my-requests" element={<MyLeaveRequestsPage />} />
               </Route>
 

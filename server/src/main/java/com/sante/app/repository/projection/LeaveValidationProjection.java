@@ -25,7 +25,11 @@ public interface LeaveValidationProjection {
 
     String getLibMot();
 
+    String getMotifCng();
+
     BigDecimal getNbrJours();
 
     String getValid();
+
+    String getMotifRefus();
 }

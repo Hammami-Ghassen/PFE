@@ -3,19 +3,21 @@ import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/ui/Spinner';
 import StatCard from '../../components/ui/StatCard';
+import LeaveValidationDetailModal from '../../components/leave/LeaveValidationDetailModal';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import { formatDate } from '../../utils/helpers';
 import {
+  getLeaveBalanceByMatPers,
+  getLeaveHolidays,
   getLeaveValidationQueue,
   reviewLeaveRequest,
 } from '../../services/leaveService';
 import {
   ClipboardDocumentCheckIcon,
   CheckCircleIcon,
-  PlusCircleIcon,
-  XMarkIcon,
-  CheckIcon
+  XCircleIcon,
+  EyeIcon,
 } from '@heroicons/react/24/outline';
 
 const PAGE_SIZE = 50;
@@ -44,7 +46,13 @@ const LeaveValidationPage = () => {
   const [statusFilter, setStatusFilter] = useState('I');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [reviewingKey, setReviewingKey] = useState(null);
+  const [holidays, setHolidays] = useState([]);
+
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailSubmitting, setDetailSubmitting] = useState(false);
+  const [loadingSelectedBalance, setLoadingSelectedBalance] = useState(false);
+  const [selectedBalance, setSelectedBalance] = useState(null);
 
   const loadQueue = useCallback(async () => {
     setLoading(true);
@@ -66,30 +74,77 @@ const LeaveValidationPage = () => {
     loadQueue();
   }, [loadQueue]);
 
+  useEffect(() => {
+    const loadHolidays = async () => {
+      try {
+        const response = await getLeaveHolidays(axiosPrivate);
+        setHolidays(Array.isArray(response) ? response : []);
+      } catch {
+        toast.error('Erreur lors du chargement des jours feries.');
+      }
+    };
+
+    loadHolidays();
+  }, [axiosPrivate]);
+
   const handleStatusFilterChange = (event) => {
     setStatusFilter(event.target.value);
     setPage(0);
   };
 
-  const handleReview = async (request, status) => {
-    const key = `${request.codSoc}-${request.matPers}-${request.numDcng}`;
-    setReviewingKey(key);
+  const closeDetailModal = () => {
+    if (detailSubmitting) {
+      return;
+    }
+    setIsDetailModalOpen(false);
+    setSelectedRequest(null);
+    setSelectedBalance(null);
+  };
+
+  const openDetailModal = async (request) => {
+    setSelectedRequest(request);
+    setIsDetailModalOpen(true);
+    setSelectedBalance(null);
+    setLoadingSelectedBalance(true);
 
     try {
-      await reviewLeaveRequest(axiosPrivate, {
-        codSoc: request.codSoc,
-        matPers: request.matPers,
-        numDcng: request.numDcng,
-        status,
-      });
-      toast.success(status === 'O' ? 'Demande acceptee.' : 'Demande refusee.');
-      await loadQueue();
-    } catch (err) {
-      toast.error(err?.response?.data?.message || 'Traitement impossible.');
+      const response = await getLeaveBalanceByMatPers(axiosPrivate, request.matPers);
+      setSelectedBalance(response);
+    } catch {
+      toast.error('Impossible de charger le solde du demandeur.');
     } finally {
-      setReviewingKey(null);
+      setLoadingSelectedBalance(false);
     }
   };
+
+  const handleReviewFromModal = async (status, comment) => {
+    if (!selectedRequest) return;
+
+    setDetailSubmitting(true);
+    try {
+      await reviewLeaveRequest(axiosPrivate, {
+        codSoc: selectedRequest.codSoc,
+        matPers: selectedRequest.matPers,
+        numDcng: selectedRequest.numDcng,
+        status,
+        comment,
+      });
+
+      toast.success(status === 'O' ? 'Demande acceptee.' : 'Demande refusee.');
+      setIsDetailModalOpen(false);
+      setSelectedRequest(null);
+      setSelectedBalance(null);
+      await loadQueue();
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Traitement impossible.');
+    } finally {
+      setDetailSubmitting(false);
+    }
+  };
+
+  const pendingCount = data.content.filter((request) => request.statusCode === 'I').length;
+  const approvedCount = data.content.filter((request) => request.statusCode === 'O').length;
+  const rejectedCount = data.content.filter((request) => request.statusCode === 'N').length;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
@@ -97,31 +152,31 @@ const LeaveValidationPage = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="PENDING REQUESTS"
-          value="24"
-          subtitle="Requires immediate attention"
+          title="DEMANDES EN ATTENTE"
+          value={pendingCount || '0'}
+          subtitle="À traiter en priorité"
           icon={ClipboardDocumentCheckIcon}
           accentColor="bg-blue-50 text-blue-600"
         />
         <StatCard
-          title="APPROVED TODAY"
-          value="12"
-          subtitle="Processed by your team"
+          title="APPROUVÉES AUJOURD'HUI"
+          value={approvedCount || '0'}
+          subtitle="Traitées par votre équipe"
           icon={CheckCircleIcon}
           accentColor="bg-green-50 text-green-600"
         />
         <StatCard
-          title="URGENT MEDICAL"
-          value="3"
-          subtitle="High priority processing"
-          icon={PlusCircleIcon}
+          title="REFUSÉES"
+          value={rejectedCount || '0'}
+          subtitle="Retournées au demandeur"
+          icon={XCircleIcon}
           accentColor="bg-red-50 text-red-600"
         />
       </div>
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h3 className="text-lg font-bold text-gray-800">Pending Validation Queue</h3>
+          <h3 className="text-lg font-bold text-gray-800">File de validation</h3>
           <div className="flex gap-3">
             <select
               value={statusFilter}
@@ -152,7 +207,7 @@ const LeaveValidationPage = () => {
                   <th className="px-6 py-4 text-left">DATES</th>
                   <th className="px-6 py-4 text-left">MOTIF</th>
                   <th className="px-6 py-4 text-left">STATUT</th>
-                  <th className="px-6 py-4 text-right">ACTIONS</th>
+                  <th className="px-6 py-4 text-right">DÉTAILS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
@@ -165,8 +220,6 @@ const LeaveValidationPage = () => {
                 ) : (
                   data.content.map((request) => {
                     const rowKey = `${request.codSoc}-${request.matPers}-${request.numDcng}`;
-                    const isPending = request.statusCode === 'I';
-                    const isReviewing = reviewingKey === rowKey;
 
                     return (
                       <tr key={rowKey} className="hover:bg-blue-50/30 transition-colors">
@@ -180,7 +233,7 @@ const LeaveValidationPage = () => {
                         <td className="px-6 py-4 text-ministere-600">{request.demandeurRole || '—'}</td>
                         <td className="px-6 py-4 text-gray-600 text-xs leading-relaxed">
                           <div className="font-semibold text-gray-900 mb-0.5">{formatDate(request.dateDebut)}</div>
-                          <div className="text-gray-400">to {formatDate(request.dateFin)}</div>
+                          <div className="text-gray-400">au {formatDate(request.dateFin)}</div>
                         </td>
                         <td className="px-6 py-4 text-gray-700">{request.libMot || request.codeM || '—'}</td>
                         <td className="px-6 py-4">
@@ -193,26 +246,14 @@ const LeaveValidationPage = () => {
                           </span>
                         </td>
                         <td className="px-6 py-4 text-right whitespace-nowrap">
-                          {isPending ? (
-                            <div className="flex items-center justify-end gap-3">
-                              <button
-                                onClick={() => handleReview(request, 'N')}
-                                className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
-                                disabled={isReviewing}
-                              >
-                                <XMarkIcon className="w-5 h-5" />
-                              </button>
-                              <button
-                                onClick={() => handleReview(request, 'O')}
-                                className="p-1.5 text-gray-400 hover:text-green-600 transition-colors rounded-md hover:bg-green-50"
-                                disabled={isReviewing}
-                              >
-                                <CheckIcon className="w-5 h-5" />
-                              </button>
-                            </div>
-                          ) : (
-                            <span className="text-gray-400 text-xs italic tracking-wide">Traitée</span>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => openDetailModal(request)}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-ministere-700 bg-ministere-50 border border-ministere-200 rounded-md hover:bg-ministere-100 transition-colors"
+                          >
+                            <EyeIcon className="w-4 h-4" />
+                            Voir détails
+                          </button>
                         </td>
                       </tr>
                     );
@@ -266,6 +307,18 @@ const LeaveValidationPage = () => {
           </div>
         )}
       </div>
+
+      <LeaveValidationDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={closeDetailModal}
+        request={selectedRequest}
+        holidays={holidays}
+        balance={selectedBalance}
+        loadingBalance={loadingSelectedBalance}
+        submitting={detailSubmitting}
+        onApprove={(comment) => handleReviewFromModal('O', comment)}
+        onReject={(comment) => handleReviewFromModal('N', comment)}
+      />
     </div>
   );
 };

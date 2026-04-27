@@ -6,7 +6,6 @@ import Header from './Header';
 const pageTitles = {
   '/dashboard': 'Mes Informations',
   '/powerbi-dashboard': 'Tableau de bord',
-  '/leave/submit': 'Deposer une demande de conge',
   '/leave/my-requests': 'Mes demandes de conge',
   '/leave/validation': 'Validation des conges',
   '/admin/users': 'Gestion du Personnel',

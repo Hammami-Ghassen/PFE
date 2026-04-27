@@ -1,17 +1,27 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import toast from 'react-hot-toast';
+import Modal from '../../components/ui/Modal';
+import Alert from '../../components/ui/Alert';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/ui/Spinner';
 import StatCard from '../../components/ui/StatCard';
+import LeaveBalanceCard from '../../components/ui/LeaveBalanceCard';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import { formatDate } from '../../utils/helpers';
-import { getMyLeaveRequests } from '../../services/leaveService';
+import {
+  createLeaveRequest,
+  getCurrentLeaveBalance,
+  getLeaveHolidays,
+  getLeaveMotifs,
+  getMyLeaveRequests,
+} from '../../services/leaveService';
 import {
   CalendarDaysIcon,
   ClockIcon,
   CheckCircleIcon,
-  ShieldExclamationIcon,
+  PlusIcon,
+  InformationCircleIcon,
 } from '@heroicons/react/24/outline';
 
 const PAGE_SIZE = 50;
@@ -20,6 +30,44 @@ const statusClassNames = {
   I: 'bg-amber-100 text-amber-800',
   O: 'bg-emerald-100 text-emerald-800',
   N: 'bg-red-100 text-red-700',
+};
+
+const normalizeHolidayDayMonth = (value) => {
+  if (!value || typeof value !== 'string') return null;
+  const normalized = value.trim();
+  return /^\d{2}\/\d{2}$/.test(normalized) ? normalized : null;
+};
+
+const toDayMonth = (date) => {
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  return `${day}/${month}`;
+};
+
+const calculateBusinessDays = (startDate, endDate, holidaysSet) => {
+  if (!startDate || !endDate) return 0;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return 0;
+
+  let days = 0;
+  for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
+    const dayOfWeek = current.getDay();
+    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+    const isHoliday = holidaysSet.has(toDayMonth(current));
+    if (!isWeekend && !isHoliday) {
+      days += 1;
+    }
+  }
+
+  return days;
+};
+
+const formatBalanceValue = (value) => {
+  if (value === null || value === undefined) return '0';
+  const parsed = Number.parseFloat(value);
+  if (Number.isNaN(parsed)) return '0';
+  return String(Number.isInteger(parsed) ? parsed : parsed.toFixed(3));
 };
 
 const MyLeaveRequestsPage = () => {
@@ -31,10 +79,29 @@ const MyLeaveRequestsPage = () => {
     totalElements: 0,
   });
   const [page, setPage] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loadingRequests, setLoadingRequests] = useState(true);
+
+  const [balance, setBalance] = useState(null);
+  const [loadingBalance, setLoadingBalance] = useState(true);
+
+  const [motifs, setMotifs] = useState([]);
+  const [holidays, setHolidays] = useState([]);
+  const [loadingModalData, setLoadingModalData] = useState(false);
+
+  const [isSubmitModalOpen, setIsSubmitModalOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState('');
+  const [formErrors, setFormErrors] = useState({});
+  const [openedReasonKey, setOpenedReasonKey] = useState(null);
+  const [form, setForm] = useState({
+    dateDebut: '',
+    dateFin: '',
+    codeM: '',
+    motifCng: '',
+  });
 
   const loadRequests = useCallback(async () => {
-    setLoading(true);
+    setLoadingRequests(true);
     try {
       const response = await getMyLeaveRequests(axiosPrivate, {
         page,
@@ -44,34 +111,201 @@ const MyLeaveRequestsPage = () => {
     } catch {
       toast.error('Erreur lors du chargement de vos demandes de conge.');
     } finally {
-      setLoading(false);
+      setLoadingRequests(false);
     }
   }, [axiosPrivate, page]);
+
+  const loadBalance = useCallback(async () => {
+    setLoadingBalance(true);
+    try {
+      const response = await getCurrentLeaveBalance(axiosPrivate);
+      setBalance(response);
+    } catch {
+      toast.error('Erreur lors du chargement de votre solde de conge.');
+    } finally {
+      setLoadingBalance(false);
+    }
+  }, [axiosPrivate]);
+
+  const loadModalData = useCallback(async () => {
+    setLoadingModalData(true);
+    try {
+      const [motifResult, holidayResult] = await Promise.allSettled([
+        getLeaveMotifs(axiosPrivate),
+        getLeaveHolidays(axiosPrivate),
+      ]);
+
+      if (motifResult.status === 'fulfilled') {
+        setMotifs(Array.isArray(motifResult.value) ? motifResult.value : []);
+      } else {
+        setMotifs([]);
+        toast.error('Erreur lors du chargement des motifs de conge.');
+      }
+
+      if (holidayResult.status === 'fulfilled') {
+        setHolidays(Array.isArray(holidayResult.value) ? holidayResult.value : []);
+      } else {
+        setHolidays([]);
+      }
+    } catch {
+      toast.error('Erreur lors du chargement du formulaire de conge.');
+    } finally {
+      setLoadingModalData(false);
+    }
+  }, [axiosPrivate]);
 
   useEffect(() => {
     loadRequests();
   }, [loadRequests]);
 
+  useEffect(() => {
+    loadBalance();
+  }, [loadBalance]);
+
+  useEffect(() => {
+    if (isSubmitModalOpen && (motifs.length === 0 || holidays.length === 0)) {
+      loadModalData();
+    }
+  }, [holidays.length, isSubmitModalOpen, loadModalData, motifs.length]);
+
+  const holidayDayMonthSet = useMemo(() => {
+    const result = new Set();
+    holidays.forEach((holiday) => {
+      const normalized = normalizeHolidayDayMonth(holiday?.datFerier);
+      if (normalized) {
+        result.add(normalized);
+      }
+    });
+    return result;
+  }, [holidays]);
+
+  const requestedBusinessDays = useMemo(
+    () => calculateBusinessDays(form.dateDebut, form.dateFin, holidayDayMonthSet),
+    [form.dateDebut, form.dateFin, holidayDayMonthSet]
+  );
+
+  const availableBalance = useMemo(() => {
+    const parsed = Number.parseFloat(balance?.currentBalance ?? 0);
+    return Number.isNaN(parsed) ? 0 : parsed;
+  }, [balance]);
+
+  const hasInsufficientBalance = requestedBusinessDays > availableBalance;
+
+  const pendingCount = data.content.filter((request) => request.statusCode === 'I').length;
+  const approvedCount = data.content.filter((request) => request.statusCode === 'O').length;
+
+  const resetForm = () => {
+    setForm({
+      dateDebut: '',
+      dateFin: '',
+      codeM: '',
+      motifCng: '',
+    });
+    setFormErrors({});
+    setSubmitError('');
+  };
+
+  const openSubmitModal = () => {
+    resetForm();
+    setIsSubmitModalOpen(true);
+  };
+
+  const closeSubmitModal = () => {
+    if (submitting) return;
+    setIsSubmitModalOpen(false);
+  };
+
+  const handleFormChange = (event) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+    setFormErrors((current) => ({ ...current, [name]: null }));
+    setSubmitError('');
+  };
+
+  const validateForm = () => {
+    const errors = {};
+
+    if (!form.dateDebut) {
+      errors.dateDebut = 'La date de debut est obligatoire.';
+    }
+    if (!form.dateFin) {
+      errors.dateFin = 'La date de fin est obligatoire.';
+    }
+    if (form.dateDebut && form.dateFin && form.dateDebut > form.dateFin) {
+      errors.dateFin = 'La date de fin doit etre >= date de debut.';
+    }
+    if (!form.codeM) {
+      errors.codeM = 'Le motif est obligatoire.';
+    }
+    if (requestedBusinessDays <= 0) {
+      errors.dateFin = 'La demande doit contenir au moins 1 jour ouvrable.';
+    }
+    if (hasInsufficientBalance) {
+      errors.dateFin = 'La duree demandee depasse votre solde disponible.';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    if (!validateForm()) {
+      return;
+    }
+
+    setSubmitting(true);
+    setSubmitError('');
+    try {
+      const response = await createLeaveRequest(axiosPrivate, form);
+      toast.success(`Demande envoyee (N° ${response.numDcng || 'n/a'}).`);
+      setIsSubmitModalOpen(false);
+      resetForm();
+      await Promise.all([loadRequests(), loadBalance()]);
+    } catch (error) {
+      const message = error?.response?.data?.message || 'Creation de demande impossible.';
+      setSubmitError(message);
+      toast.error(message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900">Mes demandes de conge</h2>
+          <p className="text-sm text-gray-500">Suivez votre historique et deposez une nouvelle demande.</p>
+        </div>
+        <Button onClick={openSubmitModal} className="gap-2">
+          <PlusIcon className="w-4 h-4" />
+          Nouvelle Demande
+        </Button>
+      </div>
 
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
+        <LeaveBalanceCard
+          title="SOLDE ACTUEL"
+          balance={loadingBalance ? '...' : formatBalanceValue(balance?.currentBalance)}
+          subtitle="Jours ouvrables disponibles"
+          icon={CalendarDaysIcon}
+        />
         <StatCard
-          title="TOTAL REQUESTS"
+          title="TOTAL DEMANDES"
           value={data.totalElements || '0'}
           icon={CalendarDaysIcon}
           accentColor="bg-blue-50 text-blue-600"
         />
         <StatCard
-          title="PENDING APPROVAL"
-          value={data.content.filter(r => r.statusCode === 'I').length || '0'}
+          title="EN ATTENTE"
+          value={pendingCount || '0'}
           icon={ClockIcon}
           accentColor="bg-amber-50 text-amber-600"
         />
         <StatCard
-          title="APPROVED (YEAR)"
-          value={data.content.filter(r => r.statusCode === 'O').length || '0'}
+          title="APPROUVÉES (ANNÉE)"
+          value={approvedCount || '0'}
           icon={CheckCircleIcon}
           accentColor="bg-green-50 text-green-600"
         />
@@ -79,10 +313,10 @@ const MyLeaveRequestsPage = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-200">
-          <h3 className="text-lg font-bold text-gray-800">Request History</h3>
+          <h3 className="text-lg font-bold text-gray-800">Historique des demandes</h3>
         </div>
 
-        {loading ? (
+        {loadingRequests ? (
           <div className="flex justify-center py-16">
             <Spinner size="lg" />
           </div>
@@ -91,18 +325,19 @@ const MyLeaveRequestsPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50/80 text-gray-500 text-xs font-bold uppercase tracking-widest border-b border-gray-200">
-                  <th className="px-6 py-4 text-left">REQ NUM</th>
-                  <th className="px-6 py-4 text-left">SUBMIT DATE</th>
-                  <th className="px-6 py-4 text-left">DATE RANGE</th>
-                  <th className="px-6 py-4 text-left">TYPE REASON</th>
-                  <th className="px-6 py-4 text-center">DURATION</th>
-                  <th className="px-6 py-4 text-right">STATUS</th>
+                  <th className="px-6 py-4 text-left">N° DEMANDE</th>
+                  <th className="px-6 py-4 text-left">DATE SOUMISSION</th>
+                  <th className="px-6 py-4 text-left">PÉRIODE</th>
+                  <th className="px-6 py-4 text-left">MOTIF</th>
+                  <th className="px-6 py-4 text-center">DURÉE</th>
+                  <th className="px-6 py-4 text-left">REFUS</th>
+                  <th className="px-6 py-4 text-right">STATUT</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {data.content.length === 0 ? (
                   <tr>
-                    <td colSpan={6} className="text-center py-12 text-gray-400">
+                    <td colSpan={7} className="text-center py-12 text-gray-400">
                       Aucune demande de conge.
                     </td>
                   </tr>
@@ -113,13 +348,32 @@ const MyLeaveRequestsPage = () => {
                       <td className="px-6 py-4 text-gray-500">{formatDate(request.dateDemande)}</td>
                       <td className="px-6 py-4 text-gray-600 text-xs leading-relaxed">
                         <div className="font-semibold text-gray-900 mb-0.5">{formatDate(request.dateDebut)}</div>
-                        <div className="text-gray-400">to {formatDate(request.dateFin)}</div>
+                        <div className="text-gray-400">au {formatDate(request.dateFin)}</div>
                       </td>
                       <td className="px-6 py-4 text-gray-700">{request.libMot || request.codeM || '—'}</td>
                       <td className="px-6 py-4 text-center">
                         <span className="inline-flex px-3 py-1 bg-gray-50 text-gray-600 rounded font-medium border border-gray-200 shadow-sm">
-                          {request.nbrJours ?? '—'} Days
+                          {request.nbrJours ?? '—'} jour(s)
                         </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 text-xs">
+                        {request.statusCode === 'N' && request.rejectionComment ? (
+                          <div className="space-y-1">
+                            <button
+                              type="button"
+                              onClick={() => setOpenedReasonKey((current) => (current === `${request.codSoc}-${request.matPers}-${request.numDcng}` ? null : `${request.codSoc}-${request.matPers}-${request.numDcng}`))}
+                              className="inline-flex items-center gap-1.5 text-red-700 hover:text-red-800 font-medium"
+                            >
+                              <InformationCircleIcon className="w-4 h-4" />
+                              Voir motif
+                            </button>
+                            {openedReasonKey === `${request.codSoc}-${request.matPers}-${request.numDcng}` && (
+                              <p className="text-red-700 leading-relaxed">{request.rejectionComment}</p>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-gray-400">—</span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-right">
                         <span
@@ -181,6 +435,116 @@ const MyLeaveRequestsPage = () => {
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={isSubmitModalOpen}
+        onClose={closeSubmitModal}
+        title="Nouvelle demande de conge"
+        footer={(
+          <>
+            <Button variant="secondary" onClick={closeSubmitModal} disabled={submitting}>
+              Annuler
+            </Button>
+            <Button type="submit" form="leave-submit-form" loading={submitting} disabled={hasInsufficientBalance}>
+              Envoyer
+            </Button>
+          </>
+        )}
+      >
+        {loadingModalData ? (
+          <div className="flex justify-center py-8">
+            <Spinner size="md" />
+          </div>
+        ) : (
+          <form id="leave-submit-form" onSubmit={handleSubmit} className="space-y-4">
+            {submitError && <Alert type="error" message={submitError} />}
+            {hasInsufficientBalance && (
+              <Alert
+                type="warning"
+                message={`Solde insuffisant: ${requestedBusinessDays} jour(s) demandes pour ${formatBalanceValue(balance?.currentBalance)} jour(s) disponibles.`}
+              />
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="dateDebut" className="block text-sm font-medium text-gray-700 mb-1">
+                  Date debut *
+                </label>
+                <input
+                  id="dateDebut"
+                  name="dateDebut"
+                  type="date"
+                  value={form.dateDebut}
+                  onChange={handleFormChange}
+                  className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
+                    formErrors.dateDebut ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                />
+                {formErrors.dateDebut && <p className="mt-1 text-xs text-red-500">{formErrors.dateDebut}</p>}
+              </div>
+              <div>
+                <label htmlFor="dateFin" className="block text-sm font-medium text-gray-700 mb-1">
+                  Date fin *
+                </label>
+                <input
+                  id="dateFin"
+                  name="dateFin"
+                  type="date"
+                  value={form.dateFin}
+                  onChange={handleFormChange}
+                  className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
+                    formErrors.dateFin ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                />
+                {formErrors.dateFin && <p className="mt-1 text-xs text-red-500">{formErrors.dateFin}</p>}
+              </div>
+            </div>
+
+            <div>
+              <label htmlFor="codeM" className="block text-sm font-medium text-gray-700 mb-1">
+                Motif *
+              </label>
+              <select
+                id="codeM"
+                name="codeM"
+                value={form.codeM}
+                onChange={handleFormChange}
+                className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
+                  formErrors.codeM ? 'border-red-400' : 'border-gray-300'
+                }`}
+              >
+                <option value="">Selectionner un motif</option>
+                {motifs.map((motif) => (
+                  <option key={motif.codeM} value={motif.codeM}>
+                    {motif.codeM} - {motif.libMot || 'Sans libelle'}
+                  </option>
+                ))}
+              </select>
+              {formErrors.codeM && <p className="mt-1 text-xs text-red-500">{formErrors.codeM}</p>}
+            </div>
+
+            <div>
+              <label htmlFor="motifCng" className="block text-sm font-medium text-gray-700 mb-1">
+                Commentaire (optionnel)
+              </label>
+              <textarea
+                id="motifCng"
+                name="motifCng"
+                rows={4}
+                maxLength={1000}
+                value={form.motifCng}
+                onChange={handleFormChange}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500"
+                placeholder="Ajoutez un contexte si necessaire"
+              />
+            </div>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
+              Duree demandee (jours ouvrables): <span className="font-semibold">{requestedBusinessDays}</span>
+            </div>
+          </form>
+        )}
+      </Modal>
     </div>
   );
 };

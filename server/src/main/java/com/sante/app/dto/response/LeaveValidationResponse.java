@@ -15,7 +15,9 @@ public record LeaveValidationResponse(
         String codeM,
         String libMot,
         BigDecimal nbrJours,
+        String requestComment,
         String statusCode,
-        String statusLabel
+        String statusLabel,
+        String rejectionComment
 ) {
 }

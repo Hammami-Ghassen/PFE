@@ -7,7 +7,6 @@ import {
   reviewCorrectionRequest,
 } from '../../services/correctionService';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
-import Button from '../../components/ui/Button';
 import Spinner from '../../components/ui/Spinner';
 import StatCard from '../../components/ui/StatCard';
 import { 
@@ -24,15 +23,15 @@ const PAGE_SIZE = 50;
 
 const statusFilters = [
   { value: 'PENDING', label: 'En attente' },
-  { value: 'APPROVED', label: 'Approuvees' },
-  { value: 'REJECTED', label: 'Rejetees' },
+  { value: 'APPROVED', label: 'Approuvées' },
+  { value: 'REJECTED', label: 'Rejetées' },
   { value: '', label: 'Tous les statuts' },
 ];
 
 const statusLabels = {
-  PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
+  PENDING: 'EN ATTENTE',
+  APPROVED: 'APPROUVÉE',
+  REJECTED: 'REJETÉE',
 };
 
 const statusClassNames = {
@@ -102,7 +101,7 @@ const CorrectionRequestsPage = () => {
       );
       await loadRequests();
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Mise a jour impossible.');
+      toast.error(err?.response?.data?.message || 'Mise à jour impossible.');
     } finally {
       setReviewingId(null);
     }
@@ -121,7 +120,7 @@ const CorrectionRequestsPage = () => {
       link.remove();
       window.URL.revokeObjectURL(objectUrl);
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Telechargement impossible.');
+      toast.error(err?.response?.data?.message || 'Téléchargement impossible.');
     } finally {
       setDownloadingId(null);
     }
@@ -131,19 +130,19 @@ const CorrectionRequestsPage = () => {
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
-          title="PENDING VALIDATIONS"
+          title="VALIDATIONS EN ATTENTE"
           value="42"
           icon={ClipboardDocumentCheckIcon}
           accentColor="bg-blue-50 text-blue-600"
         />
         <StatCard
-          title="APPROVED TODAY"
+          title="APPROUVÉES AUJOURD'HUI"
           value="18"
           icon={CheckCircleIcon}
           accentColor="bg-green-50 text-green-600"
         />
         <StatCard
-          title="REJECTED TODAY"
+          title="REJETÉES AUJOURD'HUI"
           value="3"
           icon={XCircleIcon}
           accentColor="bg-red-50 text-red-600"
@@ -152,7 +151,7 @@ const CorrectionRequestsPage = () => {
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <h3 className="text-lg font-bold text-gray-800">Pending Requests</h3>
+          <h3 className="text-lg font-bold text-gray-800">Demandes en attente</h3>
           <div className="flex gap-3">
             <select
               value={statusFilter}
@@ -177,11 +176,11 @@ const CorrectionRequestsPage = () => {
             <table className="w-full text-sm">
               <thead>
                 <tr className="bg-gray-50/80 text-gray-500 text-xs font-bold uppercase tracking-widest border-b border-gray-200">
-                  <th className="px-6 py-4 text-left">REQUESTER</th>
-                  <th className="px-6 py-4 text-left">FIELD TO CORRECT</th>
-                  <th className="px-6 py-4 text-left">DATA CHANGE</th>
-                  <th className="px-6 py-4 text-left">DATE SUBMITTED</th>
-                  <th className="px-6 py-4 text-center">ATTACH.</th>
+                  <th className="px-6 py-4 text-left">DEMANDEUR</th>
+                  <th className="px-6 py-4 text-left">CHAMP À CORRIGER</th>
+                  <th className="px-6 py-4 text-left">CHANGEMENT</th>
+                  <th className="px-6 py-4 text-left">DATE SOUMISSION</th>
+                  <th className="px-6 py-4 text-center">PIÈCE JOINTE</th>
                   <th className="px-6 py-4 text-right">ACTIONS</th>
                 </tr>
               </thead>
@@ -231,7 +230,7 @@ const CorrectionRequestsPage = () => {
                             className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors rounded-md hover:bg-blue-50 disabled:opacity-30"
                             disabled={!request.hasAttachment || downloadingId === request.id}
                             onClick={() => handleDownload(request.id)}
-                            title="Download attachment"
+                            title="Télécharger la pièce jointe"
                           >
                             <DocumentArrowDownIcon className="w-5 h-5 mx-auto" />
                           </button>

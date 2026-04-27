@@ -10,19 +10,7 @@ import Alert from '../../components/ui/Alert';
 import { requestCorrection } from '../../services/correctionService';
 import ProfileHeader from '../../components/ui/ProfileHeader';
 import LeaveBalanceCard from '../../components/ui/LeaveBalanceCard';
-import { 
-  IdentificationIcon, 
-  EnvelopeIcon, 
-  ShieldCheckIcon,
-  PhoneIcon,
-  BuildingOfficeIcon,
-  MapPinIcon,
-  BriefcaseIcon,
-  AcademicCapIcon,
-  ComputerDesktopIcon,
-  PencilSquareIcon,
-  ClockIcon
-} from '@heroicons/react/24/outline';
+import { ClockIcon } from '@heroicons/react/24/outline';
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 
@@ -37,7 +25,6 @@ const correctionAttributes = [
 const DashboardPage = () => {
   const { auth } = useAuth();
   const axiosPrivate = useAxiosPrivate();
-  const displayName = auth.user?.fullName || [auth.user?.firstName, auth.user?.lastName].filter(Boolean).join(' ').trim() || auth.user?.matPers;
 
   const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
   const [correctionForm, setCorrectionForm] = useState({
@@ -48,17 +35,6 @@ const DashboardPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [submittingCorrection, setSubmittingCorrection] = useState(false);
-  
-  // Get initials for the avatar
-  const getInitials = () => {
-    if (auth.user?.firstName && auth.user?.lastName) {
-      return `${auth.user.firstName[0]}${auth.user.lastName[0]}`.toUpperCase();
-    }
-    if (displayName !== auth.user?.matPers) {
-      return displayName.substring(0, 2).toUpperCase();
-    }
-    return 'U';
-  };
 
   const resetCorrectionForm = () => {
     setCorrectionForm({ attributCible: '', nouvelleValeur: '', pieceJointe: null });
@@ -157,7 +133,7 @@ const DashboardPage = () => {
       {/* Profile Header */}
       <ProfileHeader 
         user={auth.user} 
-        onResetPassword={() => toast.success('Password reset email sent')} 
+        onResetPassword={() => toast.success('E-mail de réinitialisation envoyé.')} 
         onEditProfile={openCorrectionModal} 
       />
 
@@ -165,7 +141,7 @@ const DashboardPage = () => {
         <div className="lg:col-span-2 space-y-6">
           <Card>
             <h3 className="text-xl font-semibold text-gray-800 mb-6 border-b pb-2">
-              Professional Information
+              Informations professionnelles
             </h3>
             
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
@@ -174,8 +150,8 @@ const DashboardPage = () => {
                 <dd className="text-base text-gray-900 font-medium">{auth.user?.matPers || '—'}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DEPARTMENT</dt>
-                <dd className="text-base text-gray-900">{auth.user?.service || 'Public Health Administration'}</dd>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DÉPARTEMENT</dt>
+                <dd className="text-base text-gray-900">{auth.user?.service || 'Administration de la santé publique'}</dd>
               </div>
               <div>
                 <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">EMAIL</dt>
@@ -186,12 +162,12 @@ const DashboardPage = () => {
                 <dd className="text-base text-gray-900">{auth.user?.phone || '—'}</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DATE OF HIRE</dt>
-                <dd className="text-base text-gray-900">14 September 2012</dd>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DATE D'EMBAUCHE</dt>
+                <dd className="text-base text-gray-900">14 septembre 2012</dd>
               </div>
               <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">CONTRACT TYPE</dt>
-                <dd className="text-base text-gray-900">Permanent (CDI)</dd>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">TYPE DE CONTRAT</dt>
+                <dd className="text-base text-gray-900">CDI</dd>
               </div>
             </dl>
           </Card>
@@ -200,26 +176,26 @@ const DashboardPage = () => {
         <div className="lg:col-span-1 space-y-6">
           <Card className="h-full flex flex-col items-stretch p-0 overflow-hidden">
             <div className="p-6 border-b border-gray-100">
-              <h3 className="text-xl font-semibold text-gray-800">Leave Balances</h3>
+              <h3 className="text-xl font-semibold text-gray-800">Soldes de congé</h3>
             </div>
             <div className="p-6 space-y-4 bg-gray-50/50 flex-1">
               <LeaveBalanceCard
-                title="ANNUAL LEAVE"
+                title="CONGÉ ANNUEL"
                 balance="18"
-                subtitle="Remaining for 2024"
+                subtitle="Restant pour 2024"
                 type="annual"
               />
               <LeaveBalanceCard
-                title="SICK LEAVE"
+                title="CONGÉ MALADIE"
                 balance="12"
-                subtitle="Remaining quota"
+                subtitle="Quota restant"
                 type="sick"
               />
             </div>
             <div className="p-4 border-t border-gray-100 bg-white">
               <Button variant="outline" className="w-full justify-center text-accent-red border-accent-red hover:bg-red-50">
                 <ClockIcon className="w-4 h-4 mr-2" />
-                VIEW LEAVE HISTORY
+                VOIR L'HISTORIQUE DES CONGÉS
               </Button>
             </div>
           </Card>

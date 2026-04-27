@@ -24,4 +24,6 @@ public interface MyLeaveRequestProjection {
     BigDecimal getNbrJours();
 
     String getValid();
+
+    String getMotifRefus();
 }

@@ -23,6 +23,17 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                             @Param("matPers") String matPers);
 
     @Query(value = """
+            SELECT d.*
+            FROM "DEM_CNG" d
+            WHERE d."COD_SOC" = :codSoc
+              AND d."MAT_PERS" = :matPers
+            ORDER BY d."NUM_DCNG" DESC
+            LIMIT 1
+            """, nativeQuery = true)
+    Optional<DemCng> findLatestRequest(@Param("codSoc") String codSoc,
+                                       @Param("matPers") String matPers);
+
+    @Query(value = """
             SELECT d.\"COD_SOC\" AS codSoc,
                    d.\"MAT_PERS\" AS matPers,
                    d.\"NUM_DCNG\" AS numDcng,
@@ -31,8 +42,10 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                    d.\"DAT_FIN\" AS datFin,
                    d.\"CODE_M\" AS codeM,
                    m.\"LIB_MOT\" AS libMot,
+                   d."MOTIF_CNG" AS motifCng,
                    d.\"NBR_JOURS\" AS nbrJours,
-                   d.\"VALID\" AS valid
+                       d."VALID" AS valid,
+                       d."MOTIF_REFUS" AS motifRefus
             FROM \"DEM_CNG\" d
             LEFT JOIN \"MOTIF_J\" m ON m.\"COD_M\" = d.\"CODE_M\"
             WHERE d.\"COD_SOC\" = :codSoc
@@ -61,8 +74,10 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                    d.\"DAT_FIN\" AS datFin,
                    d.\"CODE_M\" AS codeM,
                    m.\"LIB_MOT\" AS libMot,
+                   d."MOTIF_CNG" AS motifCng,
                    d.\"NBR_JOURS\" AS nbrJours,
-                   d.\"VALID\" AS valid
+                   d."VALID" AS valid,
+                   d."MOTIF_REFUS" AS motifRefus
             FROM \"DEM_CNG\" d
             JOIN \"PERSONNEL\" p
               ON p.\"COD_SOC\" = d.\"COD_SOC\"
@@ -99,8 +114,10 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                    d.\"DAT_FIN\" AS datFin,
                    d.\"CODE_M\" AS codeM,
                    m.\"LIB_MOT\" AS libMot,
+                   d."MOTIF_CNG" AS motifCng,
                    d.\"NBR_JOURS\" AS nbrJours,
-                   d.\"VALID\" AS valid
+                   d."VALID" AS valid,
+                   d."MOTIF_REFUS" AS motifRefus
             FROM \"DEM_CNG\" d
             JOIN \"PERSONNEL\" p
               ON p.\"COD_SOC\" = d.\"COD_SOC\"
@@ -137,7 +154,8 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                    d.\"CODE_M\" AS codeM,
                    m.\"LIB_MOT\" AS libMot,
                    d.\"NBR_JOURS\" AS nbrJours,
-                   d.\"VALID\" AS valid
+                   d."VALID" AS valid,
+                   d."MOTIF_REFUS" AS motifRefus
             FROM \"DEM_CNG\" d
             JOIN \"PERSONNEL\" p
               ON p.\"COD_SOC\" = d.\"COD_SOC\"

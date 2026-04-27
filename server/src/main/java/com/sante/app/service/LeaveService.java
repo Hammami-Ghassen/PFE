@@ -1,6 +1,8 @@
 package com.sante.app.service;
 
 import com.sante.app.dto.request.CreateLeaveRequest;
+import com.sante.app.dto.response.LeaveBalanceResponse;
+import com.sante.app.dto.response.LeaveHolidayResponse;
 import com.sante.app.dto.response.LeaveMotifResponse;
 import com.sante.app.dto.response.LeaveRequestResponse;
 import com.sante.app.dto.response.LeaveValidationResponse;
@@ -9,19 +11,25 @@ import com.sante.app.exception.ResourceNotFoundException;
 import com.sante.app.exception.UnauthorizedException;
 import com.sante.app.model.leave.DemCng;
 import com.sante.app.model.leave.DemCngId;
+import com.sante.app.model.leave.JoursFeriers;
 import com.sante.app.model.leave.LeaveValidationStatus;
 import com.sante.app.model.leave.MotifJ;
 import com.sante.app.model.legacy.Personnel;
 import com.sante.app.repository.DemCngRepository;
+import com.sante.app.repository.JoursFeriersRepository;
 import com.sante.app.repository.MotifJRepository;
 import com.sante.app.repository.PersonnelRepository;
 import com.sante.app.repository.projection.LeaveValidationProjection;
 import com.sante.app.repository.projection.MyLeaveRequestProjection;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -37,11 +45,15 @@ public class LeaveService {
     private static final int MAX_PAGE_SIZE = 200;
     private static final String ROLE_AGENT = "AGENT";
     private static final String ROLE_DIRECTEUR = "DIRECTEUR";
+    private static final String ROLE_ADMIN = "ADMIN";
     private static final String MINISTRY_COD_SOC = "0001";
+    private static final BigDecimal DEFAULT_LEAVE_BALANCE = BigDecimal.valueOf(45).setScale(3, RoundingMode.HALF_UP);
+    private static final BigDecimal ZERO_DECIMAL = BigDecimal.ZERO.setScale(3, RoundingMode.HALF_UP);
 
     private final DemCngRepository demCngRepository;
     private final MotifJRepository motifJRepository;
     private final PersonnelRepository personnelRepository;
+    private final JoursFeriersRepository joursFeriersRepository;
 
     @Transactional(readOnly = true)
     public List<LeaveMotifResponse> getMotifs() {
@@ -51,6 +63,39 @@ public class LeaveService {
                         emptyToNull(motif.getLibMot()),
                         emptyToNull(motif.getTypCng())))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<LeaveHolidayResponse> getHolidays() {
+        return joursFeriersRepository.findAllByOrderByCodFerieAsc().stream()
+                .map(holiday -> new LeaveHolidayResponse(
+                        holiday.getCodFerie(),
+                emptyToNull(holiday.getLibFerie()),
+                        emptyToNull(holiday.getDatFerier())))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public LeaveBalanceResponse getCurrentBalance(String requesterMatPers) {
+        Personnel actor = requirePersonnel(normalizeMatPers(requesterMatPers));
+        ensureRequesterRole(actor);
+        return buildBalanceResponse(actor);
+    }
+
+    @Transactional(readOnly = true)
+    public LeaveBalanceResponse getBalanceForPerson(String requesterMatPers, String targetMatPers) {
+        Personnel actor = requirePersonnel(normalizeMatPers(requesterMatPers));
+        String actorRole = normalizeRole(actor.getCodUser());
+        if (!ROLE_DIRECTEUR.equals(actorRole) && !ROLE_ADMIN.equals(actorRole)) {
+            throw new UnauthorizedException("Seuls les profils DIRECTEUR et ADMIN peuvent consulter ce solde.");
+        }
+
+        Personnel target = requirePersonnel(normalizeMatPers(targetMatPers));
+        if (ROLE_DIRECTEUR.equals(actorRole)) {
+            assertReviewScope(actor, target);
+        }
+
+        return buildBalanceResponse(target);
     }
 
     @Transactional
@@ -67,6 +112,15 @@ public class LeaveService {
         MotifJ motif = motifJRepository.findById(motifCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Motif de conge introuvable: " + motifCode));
 
+        Set<String> holidayDayMonthSet = getHolidayDayMonthSet();
+        BigDecimal requestedDays = calculateRequestedDays(dateDebut, dateFin, holidayDayMonthSet);
+        BigDecimal requestedCalendarDays = calculateCalendarDays(dateDebut, dateFin);
+        BigDecimal currentBalance = calculateCurrentBalance(actorCodSoc, actor.getMatPers());
+
+        if (currentBalance.compareTo(requestedDays) < 0) {
+            throw new BadRequestException("Solde de conge insuffisant.");
+        }
+
         Integer nextNumDcng = demCngRepository.findNextNumDcng(actorCodSoc, actor.getMatPers());
         if (nextNumDcng == null || nextNumDcng <= 0) {
             nextNumDcng = 1;
@@ -81,7 +135,10 @@ public class LeaveService {
         demande.setValid(LeaveValidationStatus.PENDING.getCode());
         demande.setMotifCng(normalizeOptionalText(request.motifCng(), 1000,
                 "Le commentaire ne doit pas depasser 1000 caracteres."));
-        demande.setNbrJours(calculateRequestedDays(dateDebut, dateFin));
+        demande.setMotifRefus(null);
+        demande.setNbrJours(requestedDays);
+        demande.setNbrJoursCal(requestedCalendarDays);
+        demande.setSoldCng(currentBalance);
         demande.setAnneeCng(dateDebut.getYear());
 
         DemCng saved = demCngRepository.saveAndFlush(demande);
@@ -122,7 +179,8 @@ public class LeaveService {
                                                  String codSoc,
                                                  String matPers,
                                                  Integer numDcng,
-                                                 String status) {
+                                                 String status,
+                                                 String comment) {
         Personnel reviewer = requireDirectorReviewer(reviewerMatPers);
 
         String normalizedCodSoc = normalizeCodSoc(codSoc);
@@ -153,6 +211,13 @@ public class LeaveService {
         assertReviewScope(reviewer, requester);
 
         demande.setValid(reviewStatus.getCode());
+        String normalizedComment = normalizeOptionalText(comment, 1000,
+                "Le commentaire ne doit pas depasser 1000 caracteres.");
+        if (reviewStatus == LeaveValidationStatus.REJECTED) {
+            demande.setMotifRefus(normalizedComment);
+        } else {
+            demande.setMotifRefus(null);
+        }
         demCngRepository.save(demande);
 
         return demCngRepository.findValidationProjectionById(normalizedCodSoc, normalizedMatPers, normalizedNumDcng)
@@ -235,9 +300,93 @@ public class LeaveService {
         }
     }
 
-    private BigDecimal calculateRequestedDays(LocalDate dateDebut, LocalDate dateFin) {
+    private LeaveBalanceResponse buildBalanceResponse(Personnel personnel) {
+        String codSoc = normalizeCodSoc(personnel.getCodSoc());
+        String matPers = normalizeMatPers(personnel.getMatPers());
+        return new LeaveBalanceResponse(
+                codSoc,
+                matPers,
+                LocalDate.now().getYear(),
+                calculateCurrentBalance(codSoc, matPers));
+    }
+
+    private BigDecimal calculateCurrentBalance(String codSoc, String matPers) {
+        return demCngRepository.findLatestRequest(codSoc, matPers)
+                .map(this::calculateCurrentBalanceFromLatestRequest)
+                .orElse(DEFAULT_LEAVE_BALANCE);
+    }
+
+    private BigDecimal calculateCurrentBalanceFromLatestRequest(DemCng lastRequest) {
+        Integer currentYear = LocalDate.now().getYear();
+        if (lastRequest.getAnneeCng() == null
+                || !currentYear.equals(lastRequest.getAnneeCng())
+                || lastRequest.getSoldCng() == null) {
+            return DEFAULT_LEAVE_BALANCE;
+        }
+
+        BigDecimal balance = normalizeDecimal(lastRequest.getSoldCng());
+        if (LeaveValidationStatus.APPROVED.getCode().equalsIgnoreCase(lastRequest.getValid())) {
+            balance = balance.subtract(normalizeDecimal(lastRequest.getNbrJours()));
+        }
+
+        if (balance.compareTo(BigDecimal.ZERO) < 0) {
+            return ZERO_DECIMAL;
+        }
+        return normalizeDecimal(balance);
+    }
+
+    private BigDecimal calculateRequestedDays(LocalDate dateDebut,
+                                              LocalDate dateFin,
+                                              Set<String> holidayDayMonthSet) {
+        long days = 0;
+        for (LocalDate current = dateDebut; !current.isAfter(dateFin); current = current.plusDays(1)) {
+            boolean weekend = current.getDayOfWeek() == DayOfWeek.SATURDAY || current.getDayOfWeek() == DayOfWeek.SUNDAY;
+            boolean holiday = holidayDayMonthSet.contains(toDayMonth(current));
+            if (!weekend && !holiday) {
+                days++;
+            }
+        }
+
+        return BigDecimal.valueOf(days).setScale(3, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal calculateCalendarDays(LocalDate dateDebut, LocalDate dateFin) {
         long days = ChronoUnit.DAYS.between(dateDebut, dateFin) + 1;
-        return BigDecimal.valueOf(days).setScale(3);
+        return BigDecimal.valueOf(days).setScale(3, RoundingMode.HALF_UP);
+    }
+
+    private Set<String> getHolidayDayMonthSet() {
+        Set<String> dayMonths = new HashSet<>();
+        for (JoursFeriers holiday : joursFeriersRepository.findAllByOrderByCodFerieAsc()) {
+            String dayMonth = normalizeHolidayDayMonth(holiday.getDatFerier());
+            if (dayMonth != null) {
+                dayMonths.add(dayMonth);
+            }
+        }
+        return dayMonths;
+    }
+
+    private String normalizeHolidayDayMonth(String dayMonth) {
+        if (dayMonth == null || dayMonth.isBlank()) {
+            return null;
+        }
+
+        String normalized = dayMonth.trim();
+        if (!normalized.matches("\\d{2}/\\d{2}")) {
+            return null;
+        }
+        return normalized;
+    }
+
+    private String toDayMonth(LocalDate date) {
+        return String.format(Locale.ROOT, "%02d/%02d", date.getDayOfMonth(), date.getMonthValue());
+    }
+
+    private BigDecimal normalizeDecimal(BigDecimal value) {
+        if (value == null) {
+            return ZERO_DECIMAL;
+        }
+        return value.setScale(3, RoundingMode.HALF_UP);
     }
 
     private LeaveRequestResponse mapEntityResponse(DemCng demande, String libMot) {
@@ -253,7 +402,8 @@ public class LeaveService {
                 emptyToNull(libMot),
                 demande.getNbrJours(),
                 status.getCode(),
-                status.getLabel());
+                status.getLabel(),
+                emptyToNull(demande.getMotifRefus()));
     }
 
     private LeaveRequestResponse mapMyRequestProjection(MyLeaveRequestProjection projection) {
@@ -269,7 +419,9 @@ public class LeaveService {
                 emptyToNull(projection.getLibMot()),
                 projection.getNbrJours(),
                 status.getCode(),
-                status.getLabel());
+                status.getLabel(),
+                emptyToNull(projection.getMotifRefus()));
+                
     }
 
     private LeaveValidationResponse mapValidationProjection(LeaveValidationProjection projection) {
@@ -286,8 +438,10 @@ public class LeaveService {
                 projection.getCodeM(),
                 emptyToNull(projection.getLibMot()),
                 projection.getNbrJours(),
+                emptyToNull(projection.getMotifCng()),
                 status.getCode(),
-                status.getLabel());
+                status.getLabel(),
+                emptyToNull(projection.getMotifRefus()));
     }
 
     private LeaveValidationResponse mapFallbackValidationResponse(DemCng demande, Personnel requester) {
@@ -310,8 +464,10 @@ public class LeaveService {
                 demande.getCodeM(),
                 emptyToNull(libMot),
                 demande.getNbrJours(),
+                emptyToNull(demande.getMotifCng()),
                 status.getCode(),
-                status.getLabel());
+                status.getLabel(),
+                emptyToNull(demande.getMotifRefus()));
     }
 
     private String buildFullName(String prenom, String nom) {

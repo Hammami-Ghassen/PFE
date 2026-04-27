@@ -12,13 +12,16 @@ import static org.mockito.Mockito.when;
 import com.sante.app.dto.request.CreateLeaveRequest;
 import com.sante.app.dto.response.LeaveRequestResponse;
 import com.sante.app.dto.response.LeaveValidationResponse;
+import com.sante.app.exception.BadRequestException;
 import com.sante.app.exception.UnauthorizedException;
 import com.sante.app.model.leave.DemCng;
 import com.sante.app.model.leave.DemCngId;
+import com.sante.app.model.leave.JoursFeriers;
 import com.sante.app.model.leave.LeaveValidationStatus;
 import com.sante.app.model.leave.MotifJ;
 import com.sante.app.model.legacy.Personnel;
 import com.sante.app.repository.DemCngRepository;
+import com.sante.app.repository.JoursFeriersRepository;
 import com.sante.app.repository.MotifJRepository;
 import com.sante.app.repository.PersonnelRepository;
 import com.sante.app.repository.projection.LeaveValidationProjection;
@@ -45,12 +48,14 @@ class LeaveServiceTest {
     private MotifJRepository motifJRepository;
     @Mock
     private PersonnelRepository personnelRepository;
+    @Mock
+    private JoursFeriersRepository joursFeriersRepository;
 
     private LeaveService leaveService;
 
     @BeforeEach
     void setUp() {
-        leaveService = new LeaveService(demCngRepository, motifJRepository, personnelRepository);
+        leaveService = new LeaveService(demCngRepository, motifJRepository, personnelRepository, joursFeriersRepository);
     }
 
     @Test
@@ -63,12 +68,14 @@ class LeaveServiceTest {
 
         when(personnelRepository.findById("00091651")).thenReturn(Optional.of(actor));
         when(motifJRepository.findById("01")).thenReturn(Optional.of(motif));
+        when(joursFeriersRepository.findAllByOrderByCodFerieAsc()).thenReturn(List.of());
+        when(demCngRepository.findLatestRequest("0002", "00091651")).thenReturn(Optional.empty());
         when(demCngRepository.findNextNumDcng("0002", "00091651")).thenReturn(4);
         when(demCngRepository.saveAndFlush(any(DemCng.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
         CreateLeaveRequest request = new CreateLeaveRequest(
-                LocalDate.of(2026, 5, 1),
-                LocalDate.of(2026, 5, 3),
+            LocalDate.of(2026, 5, 4),
+            LocalDate.of(2026, 5, 6),
                 "01",
                 "Commentaire test");
 
@@ -80,6 +87,7 @@ class LeaveServiceTest {
         assertEquals("I", response.statusCode());
         assertEquals("En attente", response.statusLabel());
         assertEquals(new BigDecimal("3.000"), response.nbrJours());
+        assertEquals(null, response.rejectionComment());
 
         ArgumentCaptor<DemCng> captor = ArgumentCaptor.forClass(DemCng.class);
         verify(demCngRepository).saveAndFlush(captor.capture());
@@ -88,7 +96,77 @@ class LeaveServiceTest {
         assertEquals("I", saved.getValid());
         assertEquals(new DemCngId("0002", "00091651", 4), saved.getId());
         assertEquals(new BigDecimal("3.000"), saved.getNbrJours());
+        assertEquals(new BigDecimal("3.000"), saved.getNbrJoursCal());
+        assertEquals(new BigDecimal("45.000"), saved.getSoldCng());
         assertEquals(LocalDate.now(), saved.getDatDcng());
+    }
+
+    @Test
+    void createRequest_excludesWeekendsAndHolidaysFromRequestedDays() {
+        Personnel actor = buildPersonnel("00091651", "AGENT", "0002");
+        MotifJ motif = new MotifJ();
+        motif.setCodM("01");
+        motif.setLibMot("Conge annuel");
+
+        JoursFeriers holiday = new JoursFeriers();
+        holiday.setCodFerie("F01");
+        holiday.setDatFerier("01/05");
+
+        when(personnelRepository.findById("00091651")).thenReturn(Optional.of(actor));
+        when(motifJRepository.findById("01")).thenReturn(Optional.of(motif));
+        when(joursFeriersRepository.findAllByOrderByCodFerieAsc()).thenReturn(List.of(holiday));
+        when(demCngRepository.findLatestRequest("0002", "00091651")).thenReturn(Optional.empty());
+        when(demCngRepository.findNextNumDcng("0002", "00091651")).thenReturn(9);
+        when(demCngRepository.saveAndFlush(any(DemCng.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        CreateLeaveRequest request = new CreateLeaveRequest(
+                LocalDate.of(2026, 5, 1),
+                LocalDate.of(2026, 5, 5),
+                "01",
+                null);
+
+        LeaveRequestResponse response = leaveService.createRequest("00091651", request);
+
+        assertEquals(new BigDecimal("2.000"), response.nbrJours());
+
+        ArgumentCaptor<DemCng> captor = ArgumentCaptor.forClass(DemCng.class);
+        verify(demCngRepository).saveAndFlush(captor.capture());
+        DemCng saved = captor.getValue();
+        assertEquals(new BigDecimal("2.000"), saved.getNbrJours());
+        assertEquals(new BigDecimal("5.000"), saved.getNbrJoursCal());
+    }
+
+    @Test
+    void createRequest_rejectsWhenBalanceIsInsufficient() {
+        Personnel actor = buildPersonnel("00091651", "AGENT", "0002");
+        MotifJ motif = new MotifJ();
+        motif.setCodM("01");
+        motif.setLibMot("Conge annuel");
+
+        DemCng lastRequest = new DemCng();
+        lastRequest.setId(new DemCngId("0002", "00091651", 3));
+        lastRequest.setAnneeCng(LocalDate.now().getYear());
+        lastRequest.setSoldCng(new BigDecimal("2.000"));
+        lastRequest.setValid("O");
+        lastRequest.setNbrJours(new BigDecimal("1.000"));
+
+        when(personnelRepository.findById("00091651")).thenReturn(Optional.of(actor));
+        when(motifJRepository.findById("01")).thenReturn(Optional.of(motif));
+        when(joursFeriersRepository.findAllByOrderByCodFerieAsc()).thenReturn(List.of());
+        when(demCngRepository.findLatestRequest("0002", "00091651")).thenReturn(Optional.of(lastRequest));
+
+        CreateLeaveRequest request = new CreateLeaveRequest(
+                LocalDate.of(2026, 5, 4),
+                LocalDate.of(2026, 5, 6),
+                "01",
+                null);
+
+        BadRequestException ex = assertThrows(
+                BadRequestException.class,
+                () -> leaveService.createRequest("00091651", request));
+
+        assertEquals("Solde de conge insuffisant.", ex.getMessage());
+        verify(demCngRepository, never()).saveAndFlush(any(DemCng.class));
     }
 
     @Test
@@ -146,13 +224,54 @@ class LeaveServiceTest {
         LeaveValidationProjection projection = buildValidationProjection("0002", "00091651", "AGENT", "O");
         when(demCngRepository.findValidationProjectionById("0002", "00091651", 7)).thenReturn(Optional.of(projection));
 
-        LeaveValidationResponse response = leaveService.reviewRequest("00000002", "0002", "00091651", 7, "O");
+        LeaveValidationResponse response = leaveService.reviewRequest("00000002", "0002", "00091651", 7, "O", null);
 
         assertEquals("O", response.statusCode());
+        assertEquals(null, response.rejectionComment());
 
         ArgumentCaptor<DemCng> captor = ArgumentCaptor.forClass(DemCng.class);
         verify(demCngRepository).save(captor.capture());
         assertEquals(LeaveValidationStatus.APPROVED.getCode(), captor.getValue().getValid());
+    }
+
+    @Test
+    void reviewRequest_rejectStoresCommentWhenProvided() {
+        Personnel reviewer = buildPersonnel("00000002", "DIRECTEUR", "0002");
+        Personnel requester = buildPersonnel("00091651", "AGENT", "0002");
+
+        DemCng demande = new DemCng();
+        demande.setId(new DemCngId("0002", "00091651", 8));
+        demande.setValid("I");
+        demande.setDatDcng(LocalDate.of(2026, 4, 21));
+        demande.setDatDebut(LocalDate.of(2026, 4, 23));
+        demande.setDatFin(LocalDate.of(2026, 4, 24));
+        demande.setCodeM("01");
+        demande.setNbrJours(new BigDecimal("2.000"));
+
+        when(personnelRepository.findById("00000002")).thenReturn(Optional.of(reviewer));
+        when(personnelRepository.findById("00091651")).thenReturn(Optional.of(requester));
+        when(demCngRepository.findById(new DemCngId("0002", "00091651", 8))).thenReturn(Optional.of(demande));
+        when(demCngRepository.save(any(DemCng.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        LeaveValidationProjection projection = buildValidationProjection("0002", "00091651", "AGENT", "N");
+        when(projection.getMotifRefus()).thenReturn("Justificatif manquant");
+        when(demCngRepository.findValidationProjectionById("0002", "00091651", 8)).thenReturn(Optional.of(projection));
+
+        LeaveValidationResponse response = leaveService.reviewRequest(
+                "00000002",
+                "0002",
+                "00091651",
+                8,
+                "N",
+                "Justificatif manquant");
+
+        assertEquals("N", response.statusCode());
+        assertEquals("Justificatif manquant", response.rejectionComment());
+
+        ArgumentCaptor<DemCng> captor = ArgumentCaptor.forClass(DemCng.class);
+        verify(demCngRepository).save(captor.capture());
+        assertEquals(LeaveValidationStatus.REJECTED.getCode(), captor.getValue().getValid());
+        assertEquals("Justificatif manquant", captor.getValue().getMotifRefus());
     }
 
     @Test
@@ -170,7 +289,7 @@ class LeaveServiceTest {
 
         UnauthorizedException ex = assertThrows(
                 UnauthorizedException.class,
-                () -> leaveService.reviewRequest("00000001", "0002", "00091651", 7, "N"));
+                () -> leaveService.reviewRequest("00000001", "0002", "00091651", 7, "N", "Refus test"));
 
         assertTrue(ex.getMessage().contains("ministere"));
         verify(demCngRepository, never()).save(any(DemCng.class));
@@ -198,8 +317,10 @@ class LeaveServiceTest {
         when(projection.getDatFin()).thenReturn(LocalDate.of(2026, 4, 24));
         when(projection.getCodeM()).thenReturn("01");
         when(projection.getLibMot()).thenReturn("Conge annuel");
+        when(projection.getMotifCng()).thenReturn(null);
         when(projection.getNbrJours()).thenReturn(new BigDecimal("3.000"));
         when(projection.getValid()).thenReturn(valid);
+        when(projection.getMotifRefus()).thenReturn(null);
         return projection;
     }
 }

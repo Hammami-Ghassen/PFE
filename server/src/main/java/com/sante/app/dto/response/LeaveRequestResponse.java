@@ -14,6 +14,7 @@ public record LeaveRequestResponse(
         String libMot,
         BigDecimal nbrJours,
         String statusCode,
-        String statusLabel
+        String statusLabel,
+        String rejectionComment
 ) {
 }

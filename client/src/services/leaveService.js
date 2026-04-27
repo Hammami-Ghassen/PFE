@@ -3,6 +3,21 @@ export const getLeaveMotifs = async (axiosPrivate) => {
   return response.data.data;
 };
 
+export const getLeaveHolidays = async (axiosPrivate) => {
+  const response = await axiosPrivate.get('/leaves/holidays');
+  return response.data.data;
+};
+
+export const getCurrentLeaveBalance = async (axiosPrivate) => {
+  const response = await axiosPrivate.get('/leaves/balance');
+  return response.data.data;
+};
+
+export const getLeaveBalanceByMatPers = async (axiosPrivate, matPers) => {
+  const response = await axiosPrivate.get(`/leaves/balance/${matPers}`);
+  return response.data.data;
+};
+
 export const createLeaveRequest = async (
   axiosPrivate,
   { dateDebut, dateFin, codeM, motifCng }
@@ -39,11 +54,16 @@ export const getLeaveValidationQueue = async (
 
 export const reviewLeaveRequest = async (
   axiosPrivate,
-  { codSoc, matPers, numDcng, status }
+  { codSoc, matPers, numDcng, status, comment }
 ) => {
+  const payload = { status };
+  if (comment && comment.trim()) {
+    payload.comment = comment.trim();
+  }
+
   const response = await axiosPrivate.patch(
     `/leaves/validation/${codSoc}/${matPers}/${numDcng}/review`,
-    { status }
+    payload
   );
   return response.data.data;
 };

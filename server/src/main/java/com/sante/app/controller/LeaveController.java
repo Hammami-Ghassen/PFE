@@ -2,6 +2,8 @@ package com.sante.app.controller;
 
 import com.sante.app.dto.request.CreateLeaveRequest;
 import com.sante.app.dto.response.ApiResponse;
+import com.sante.app.dto.response.LeaveBalanceResponse;
+import com.sante.app.dto.response.LeaveHolidayResponse;
 import com.sante.app.dto.response.LeaveMotifResponse;
 import com.sante.app.dto.response.LeaveRequestResponse;
 import com.sante.app.service.LeaveService;
@@ -34,6 +36,19 @@ public class LeaveController {
     @Operation(summary = "Lister les motifs de conge")
     public ResponseEntity<ApiResponse<List<LeaveMotifResponse>>> motifs() {
         return ResponseEntity.ok(ApiResponse.success(leaveService.getMotifs()));
+    }
+
+    @GetMapping("/holidays")
+    @Operation(summary = "Lister les jours feries")
+    public ResponseEntity<ApiResponse<List<LeaveHolidayResponse>>> holidays() {
+        return ResponseEntity.ok(ApiResponse.success(leaveService.getHolidays()));
+    }
+
+    @GetMapping("/balance")
+    @Operation(summary = "Consulter mon solde de conge")
+    public ResponseEntity<ApiResponse<LeaveBalanceResponse>> currentBalance(Authentication authentication) {
+        String matPers = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(ApiResponse.success(leaveService.getCurrentBalance(matPers)));
     }
 
     @PostMapping

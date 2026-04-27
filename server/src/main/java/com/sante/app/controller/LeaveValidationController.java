@@ -54,7 +54,8 @@ public class LeaveValidationController {
                 codSoc,
                 matPers,
                 numDcng,
-                request.status());
+            request.status(),
+            request.comment());
         return ResponseEntity.ok(ApiResponse.success("Demande de conge traitee.", response));
     }
 }

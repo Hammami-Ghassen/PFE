@@ -53,17 +53,17 @@ const UsersListPage = () => {
   // Keeps user feedback explicit without triggering toast side effects during render.
   useEffect(() => {
     if (establishmentsError) {
-      toast.error('Erreur lors du chargement des etablissements.');
+      toast.error('Erreur lors du chargement des établissements.');
     }
   }, [establishmentsError]);
 
   const handleRoleChange = async (matPers, newRole) => {
     try {
       await updatePersonnelRole(axiosPrivate, matPers, newRole);
-      toast.success('Role mis a jour.');
+      toast.success('Rôle mis à jour.');
       refresh();
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Mise a jour du role impossible.');
+      toast.error(err?.response?.data?.message || 'Mise à jour du rôle impossible.');
     }
   };
 
@@ -74,25 +74,25 @@ const UsersListPage = () => {
         <div className="flex gap-3 shrink-0">
           <Button variant="outline" className="text-gray-700 bg-white border-gray-300 hover:bg-gray-50 flex items-center gap-2">
             <ArrowDownTrayIcon className="w-4 h-4" />
-            Export Directory
+            Exporter l'annuaire
           </Button>
           <Button className="bg-accent-red hover:bg-red-700 border-none flex items-center gap-2">
             <UserPlusIcon className="w-4 h-4" />
-            Add Personnel
+            Ajouter du personnel
           </Button>
         </div>
       </div>
 
       <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-end gap-5">
         <form onSubmit={submitSearch} className="flex-1 flex flex-col gap-1.5">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Search Personnel</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Rechercher du personnel</label>
           <div className="relative">
             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
               <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
             </div>
             <input
               type="text"
-              placeholder="Name, Email, or Matricule"
+              placeholder="Nom, email ou matricule"
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ministere-500 focus:border-transparent transition-colors shadow-sm"
@@ -101,13 +101,13 @@ const UsersListPage = () => {
         </form>
 
         <div className="w-full md:w-56 flex flex-col gap-1.5 shrink-0">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Department</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Établissement</label>
           <select
             value={codSoc}
             onChange={(e) => selectEstablishment(e.target.value)}
             className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-ministere-500 focus:border-transparent transition-colors shadow-sm"
           >
-            <option value="">All Departments</option>
+            <option value="">Tous les établissements</option>
             {establishments.map((est) => (
               <option key={est.codSoc} value={est.codSoc}>
                 {est.codSoc} - {est.libSoc}
@@ -117,16 +117,16 @@ const UsersListPage = () => {
         </div>
 
         <div className="w-full md:w-48 flex flex-col gap-1.5 shrink-0">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Role / Grade</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Rôle / Grade</label>
           <select disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed">
-            <option>All Roles</option>
+            <option>Tous les rôles</option>
           </select>
         </div>
 
         <div className="w-full md:w-48 flex flex-col gap-1.5 shrink-0">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Status</label>
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Statut</label>
           <select disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed">
-            <option>All Statuses</option>
+            <option>Tous les statuts</option>
           </select>
         </div>
 
@@ -135,7 +135,7 @@ const UsersListPage = () => {
           type="button" 
           className="text-sm font-semibold text-ministere-600 hover:text-ministere-800 pb-2 px-2"
         >
-          Clear Filters
+          Réinitialiser les filtres
         </button>
       </div>
 
@@ -149,17 +149,17 @@ const UsersListPage = () => {
             <table className="w-full text-sm">
               <thead className="bg-gray-50/80 text-gray-500 uppercase tracking-wider text-xs font-semibold border-b border-gray-200">
                 <tr>
-                  <th className="px-5 py-4 text-left font-bold min-w-[250px]">Employee</th>
-                  <th className="px-5 py-4 text-left font-bold">Department & Role</th>
-                  <th className="px-5 py-4 text-left font-bold">Contact Info</th>
-                  <th className="px-5 py-4 text-left font-bold">Status</th>
+                  <th className="px-5 py-4 text-left font-bold min-w-[250px]">Agent</th>
+                  <th className="px-5 py-4 text-left font-bold">Établissement et rôle</th>
+                  <th className="px-5 py-4 text-left font-bold">Contact</th>
+                  <th className="px-5 py-4 text-left font-bold">Statut</th>
                   <th className="px-5 py-4 text-right font-bold w-24">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 bg-white">
                 {data.content.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="text-center py-12 text-gray-400">Aucun personnel trouve.</td>
+                    <td colSpan={5} className="text-center py-12 text-gray-400">Aucun personnel trouvé.</td>
                   </tr>
                 ) : (
                   data.content.map((person) => (
@@ -171,14 +171,14 @@ const UsersListPage = () => {
                           </div>
                           <div>
                             <div className="font-semibold text-gray-900">{person.matPers}</div>
-                            <div className="text-xs font-medium text-gray-500 mt-0.5">Role: <Badge label={person.codUser || 'N/A'} className="px-1.5 py-0 text-[10px]" /></div>
+                            <div className="text-xs font-medium text-gray-500 mt-0.5">Rôle : <Badge label={person.codUser || 'N/D'} className="px-1.5 py-0 text-[10px]" /></div>
                           </div>
                         </div>
                       </td>
                       <td className="px-5 py-4">
                         <div className="flex flex-col gap-0.5">
-                          <span className="text-gray-900 font-medium">{person.codSoc || 'No Code'}</span>
-                          <span className="text-gray-500 text-xs">{person.establishmentName || 'No establishment'}</span>
+                          <span className="text-gray-900 font-medium">{person.codSoc || 'Sans code'}</span>
+                          <span className="text-gray-500 text-xs">{person.establishmentName || 'Sans établissement'}</span>
                         </div>
                       </td>
                       <td className="px-5 py-4">
@@ -189,7 +189,7 @@ const UsersListPage = () => {
                               <span className="text-sm truncate max-w-[200px]">{person.email}</span>
                             </div>
                           ) : (
-                            <span className="text-xs text-gray-400 italic">No email</span>
+                            <span className="text-xs text-gray-400 italic">Aucun email</span>
                           )}
                           {person.phone ? (
                             <div className="flex items-center gap-2 text-gray-700">
@@ -202,7 +202,7 @@ const UsersListPage = () => {
                       <td className="px-5 py-4 whitespace-nowrap">
                         <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200/50 shadow-sm">
                           <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                          Active User
+                          Utilisateur actif
                         </span>
                       </td>
                       <td className="px-5 py-4 whitespace-nowrap text-right">
@@ -218,10 +218,10 @@ const UsersListPage = () => {
                             ))}
                           </select>
                           <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button className="p-1.5 text-gray-400 hover:text-ministere-600 hover:bg-ministere-50 rounded-lg transition-colors" title="Edit Personnel">
+                            <button className="p-1.5 text-gray-400 hover:text-ministere-600 hover:bg-ministere-50 rounded-lg transition-colors" title="Modifier le personnel">
                               <PencilIcon className="w-4 h-4" />
                             </button>
-                            <button className="p-1.5 text-gray-400 hover:text-accent-red hover:bg-red-50 rounded-lg transition-colors" title="View Profile">
+                            <button className="p-1.5 text-gray-400 hover:text-accent-red hover:bg-red-50 rounded-lg transition-colors" title="Voir le profil">
                               <EyeIcon className="w-4 h-4" />
                             </button>
                           </div>
@@ -237,7 +237,7 @@ const UsersListPage = () => {
 
         {data.totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 text-sm text-gray-500">
-            <span>{data.totalElements} resultat(s)</span>
+            <span>{data.totalElements} résultat(s)</span>
             <div className="flex gap-1">
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}

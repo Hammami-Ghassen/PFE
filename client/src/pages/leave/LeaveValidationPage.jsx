@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/ui/Spinner';
+import StatCard from '../../components/ui/StatCard';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import { formatDate } from '../../utils/helpers';
@@ -9,6 +10,13 @@ import {
   getLeaveValidationQueue,
   reviewLeaveRequest,
 } from '../../services/leaveService';
+import {
+  ClipboardDocumentCheckIcon,
+  CheckCircleIcon,
+  PlusCircleIcon,
+  XMarkIcon,
+  CheckIcon
+} from '@heroicons/react/24/outline';
 
 const PAGE_SIZE = 50;
 
@@ -84,24 +92,51 @@ const LeaveValidationPage = () => {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-800">Validation des conges</h2>
+    <div className="space-y-8 max-w-7xl mx-auto pb-10">
 
-        <select
-          value={statusFilter}
-          onChange={handleStatusFilterChange}
-          className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
-        >
-          {statusFilters.map((statusOption) => (
-            <option key={statusOption.label} value={statusOption.value}>
-              {statusOption.label}
-            </option>
-          ))}
-        </select>
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          title="PENDING REQUESTS"
+          value="24"
+          subtitle="Requires immediate attention"
+          icon={ClipboardDocumentCheckIcon}
+          accentColor="bg-blue-50 text-blue-600"
+        />
+        <StatCard
+          title="APPROVED TODAY"
+          value="12"
+          subtitle="Processed by your team"
+          icon={CheckCircleIcon}
+          accentColor="bg-green-50 text-green-600"
+        />
+        <StatCard
+          title="URGENT MEDICAL"
+          value="3"
+          subtitle="High priority processing"
+          icon={PlusCircleIcon}
+          accentColor="bg-red-50 text-red-600"
+        />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h3 className="text-lg font-bold text-gray-800">Pending Validation Queue</h3>
+          <div className="flex gap-3">
+            <select
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-700 min-w-[150px]"
+            >
+              {statusFilters.map((statusOption) => (
+                <option key={statusOption.label} value={statusOption.value}>
+                  {statusOption.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-16">
             <Spinner size="lg" />
@@ -110,21 +145,20 @@ const LeaveValidationPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider">
-                  <th className="px-5 py-3 text-left">MAT_PERS</th>
-                  <th className="px-5 py-3 text-left">Nom</th>
-                  <th className="px-5 py-3 text-left">Role</th>
-                  <th className="px-5 py-3 text-left">Date debut</th>
-                  <th className="px-5 py-3 text-left">Date fin</th>
-                  <th className="px-5 py-3 text-left">Motif</th>
-                  <th className="px-5 py-3 text-left">Statut</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                <tr className="bg-gray-50/80 text-gray-500 text-xs font-bold uppercase tracking-widest border-b border-gray-200">
+                  <th className="px-6 py-4 text-left">MAT_PERS</th>
+                  <th className="px-6 py-4 text-left">NOM</th>
+                  <th className="px-6 py-4 text-left">RÔLE</th>
+                  <th className="px-6 py-4 text-left">DATES</th>
+                  <th className="px-6 py-4 text-left">MOTIF</th>
+                  <th className="px-6 py-4 text-left">STATUT</th>
+                  <th className="px-6 py-4 text-right">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {data.content.length === 0 ? (
                   <tr>
-                    <td colSpan={8} className="text-center py-12 text-gray-400">
+                    <td colSpan={7} className="text-center py-12 text-gray-400">
                       Aucune demande a traiter.
                     </td>
                   </tr>
@@ -135,45 +169,49 @@ const LeaveValidationPage = () => {
                     const isReviewing = reviewingKey === rowKey;
 
                     return (
-                      <tr key={rowKey} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-mono text-gray-700">{request.matPers}</td>
-                        <td className="px-5 py-3 text-gray-700">{request.fullName || '—'}</td>
-                        <td className="px-5 py-3 text-gray-700">{request.demandeurRole || '—'}</td>
-                        <td className="px-5 py-3 text-gray-500">{formatDate(request.dateDebut)}</td>
-                        <td className="px-5 py-3 text-gray-500">{formatDate(request.dateFin)}</td>
-                        <td className="px-5 py-3 text-gray-700">{request.libMot || request.codeM || '—'}</td>
-                        <td className="px-5 py-3">
+                      <tr key={rowKey} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="px-6 py-4 text-gray-600 font-medium">{request.matPers}</td>
+                        <td className="px-6 py-4 text-gray-900 font-semibold flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex flex-shrink-0 items-center justify-center font-bold text-xs">
+                            {request.fullName ? request.fullName.substring(0, 2).toUpperCase() : 'U'}
+                          </div>
+                          {request.fullName || '—'}
+                        </td>
+                        <td className="px-6 py-4 text-ministere-600">{request.demandeurRole || '—'}</td>
+                        <td className="px-6 py-4 text-gray-600 text-xs leading-relaxed">
+                          <div className="font-semibold text-gray-900 mb-0.5">{formatDate(request.dateDebut)}</div>
+                          <div className="text-gray-400">to {formatDate(request.dateFin)}</div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-700">{request.libMot || request.codeM || '—'}</td>
+                        <td className="px-6 py-4">
                           <span
-                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                            className={`inline-flex px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider ${
                               statusClassNames[request.statusCode] || 'bg-gray-100 text-gray-700'
                             }`}
                           >
                             {request.statusLabel || request.statusCode}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-right">
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
                           {isPending ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleReview(request, 'O')}
-                                loading={isReviewing}
-                                disabled={isReviewing}
-                              >
-                                Accepter
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="danger"
+                            <div className="flex items-center justify-end gap-3">
+                              <button
                                 onClick={() => handleReview(request, 'N')}
-                                loading={isReviewing}
+                                className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
                                 disabled={isReviewing}
                               >
-                                Refuser
-                              </Button>
+                                <XMarkIcon className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => handleReview(request, 'O')}
+                                className="p-1.5 text-gray-400 hover:text-green-600 transition-colors rounded-md hover:bg-green-50"
+                                disabled={isReviewing}
+                              >
+                                <CheckIcon className="w-5 h-5" />
+                              </button>
                             </div>
                           ) : (
-                            <span className="text-gray-400">Traitee</span>
+                            <span className="text-gray-400 text-xs italic tracking-wide">Traitée</span>
                           )}
                         </td>
                       </tr>

@@ -9,6 +9,16 @@ import {
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import Button from '../../components/ui/Button';
 import Spinner from '../../components/ui/Spinner';
+import StatCard from '../../components/ui/StatCard';
+import { 
+  ClipboardDocumentCheckIcon, 
+  CheckCircleIcon, 
+  XCircleIcon,
+  ArrowDownRightIcon,
+  CheckIcon,
+  XMarkIcon,
+  DocumentArrowDownIcon
+} from '@heroicons/react/24/outline';
 
 const PAGE_SIZE = 50;
 
@@ -118,24 +128,46 @@ const CorrectionRequestsPage = () => {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <h2 className="text-xl font-semibold text-gray-800">Demandes de correction</h2>
-
-        <select
-          value={statusFilter}
-          onChange={handleStatusFilterChange}
-          className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
-        >
-          {statusFilters.map((statusOption) => (
-            <option key={statusOption.label} value={statusOption.value}>
-              {statusOption.label}
-            </option>
-          ))}
-        </select>
+    <div className="space-y-8 max-w-7xl mx-auto pb-10">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatCard
+          title="PENDING VALIDATIONS"
+          value="42"
+          icon={ClipboardDocumentCheckIcon}
+          accentColor="bg-blue-50 text-blue-600"
+        />
+        <StatCard
+          title="APPROVED TODAY"
+          value="18"
+          icon={CheckCircleIcon}
+          accentColor="bg-green-50 text-green-600"
+        />
+        <StatCard
+          title="REJECTED TODAY"
+          value="3"
+          icon={XCircleIcon}
+          accentColor="bg-red-50 text-red-600"
+        />
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="px-6 py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <h3 className="text-lg font-bold text-gray-800">Pending Requests</h3>
+          <div className="flex gap-3">
+            <select
+              value={statusFilter}
+              onChange={handleStatusFilterChange}
+              className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-700 min-w-[150px]"
+            >
+              {statusFilters.map((statusOption) => (
+                <option key={statusOption.label} value={statusOption.value}>
+                  {statusOption.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-16">
             <Spinner size="lg" />
@@ -144,22 +176,19 @@ const CorrectionRequestsPage = () => {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider">
-                  <th className="px-5 py-3 text-left">MAT_PERS</th>
-                  <th className="px-5 py-3 text-left">Nom</th>
-                  <th className="px-5 py-3 text-left">Attribut</th>
-                  <th className="px-5 py-3 text-left">Ancienne valeur</th>
-                  <th className="px-5 py-3 text-left">Nouvelle valeur</th>
-                  <th className="px-5 py-3 text-left">Date demande</th>
-                  <th className="px-5 py-3 text-left">Pièce jointe</th>
-                  <th className="px-5 py-3 text-left">Statut</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+                <tr className="bg-gray-50/80 text-gray-500 text-xs font-bold uppercase tracking-widest border-b border-gray-200">
+                  <th className="px-6 py-4 text-left">REQUESTER</th>
+                  <th className="px-6 py-4 text-left">FIELD TO CORRECT</th>
+                  <th className="px-6 py-4 text-left">DATA CHANGE</th>
+                  <th className="px-6 py-4 text-left">DATE SUBMITTED</th>
+                  <th className="px-6 py-4 text-center">ATTACH.</th>
+                  <th className="px-6 py-4 text-right">ACTIONS</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
                 {data.content.length === 0 ? (
                   <tr>
-                    <td colSpan={9} className="text-center py-12 text-gray-400">
+                    <td colSpan={6} className="text-center py-12 text-gray-400">
                       Aucune demande de correction.
                     </td>
                   </tr>
@@ -168,56 +197,67 @@ const CorrectionRequestsPage = () => {
                     const isPending = request.statut === 'PENDING';
 
                     return (
-                      <tr key={request.id} className="hover:bg-gray-50 transition-colors">
-                        <td className="px-5 py-3 font-mono text-gray-700">{request.matPers}</td>
-                        <td className="px-5 py-3 text-gray-700">{request.fullName || '—'}</td>
-                        <td className="px-5 py-3 text-gray-700">{request.attributCible}</td>
-                        <td className="px-5 py-3 text-gray-500">{request.ancienneValeur || '—'}</td>
-                        <td className="px-5 py-3 text-gray-700">{request.nouvelleValeur || '—'}</td>
-                        <td className="px-5 py-3 text-gray-500">{formatDate(request.dateDemande)}</td>
-                        <td className="px-5 py-3 text-gray-500">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            disabled={!request.hasAttachment || downloadingId === request.id}
-                            loading={downloadingId === request.id}
-                            onClick={() => handleDownload(request.id)}
-                          >
-                            Télécharger
-                          </Button>
+                      <tr key={request.id} className="hover:bg-blue-50/30 transition-colors">
+                        <td className="px-6 py-4 text-gray-900 font-semibold flex flex-col gap-0.5">
+                          <div className="flex items-center gap-3">
+                            <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex flex-shrink-0 items-center justify-center font-bold text-xs shadow-sm">
+                              {request.fullName ? request.fullName.substring(0, 2).toUpperCase() : 'U'}
+                            </div>
+                            <div className="flex flex-col">
+                              <span className="text-sm">{request.fullName || '—'}</span>
+                              <span className="text-xs text-gray-500 font-normal">ID: {request.matPers}</span>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-5 py-3">
-                          <span
-                            className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
-                              statusClassNames[request.statut] || 'bg-gray-100 text-gray-700'
-                            }`}
-                          >
-                            {statusLabels[request.statut] || request.statut}
+                        <td className="px-6 py-4">
+                          <span className="bg-blue-100/50 text-blue-800 text-xs font-semibold px-2 py-1 flex max-w-max rounded">
+                            {request.attributCible}
                           </span>
                         </td>
-                        <td className="px-5 py-3 text-right">
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col text-sm">
+                            <span className="text-gray-400 line-through decoration-red-400/50 decoration-2">
+                              {request.ancienneValeur || '—'}
+                            </span>
+                            <div className="flex items-center gap-2 mt-0.5 font-medium text-gray-800 bg-gray-50 max-w-max px-2 py-0.5 rounded shadow-sm border border-gray-100">
+                              <ArrowDownRightIcon className="w-3 h-3 text-red-500" strokeWidth={3} />
+                              {request.nouvelleValeur || '—'}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-gray-500">{formatDate(request.dateDemande)}</td>
+                        <td className="px-6 py-4 text-center">
+                          <button
+                            className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors rounded-md hover:bg-blue-50 disabled:opacity-30"
+                            disabled={!request.hasAttachment || downloadingId === request.id}
+                            onClick={() => handleDownload(request.id)}
+                            title="Download attachment"
+                          >
+                            <DocumentArrowDownIcon className="w-5 h-5 mx-auto" />
+                          </button>
+                        </td>
+                        <td className="px-6 py-4 text-right whitespace-nowrap">
                           {isPending ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <Button
-                                size="sm"
-                                onClick={() => handleReview(request.id, 'APPROVED')}
-                                loading={reviewingId === request.id}
-                                disabled={reviewingId === request.id}
-                              >
-                                Valider
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="danger"
+                            <div className="flex items-center justify-end gap-3">
+                              <button
                                 onClick={() => handleReview(request.id, 'REJECTED')}
-                                loading={reviewingId === request.id}
+                                className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
                                 disabled={reviewingId === request.id}
                               >
-                                Rejeter
-                              </Button>
+                                <XMarkIcon className="w-5 h-5" />
+                              </button>
+                              <button
+                                onClick={() => handleReview(request.id, 'APPROVED')}
+                                className="p-1.5 text-gray-400 hover:text-green-600 transition-colors rounded-md hover:bg-green-50"
+                                disabled={reviewingId === request.id}
+                              >
+                                <CheckIcon className="w-5 h-5" />
+                              </button>
                             </div>
                           ) : (
-                            <span className="text-gray-400">Traitee</span>
+                            <span className={`text-xs font-bold uppercase tracking-wider ${statusClassNames[request.statut] || 'text-gray-400'}`}>
+                              {statusLabels[request.statut] || request.statut}
+                            </span>
                           )}
                         </td>
                       </tr>

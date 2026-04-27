@@ -101,113 +101,116 @@ const LeaveSubmitPage = () => {
   }
 
   return (
-    <div className="max-w-3xl">
-      <Card>
-        <div className="mb-5">
-          <h2 className="text-xl font-semibold text-gray-800">Nouvelle demande de conge</h2>
-          <p className="mt-1 text-sm text-gray-500">
-            Selectionnez vos dates et un motif officiel pour soumettre votre demande.
-          </p>
-        </div>
+    <div className="max-w-4xl mx-auto pb-10 space-y-8">
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label htmlFor="dateDebut" className="block text-sm font-medium text-gray-700 mb-1">
-                Date debut
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <Card className="p-0 overflow-hidden border border-gray-200">
+          <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-blue-100 text-blue-700 flex items-center justify-center font-bold font-mono">1</div>
+            <h3 className="text-lg font-bold text-gray-800">Leave Details</h3>
+          </div>
+          <div className="p-6 md:p-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label htmlFor="dateDebut" className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Date *
+                </label>
+                <input
+                  id="dateDebut"
+                  name="dateDebut"
+                  type="date"
+                  value={form.dateDebut}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
+                    formErrors.dateDebut ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                />
+                {formErrors.dateDebut && (
+                  <p className="mt-1 text-xs text-red-500">{formErrors.dateDebut}</p>
+                )}
+              </div>
+
+              <div>
+                <label htmlFor="dateFin" className="block text-sm font-medium text-gray-700 mb-1">
+                  End Date *
+                </label>
+                <input
+                  id="dateFin"
+                  name="dateFin"
+                  type="date"
+                  value={form.dateFin}
+                  onChange={handleChange}
+                  className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
+                    formErrors.dateFin ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                />
+                {formErrors.dateFin && <p className="mt-1 text-xs text-red-500">{formErrors.dateFin}</p>}
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label htmlFor="codeM" className="block text-sm font-medium text-gray-700 mb-1">
+                Leave Type / Reason *
               </label>
-              <input
-                id="dateDebut"
-                name="dateDebut"
-                type="date"
-                value={form.dateDebut}
+              <select
+                id="codeM"
+                name="codeM"
+                value={form.codeM}
                 onChange={handleChange}
-                className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white ${
-                  formErrors.dateDebut ? 'border-red-400' : 'border-gray-300'
+                className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
+                  formErrors.codeM ? 'border-red-400' : 'border-gray-300'
                 }`}
-              />
-              {formErrors.dateDebut && (
-                <p className="mt-1 text-xs text-red-500">{formErrors.dateDebut}</p>
+              >
+                <option value="">Select a reason</option>
+                {motifs.map((motif) => (
+                  <option key={motif.codeM} value={motif.codeM}>
+                    {motif.codeM} - {motif.libMot || 'No description'}
+                  </option>
+                ))}
+              </select>
+              {formErrors.codeM && <p className="mt-1 text-xs text-red-500">{formErrors.codeM}</p>}
+              {selectedMotif && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Leave category: <span className="font-semibold text-gray-700">{selectedMotif.typCng || 'N/A'}</span>
+                </p>
               )}
             </div>
+          </div>
+        </Card>
 
+        <Card className="p-0 overflow-hidden border border-gray-200">
+          <div className="bg-gray-50/50 px-6 py-4 border-b border-gray-200 flex items-center gap-3">
+            <div className="w-8 h-8 rounded bg-blue-100 text-blue-700 flex items-center justify-center font-bold font-mono">2</div>
+            <h3 className="text-lg font-bold text-gray-800">Additional Information</h3>
+          </div>
+          <div className="p-6 md:p-8">
             <div>
-              <label htmlFor="dateFin" className="block text-sm font-medium text-gray-700 mb-1">
-                Date fin
+              <label htmlFor="motifCng" className="block text-sm font-medium text-gray-700 mb-1">
+                Comments (Optional)
               </label>
-              <input
-                id="dateFin"
-                name="dateFin"
-                type="date"
-                value={form.dateFin}
+              <textarea
+                id="motifCng"
+                name="motifCng"
+                rows={4}
+                value={form.motifCng}
                 onChange={handleChange}
-                className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white ${
-                  formErrors.dateFin ? 'border-red-400' : 'border-gray-300'
-                }`}
+                maxLength={1000}
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500"
+                placeholder="Add any necessary context for your manager"
               />
-              {formErrors.dateFin && <p className="mt-1 text-xs text-red-500">{formErrors.dateFin}</p>}
             </div>
           </div>
+        </Card>
 
-          <div>
-            <label htmlFor="codeM" className="block text-sm font-medium text-gray-700 mb-1">
-              Motif
-            </label>
-            <select
-              id="codeM"
-              name="codeM"
-              value={form.codeM}
-              onChange={handleChange}
-              className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white ${
-                formErrors.codeM ? 'border-red-400' : 'border-gray-300'
-              }`}
-            >
-              <option value="">Selectionner un motif</option>
-              {motifs.map((motif) => (
-                <option key={motif.codeM} value={motif.codeM}>
-                  {motif.codeM} - {motif.libMot || 'Sans libelle'}
-                </option>
-              ))}
-            </select>
-            {formErrors.codeM && <p className="mt-1 text-xs text-red-500">{formErrors.codeM}</p>}
-            {selectedMotif && (
-              <p className="mt-2 text-xs text-gray-500">
-                Type de conge: {selectedMotif.typCng || 'N/A'}
-              </p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor="motifCng" className="block text-sm font-medium text-gray-700 mb-1">
-              Commentaire (optionnel)
-            </label>
-            <textarea
-              id="motifCng"
-              name="motifCng"
-              rows={4}
-              value={form.motifCng}
-              onChange={handleChange}
-              maxLength={1000}
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
-              placeholder="Ajoutez un commentaire si necessaire"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 pt-2">
-            <Button type="submit" loading={submitting}>
-              Envoyer la demande
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={resetForm}
-              disabled={submitting}
-            >
-              Reinitialiser
-            </Button>
-          </div>
-        </form>
-      </Card>
+        <div className="flex justify-end pt-4 pb-12 gap-3">
+          <Button type="button" variant="outline" className="px-6 border-gray-300 hover:bg-gray-50 text-gray-700" onClick={() => window.history.back()}>
+            Cancel
+          </Button>
+          <Button type="submit" loading={submitting} className="px-8 shadow-md bg-accent-red hover:bg-red-700 border-none text-white">
+            Envoyer la demande
+          </Button>
+        </div>
+      </form>
     </div>
   );
 };

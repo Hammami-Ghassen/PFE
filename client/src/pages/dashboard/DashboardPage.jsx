@@ -8,6 +8,8 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Alert from '../../components/ui/Alert';
 import { requestCorrection } from '../../services/correctionService';
+import ProfileHeader from '../../components/ui/ProfileHeader';
+import LeaveBalanceCard from '../../components/ui/LeaveBalanceCard';
 import { 
   IdentificationIcon, 
   EnvelopeIcon, 
@@ -18,7 +20,8 @@ import {
   BriefcaseIcon,
   AcademicCapIcon,
   ComputerDesktopIcon,
-  PencilSquareIcon
+  PencilSquareIcon,
+  ClockIcon
 } from '@heroicons/react/24/outline';
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
@@ -150,89 +153,78 @@ const DashboardPage = () => {
   };
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Profile Header */}
-      <Card className="bg-gradient-to-r from-ministere-50 to-white border-l-4 border-l-ministere-600">
-        <div className="flex items-center gap-6">
-          <div className="h-20 w-20 rounded-full bg-ministere-600 text-white flex items-center justify-center text-2xl font-bold shadow-md">
-            {getInitials()}
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">{displayName}</h2>
-            <p className="text-sm text-gray-500 mt-1 flex items-center gap-1">
-              <ShieldCheckIcon className="w-4 h-4" />
-              Système OTP Ministère de la Santé
-            </p>
-            <div className="mt-4">
-              <Button size="sm" onClick={openCorrectionModal}>
-                <PencilSquareIcon className="w-4 h-4 mr-1" />
-                Demander une correction
+      <ProfileHeader 
+        user={auth.user} 
+        onResetPassword={() => toast.success('Password reset email sent')} 
+        onEditProfile={openCorrectionModal} 
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-6">
+          <Card>
+            <h3 className="text-xl font-semibold text-gray-800 mb-6 border-b pb-2">
+              Professional Information
+            </h3>
+            
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              <div>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">MAT_PERS (MATRICULE)</dt>
+                <dd className="text-base text-gray-900 font-medium">{auth.user?.matPers || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DEPARTMENT</dt>
+                <dd className="text-base text-gray-900">{auth.user?.service || 'Public Health Administration'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">EMAIL</dt>
+                <dd className="text-base text-gray-900 break-all">{auth.user?.email || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">TÉLÉPHONE</dt>
+                <dd className="text-base text-gray-900">{auth.user?.phone || '—'}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DATE OF HIRE</dt>
+                <dd className="text-base text-gray-900">14 September 2012</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">CONTRACT TYPE</dt>
+                <dd className="text-base text-gray-900">Permanent (CDI)</dd>
+              </div>
+            </dl>
+          </Card>
+        </div>
+
+        <div className="lg:col-span-1 space-y-6">
+          <Card className="h-full flex flex-col items-stretch p-0 overflow-hidden">
+            <div className="p-6 border-b border-gray-100">
+              <h3 className="text-xl font-semibold text-gray-800">Leave Balances</h3>
+            </div>
+            <div className="p-6 space-y-4 bg-gray-50/50 flex-1">
+              <LeaveBalanceCard
+                title="ANNUAL LEAVE"
+                balance="18"
+                subtitle="Remaining for 2024"
+                type="annual"
+              />
+              <LeaveBalanceCard
+                title="SICK LEAVE"
+                balance="12"
+                subtitle="Remaining quota"
+                type="sick"
+              />
+            </div>
+            <div className="p-4 border-t border-gray-100 bg-white">
+              <Button variant="outline" className="w-full justify-center text-accent-red border-accent-red hover:bg-red-50">
+                <ClockIcon className="w-4 h-4 mr-2" />
+                VIEW LEAVE HISTORY
               </Button>
             </div>
-          </div>
+          </Card>
         </div>
-      </Card>
-
-      <Card>
-        <h3 className="text-xl font-semibold text-gray-800 mb-6 border-b pb-2 flex items-center gap-2">
-          <IdentificationIcon className="w-6 h-6 text-ministere-600" />
-          Détails du profil
-        </h3>
-        
-        <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-5">
-          {/* Left Column (Account Info) */}
-          <div className="flex flex-col sm:flex-row sm:items-start md:col-start-1 md:row-start-1">
-            <dt className="text-base font-medium text-gray-500 w-[40%] flex items-start gap-2 pt-0.5">
-              <IdentificationIcon className="w-5 h-5 flex-shrink-0" /> MAT_PERS
-            </dt>
-            <dd className="text-base text-gray-900 font-medium sm:w-[60%]">{auth.user?.matPers || '—'}</dd>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-start md:col-start-1 md:row-start-2">
-            <dt className="text-base font-medium text-gray-500 w-[40%] flex items-start gap-2 pt-0.5">
-              <EnvelopeIcon className="w-5 h-5 flex-shrink-0" /> Email
-            </dt>
-            <dd className="text-base text-gray-900 sm:w-[60%] break-all">{auth.user?.email || '—'}</dd>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-start md:col-start-1 md:row-start-3">
-            <dt className="text-base font-medium text-gray-500 w-[40%] flex items-start gap-2 pt-0.5">
-              <PhoneIcon className="w-5 h-5 flex-shrink-0" /> Téléphone
-            </dt>
-            <dd className="text-base text-gray-900 sm:w-[60%]">{auth.user?.phone || '—'}</dd>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-start md:col-start-1 md:row-start-4">
-            <dt className="text-base font-medium text-gray-500 w-[40%] flex items-start gap-2 pt-0.5">
-              <BuildingOfficeIcon className="w-5 h-5 flex-shrink-0" /> Etablissement
-            </dt>
-            <dd className="text-base text-gray-900 sm:w-[60%]">{auth.user?.establishmentName || '—'}</dd>
-          </div>
-
-          {/* Right Column (Professional Info) */}
-          <div className="flex flex-col sm:flex-row sm:items-start md:col-start-2 md:row-start-1">
-            <dt className="text-base font-medium text-gray-500 w-[40%] flex items-start gap-2 pt-0.5">
-              <MapPinIcon className="w-5 h-5 flex-shrink-0" /> Adresse
-            </dt>
-            <dd className="text-base text-gray-900 sm:w-[60%]">{auth.user?.adresse || '—'}</dd>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-start md:col-start-2 md:row-start-2">
-            <dt className="text-base font-medium text-gray-500 w-[40%] flex items-start gap-2 pt-0.5">
-              <BriefcaseIcon className="w-5 h-5 flex-shrink-0" /> Service
-            </dt>
-            <dd className="text-base text-gray-900 sm:w-[60%]">{auth.user?.service || '—'}</dd>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-start md:col-start-2 md:row-start-3">
-            <dt className="text-base font-medium text-gray-500 w-[40%] flex items-start gap-2 pt-0.5">
-              <AcademicCapIcon className="w-5 h-5 flex-shrink-0" /> Grade
-            </dt>
-            <dd className="text-base text-gray-900 sm:w-[60%]">{auth.user?.grade || '—'}</dd>
-          </div>
-          <div className="flex flex-col sm:flex-row sm:items-start md:col-start-2 md:row-start-4">
-            <dt className="text-base font-medium text-gray-500 w-[40%] flex items-start gap-2 pt-0.5">
-              <ComputerDesktopIcon className="w-5 h-5 flex-shrink-0" /> Poste
-            </dt>
-            <dd className="text-base text-gray-900 sm:w-[60%]">{auth.user?.posteTravail || '—'}</dd>
-          </div>
-        </dl>
-      </Card>
+      </div>
 
       <Modal
         isOpen={isCorrectionModalOpen}

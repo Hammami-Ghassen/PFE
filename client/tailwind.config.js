@@ -17,7 +17,7 @@ module.exports = {
           900: '#0F2035',
         },
         accent: {
-          red:    '#C8102E',
+          red:    '#DC2626', // Updated to match mockup red
           green:  '#059669',
           orange: '#D97706',
         },

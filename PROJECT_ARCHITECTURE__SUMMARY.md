@@ -11,6 +11,9 @@ The implementation now uses:
 - Server-side pagination for personnel search (`Pageable`, default size `50`)
 - Admin APIs/UI for personnel search, role management, and establishment filtering sorted by `COD_SOC`
 - Frontend 2-step OTP login flow with cookie-based refresh handling
+- Role-based leave workflow (`AGENT`/`DIRECTEUR`) with submission, personal tracking, and director validation
+- Correction request workflow with attachment upload and admin review/download actions
+- Updated dashboard shell and UI component set (`StatCard`, `ProfileHeader`, `LeaveBalanceCard`)
 
 ## 2. What Was Implemented
 
@@ -85,6 +88,23 @@ Admin endpoints:
 - `PATCH /api/admin/personnel/{matPers}/role`
 - `GET /api/admin/personnel/establishments` (ordered by `COD_SOC` ascending)
 
+Additional business controllers:
+- `server/src/main/java/com/sante/app/controller/LeaveController.java`
+- `server/src/main/java/com/sante/app/controller/LeaveValidationController.java`
+- `server/src/main/java/com/sante/app/controller/CorrectionController.java`
+- `server/src/main/java/com/sante/app/controller/AdminCorrectionController.java`
+
+Additional endpoints:
+- `GET /api/leaves/motifs`
+- `POST /api/leaves`
+- `GET /api/leaves/my`
+- `GET /api/leaves/validation`
+- `PATCH /api/leaves/validation/{codSoc}/{matPers}/{numDcng}/review`
+- `POST /api/corrections/request` (multipart)
+- `GET /api/admin/corrections`
+- `PATCH /api/admin/corrections/{id}/review`
+- `GET /api/admin/corrections/{id}/attachment`
+
 ### 2.5 JWT and security filter layer
 Updated JWT property model:
 - `server/src/main/java/com/sante/app/security/jwt/JwtProperties.java`
@@ -112,15 +132,26 @@ Login flow replacement:
 Admin UI updates:
 - `client/src/pages/admin/UsersListPage.jsx` (personnel management)
 - `client/src/pages/admin/AddEmployeePage.jsx` (UI-only mocked submit)
+- `client/src/pages/admin/CorrectionRequestsPage.jsx` (admin correction queue/review)
 - `client/src/services/userService.js`
 - `client/src/App.js` routing
 - `client/src/components/layout/Sidebar.jsx`
 - `client/src/components/layout/Header.jsx`
 - `client/src/components/layout/DashboardLayout.jsx`
 - `client/src/pages/dashboard/DashboardPage.jsx`
-- `client/src/pages/dashboard/PowerBIDashboard.jsx` (new role-restricted BI placeholder)
+- `client/src/pages/dashboard/PowerBIDashboard.jsx` (role-restricted embedded BI iframe)
 - `client/src/components/ui/Badge.jsx`
+- `client/src/components/ui/StatCard.jsx`
+- `client/src/components/ui/ProfileHeader.jsx`
+- `client/src/components/ui/LeaveBalanceCard.jsx`
 - `client/src/utils/constants.js`
+
+Leave and correction UI updates:
+- `client/src/pages/leave/LeaveSubmitPage.jsx`
+- `client/src/pages/leave/MyLeaveRequestsPage.jsx`
+- `client/src/pages/leave/LeaveValidationPage.jsx`
+- `client/src/services/leaveService.js`
+- `client/src/services/correctionService.js`
 
 ### 2.7 Operational/runtime fixes
 - Added dedicated Redis unavailability handling in:
@@ -146,7 +177,7 @@ Applied in:
 - Refresh JWT generation now includes a unique `jti` claim and persistence retries to avoid `TOKEN_HASH` unique-constraint collisions.
 - Authentication and profile response now use `COD_USER` directly as `role` (no mapper/translation and no `codUser` duplication in profile payload).
 - Existing `/dashboard` section is labeled `Mes Informations`.
-- New `Tableau de bord` page (`/powerbi-dashboard`) has a PowerBI placeholder and is visible/accessible only for `ADMIN` and `DIRECTEUR`.
+- `Tableau de bord` page (`/powerbi-dashboard`) is visible/accessible only for `ADMIN` and `DIRECTEUR` and now renders an embedded PowerBI iframe.
 
 ### 2.10 Profile enrichment (legacy SQL joins)
 - `/api/auth/me` now uses a dedicated native projection query in `PersonnelRepository` (no JPA relations added on entities).
@@ -190,11 +221,11 @@ Security model:
 ## 3.3 Frontend architecture (`client/`)
 Layers:
 1. `pages/`:
-   - route-level features (login, dashboard, admin pages)
+   - route-level features (login, dashboard, leave, admin pages)
 2. `components/`:
    - reusable UI and layout/auth guards
 3. `services/`:
-   - API adapters (`authService`, `userService`)
+   - API adapters (`authService`, `userService`, `leaveService`, `correctionService`)
 4. `hooks/`:
    - auth-aware Axios handling (`useAxiosPrivate`)
 5. `context/`:
@@ -219,7 +250,14 @@ Session behavior:
 - Controllers:
    - `controller/AuthController.java`
    - `controller/AdminController.java`
+   - `controller/LeaveController.java`
+   - `controller/LeaveValidationController.java`
+   - `controller/CorrectionController.java`
+   - `controller/AdminCorrectionController.java`
 - DTO request:
+   - `dto/request/CreateLeaveRequest.java`
+   - `dto/request/ReviewLeaveRequest.java`
+   - `dto/request/ReviewCorrectionRequest.java`
    - `dto/request/OtpChannel.java`
    - `dto/request/RequestOtpRequest.java`
    - `dto/request/VerifyOtpRequest.java`
@@ -230,23 +268,44 @@ Session behavior:
    - `dto/response/AuthProfileResponse.java`
    - `dto/response/PersonnelAdminResponse.java`
    - `dto/response/EstablishmentResponse.java`
+   - `dto/response/LeaveMotifResponse.java`
+   - `dto/response/LeaveRequestResponse.java`
+   - `dto/response/LeaveValidationResponse.java`
+   - `dto/response/CorrectionRequestResponse.java`
+   - `dto/response/AdminCorrectionRequestResponse.java`
+   - `dto/response/CorrectionAttachmentResponse.java`
 - Models:
    - `model/legacy/Personnel.java`
    - `model/legacy/AdrPers.java`
    - `model/legacy/Societe.java`
    - `model/auth/AuthRefreshToken.java`
+   - `model/leave/MotifJ.java`
+   - `model/leave/DemCng.java`
+   - `model/leave/DemCngId.java`
+   - `model/leave/LeaveValidationStatus.java`
+   - `model/correction/DemandeCorrectionInfo.java`
+   - `model/correction/CorrectionTargetAttribute.java`
+   - `model/correction/CorrectionRequestStatus.java`
 - Repositories:
    - `repository/PersonnelRepository.java`
    - `repository/AdrPersRepository.java`
    - `repository/SocieteRepository.java`
    - `repository/AuthRefreshTokenRepository.java`
+   - `repository/MotifJRepository.java`
+   - `repository/DemCngRepository.java`
+   - `repository/DemandeCorrectionInfoRepository.java`
    - `repository/projection/PersonnelAdminProjection.java`
    - `repository/projection/ProfileProjection.java`
+   - `repository/projection/MyLeaveRequestProjection.java`
+   - `repository/projection/LeaveValidationProjection.java`
+   - `repository/projection/CorrectionAdminProjection.java`
 - Services:
    - `service/OtpAuthService.java`
    - `service/AuthTokenService.java`
    - `service/OtpStoreService.java`
    - `service/AdminService.java`
+   - `service/LeaveService.java`
+   - `service/CorrectionService.java`
 - Security:
    - `security/AuthEntryPoint.java`
    - `security/jwt/JwtAuthenticationFilter.java`
@@ -296,16 +355,25 @@ Session behavior:
    - `components/ui/Input.jsx`
    - `components/ui/Modal.jsx`
    - `components/ui/Spinner.jsx`
+   - `components/ui/StatCard.jsx`
+   - `components/ui/ProfileHeader.jsx`
+   - `components/ui/LeaveBalanceCard.jsx`
 - Pages:
    - `pages/auth/LoginPage.jsx`
    - `pages/dashboard/DashboardPage.jsx`
    - `pages/dashboard/PowerBIDashboard.jsx`
    - `pages/admin/UsersListPage.jsx`
    - `pages/admin/AddEmployeePage.jsx`
+   - `pages/admin/CorrectionRequestsPage.jsx`
+   - `pages/leave/LeaveSubmitPage.jsx`
+   - `pages/leave/MyLeaveRequestsPage.jsx`
+   - `pages/leave/LeaveValidationPage.jsx`
 - Services and utils:
    - `services/authService.js`
    - `services/userService.js`
    - `services/addEmployeeMockService.js`
+   - `services/leaveService.js`
+   - `services/correctionService.js`
    - `utils/constants.js`
    - `utils/helpers.js`
 
@@ -316,6 +384,12 @@ Session behavior:
 - `OtpAuthService`: core OTP generation/validation + token issuing + profile hydration/mapping
 - `AdminController`: admin-only personnel operations
 - `AdminService`: search/filter/update role logic
+- `LeaveController`: leave motifs, leave request creation, and personal leave history APIs
+- `LeaveValidationController`: director queue and approve/reject actions for leave workflow
+- `LeaveService`: leave business rules, pagination, status transitions, and reviewer updates
+- `CorrectionController`: employee correction submission with attachment upload
+- `AdminCorrectionController`: admin correction review queue + attachment download
+- `CorrectionService`: correction persistence, attachment retrieval, and review state transitions
 - `AuthTokenService`: access/refresh token generation, hashing, persistence and revocation
 - `OtpStoreService`: Redis-backed OTP hash storage (`otp:{MAT_PERS}` + TTL)
 - `PersonnelRepository`: native SQL search/update/profile projection including legacy joins for profile enrichment
@@ -329,8 +403,13 @@ Session behavior:
 - `useAxiosPrivate`: injects bearer token and retries after refresh
 - `UsersListPage`: admin personnel list/search/filter/role update
 - `AddEmployeePage`: UI-only employee creation form (mock submit)
+- `CorrectionRequestsPage`: admin moderation UI for correction requests and attachments
+- `LeaveSubmitPage`: leave request form and motif selection
+- `MyLeaveRequestsPage`: authenticated employee leave history
+- `LeaveValidationPage`: director leave validation queue
 - `DashboardPage`: authenticated profile view (`Mes Informations`) including enriched fields (`adresse`, `service`, `grade`, `posteTravail`)
 - `Sidebar/Header`: role-aware navigation and identity display
+- `StatCard`, `ProfileHeader`, `LeaveBalanceCard`: new dashboard-oriented UI building blocks
 
 ## 5. Data Flow (End-to-End)
 
@@ -378,15 +457,29 @@ Session behavior:
 
 ### 5.5 Dashboard navigation and role guards
 1. `/dashboard` is the authenticated user information page (`Mes Informations`).
-2. `/powerbi-dashboard` is a dedicated BI dashboard placeholder route.
+2. `/powerbi-dashboard` is a dedicated BI dashboard route using an embedded PowerBI iframe.
 3. Sidebar shows `Tableau de bord` only for `ADMIN` and `DIRECTEUR`.
 4. Route-level guard redirects `AGENT` users away from `/powerbi-dashboard`.
+
+### 5.7 Leave submission and validation flow
+1. `AGENT` or `DIRECTEUR` user opens leave submission page and loads motifs from `GET /api/leaves/motifs`.
+2. User submits leave request through `POST /api/leaves`.
+3. User tracks personal requests through `GET /api/leaves/my`.
+4. `DIRECTEUR` accesses validation queue through `GET /api/leaves/validation`.
+5. Reviewer accepts/rejects request through `PATCH /api/leaves/validation/{codSoc}/{matPers}/{numDcng}/review`.
+
+### 5.8 Correction request and admin review flow
+1. Authenticated user submits correction + attachment via multipart `POST /api/corrections/request`.
+2. `ADMIN` lists requests with pagination and optional status filtering via `GET /api/admin/corrections`.
+3. `ADMIN` downloads evidence files through `GET /api/admin/corrections/{id}/attachment`.
+4. `ADMIN` applies review decision through `PATCH /api/admin/corrections/{id}/review`.
 
 ## 6. Current Known Limitations
 1. OTP delivery is still mocked (log-based), not integrated with real SMTP/SMS gateways.
 2. JWT key handling depends on correct RSA key material in env vars; invalid key format causes token generation failures.
 3. Running backend requires valid runtime dependencies/configuration (PostgreSQL legacy schema, Redis, JWT key material, and environment variables).
-4. PowerBI integration is currently a UI placeholder pending embed URL/token/workspace configuration.
+4. PowerBI view currently relies on a static embedded iframe URL and still needs production-grade embed governance (workspace ownership, token strategy, and lifecycle management).
+5. Add-employee page remains UI-only; backend insertion workflow is intentionally not wired yet.
 
 ## 7. Recommended Next Steps
 1. Integrate real OTP delivery providers (SMTP + SMS gateway abstraction).
@@ -417,6 +510,17 @@ Session behavior:
    - `server/src/main/java/com/sante/app/service/OtpStoreService.java`
    - `server/src/main/java/com/sante/app/repository/PersonnelRepository.java`
    - `server/src/main/java/com/sante/app/repository/projection/ProfileProjection.java`
+- Leave APIs:
+   - `server/src/main/java/com/sante/app/controller/LeaveController.java`
+   - `server/src/main/java/com/sante/app/controller/LeaveValidationController.java`
+   - `server/src/main/java/com/sante/app/service/LeaveService.java`
+   - `server/src/main/java/com/sante/app/repository/DemCngRepository.java`
+   - `server/src/main/java/com/sante/app/repository/MotifJRepository.java`
+- Correction APIs:
+   - `server/src/main/java/com/sante/app/controller/CorrectionController.java`
+   - `server/src/main/java/com/sante/app/controller/AdminCorrectionController.java`
+   - `server/src/main/java/com/sante/app/service/CorrectionService.java`
+   - `server/src/main/java/com/sante/app/repository/DemandeCorrectionInfoRepository.java`
 - Admin APIs:
    - `server/src/main/java/com/sante/app/controller/AdminController.java`
    - `server/src/main/java/com/sante/app/service/AdminService.java`
@@ -467,8 +571,14 @@ Session behavior:
    - `client/src/pages/dashboard/PowerBIDashboard.jsx`
    - `client/src/pages/admin/UsersListPage.jsx`
    - `client/src/pages/admin/AddEmployeePage.jsx`
+   - `client/src/pages/admin/CorrectionRequestsPage.jsx`
+   - `client/src/pages/leave/LeaveSubmitPage.jsx`
+   - `client/src/pages/leave/MyLeaveRequestsPage.jsx`
+   - `client/src/pages/leave/LeaveValidationPage.jsx`
    - `client/src/services/userService.js`
    - `client/src/services/addEmployeeMockService.js`
+   - `client/src/services/leaveService.js`
+   - `client/src/services/correctionService.js`
    - `client/src/hooks/usePersonnelPagination.js`
    - `client/src/hooks/useEstablishments.js`
 - Shared UI and utilities:
@@ -479,6 +589,9 @@ Session behavior:
    - `client/src/components/ui/Input.jsx`
    - `client/src/components/ui/Modal.jsx`
    - `client/src/components/ui/Spinner.jsx`
+   - `client/src/components/ui/StatCard.jsx`
+   - `client/src/components/ui/ProfileHeader.jsx`
+   - `client/src/components/ui/LeaveBalanceCard.jsx`
    - `client/src/utils/constants.js`
    - `client/src/utils/helpers.js`
 
@@ -486,6 +599,7 @@ Session behavior:
 - Backend:
    - `server/src/test/java/com/sante/app/controller/AuthControllerTest.java`
    - `server/src/test/java/com/sante/app/service/OtpAuthServiceTest.java`
+   - `server/src/test/java/com/sante/app/service/LeaveServiceTest.java`
 - Frontend:
    - `client/src/api/axiosRetryQueue.test.js`
    - `client/src/hooks/usePersonnelPagination.test.js`

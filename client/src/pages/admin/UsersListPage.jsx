@@ -7,6 +7,15 @@ import useEstablishments from '../../hooks/useEstablishments';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/ui/Spinner';
+import { 
+  ArrowDownTrayIcon, 
+  UserPlusIcon, 
+  MagnifyingGlassIcon,
+  EnvelopeIcon,
+  PhoneIcon,
+  PencilIcon,
+  EyeIcon
+} from '@heroicons/react/24/outline';
 
 const roleOptions = ['ADMIN', 'DIRECTEUR', 'AGENT'];
 const PAGE_SIZE = 50;
@@ -59,34 +68,78 @@ const UsersListPage = () => {
   };
 
   return (
-    <div className="space-y-5">
-      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
-        <form onSubmit={submitSearch} className="flex gap-2 flex-1 max-w-xl">
-          <input
-            type="text"
-            placeholder="Rechercher MAT_PERS..."
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-            className="w-full px-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ministere-500 focus:border-transparent"
-          />
-          <Button type="submit" size="sm">Rechercher</Button>
-        </form>
+    <div className="space-y-8 max-w-7xl mx-auto pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
-        <select
-          value={codSoc}
-          onChange={(e) => selectEstablishment(e.target.value)}
-          className="px-3 py-2.5 border border-gray-300 rounded-lg text-sm bg-white"
-        >
-          <option value="">Tous les etablissements</option>
-          {establishments.map((est) => (
-            <option key={est.codSoc} value={est.codSoc}>
-              {est.codSoc} - {est.libSoc}
-            </option>
-          ))}
-        </select>
+        <div className="flex gap-3 shrink-0">
+          <Button variant="outline" className="text-gray-700 bg-white border-gray-300 hover:bg-gray-50 flex items-center gap-2">
+            <ArrowDownTrayIcon className="w-4 h-4" />
+            Export Directory
+          </Button>
+          <Button className="bg-accent-red hover:bg-red-700 border-none flex items-center gap-2">
+            <UserPlusIcon className="w-4 h-4" />
+            Add Personnel
+          </Button>
+        </div>
       </div>
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-end gap-5">
+        <form onSubmit={submitSearch} className="flex-1 flex flex-col gap-1.5">
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Search Personnel</label>
+          <div className="relative">
+            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
+            </div>
+            <input
+              type="text"
+              placeholder="Name, Email, or Matricule"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-ministere-500 focus:border-transparent transition-colors shadow-sm"
+            />
+          </div>
+        </form>
+
+        <div className="w-full md:w-56 flex flex-col gap-1.5 shrink-0">
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Department</label>
+          <select
+            value={codSoc}
+            onChange={(e) => selectEstablishment(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white focus:ring-2 focus:ring-ministere-500 focus:border-transparent transition-colors shadow-sm"
+          >
+            <option value="">All Departments</option>
+            {establishments.map((est) => (
+              <option key={est.codSoc} value={est.codSoc}>
+                {est.codSoc} - {est.libSoc}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="w-full md:w-48 flex flex-col gap-1.5 shrink-0">
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Role / Grade</label>
+          <select disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed">
+            <option>All Roles</option>
+          </select>
+        </div>
+
+        <div className="w-full md:w-48 flex flex-col gap-1.5 shrink-0">
+          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Status</label>
+          <select disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed">
+            <option>All Statuses</option>
+          </select>
+        </div>
+
+        <button 
+          onClick={() => { setSearchInput(''); selectEstablishment(''); }}
+          type="button" 
+          className="text-sm font-semibold text-ministere-600 hover:text-ministere-800 pb-2 px-2"
+        >
+          Clear Filters
+        </button>
+      </div>
+
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {loading ? (
           <div className="flex justify-center py-16">
             <Spinner size="lg" />
@@ -94,41 +147,85 @@ const UsersListPage = () => {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead>
-                <tr className="bg-gray-50 text-gray-500 text-xs font-semibold uppercase tracking-wider">
-                  <th className="px-5 py-3 text-left">MAT_PERS</th>
-                  <th className="px-5 py-3 text-left">COD_USER</th>
-                  <th className="px-5 py-3 text-left">COD_SOC</th>
-                  <th className="px-5 py-3 text-left">Etablissement</th>
-                  <th className="px-5 py-3 text-left">Email</th>
-                  <th className="px-5 py-3 text-left">Telephone</th>
-                  <th className="px-5 py-3 text-right">Actions</th>
+              <thead className="bg-gray-50/80 text-gray-500 uppercase tracking-wider text-xs font-semibold border-b border-gray-200">
+                <tr>
+                  <th className="px-5 py-4 text-left font-bold min-w-[250px]">Employee</th>
+                  <th className="px-5 py-4 text-left font-bold">Department & Role</th>
+                  <th className="px-5 py-4 text-left font-bold">Contact Info</th>
+                  <th className="px-5 py-4 text-left font-bold">Status</th>
+                  <th className="px-5 py-4 text-right font-bold w-24">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-100 bg-white">
                 {data.content.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-gray-400">Aucun personnel trouve.</td>
+                    <td colSpan={5} className="text-center py-12 text-gray-400">Aucun personnel trouve.</td>
                   </tr>
                 ) : (
                   data.content.map((person) => (
-                    <tr key={person.matPers} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-5 py-3 font-mono text-gray-700">{person.matPers}</td>
-                      <td className="px-5 py-3"><Badge label={person.codUser} /></td>
-                      <td className="px-5 py-3 text-gray-700">{person.codSoc || '—'}</td>
-                      <td className="px-5 py-3 text-gray-700">{person.establishmentName || '—'}</td>
-                      <td className="px-5 py-3 text-gray-500">{person.email || '—'}</td>
-                      <td className="px-5 py-3 text-gray-500">{person.phone || '—'}</td>
-                      <td className="px-5 py-3 text-right">
-                        <select
-                          defaultValue={person.codUser}
-                          onChange={(e) => handleRoleChange(person.matPers, e.target.value)}
-                          className="px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white"
-                        >
-                          {roleOptions.map((role) => (
-                            <option key={role} value={role}>{role}</option>
-                          ))}
-                        </select>
+                    <tr key={person.matPers} className="hover:bg-gray-50 transition-colors group cursor-pointer">
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full bg-ministere-100 flex items-center justify-center text-ministere-700 font-bold text-sm shrink-0 border border-ministere-200 shadow-sm">
+                            {person.matPers ? person.matPers.substring(0, 2) : 'MP'}
+                          </div>
+                          <div>
+                            <div className="font-semibold text-gray-900">{person.matPers}</div>
+                            <div className="text-xs font-medium text-gray-500 mt-0.5">Role: <Badge label={person.codUser || 'N/A'} className="px-1.5 py-0 text-[10px]" /></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-gray-900 font-medium">{person.codSoc || 'No Code'}</span>
+                          <span className="text-gray-500 text-xs">{person.establishmentName || 'No establishment'}</span>
+                        </div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-1.5">
+                          {person.email ? (
+                            <div className="flex items-center gap-2 text-gray-700">
+                              <EnvelopeIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              <span className="text-sm truncate max-w-[200px]">{person.email}</span>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-gray-400 italic">No email</span>
+                          )}
+                          {person.phone ? (
+                            <div className="flex items-center gap-2 text-gray-700">
+                              <PhoneIcon className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                              <span className="text-sm">{person.phone}</span>
+                            </div>
+                          ) : null}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200/50 shadow-sm">
+                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
+                          Active User
+                        </span>
+                      </td>
+                      <td className="px-5 py-4 whitespace-nowrap text-right">
+                        <div className="inline-flex items-center">
+                          <select
+                            defaultValue={person.codUser}
+                            onChange={(e) => handleRoleChange(person.matPers, e.target.value)}
+                            className="mr-3 px-2 py-1.5 border border-gray-300 rounded-lg text-xs bg-white focus:ring-1 focus:ring-ministere-500"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {roleOptions.map((role) => (
+                              <option key={role} value={role}>{role}</option>
+                            ))}
+                          </select>
+                          <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button className="p-1.5 text-gray-400 hover:text-ministere-600 hover:bg-ministere-50 rounded-lg transition-colors" title="Edit Personnel">
+                              <PencilIcon className="w-4 h-4" />
+                            </button>
+                            <button className="p-1.5 text-gray-400 hover:text-accent-red hover:bg-red-50 rounded-lg transition-colors" title="View Profile">
+                              <EyeIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   ))

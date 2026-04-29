@@ -1,5 +1,6 @@
 import React from 'react';
 import Card from '../../components/ui/Card';
+POWERBI_URL=process.env.POWERBI_URL
 
 const PowerBIDashboard = () => {
   return (
@@ -7,7 +8,7 @@ const PowerBIDashboard = () => {
       <iframe 
         title="tp" 
         className="w-full h-full flex-1"
-        src="https://app.powerbi.com/view?r=eyJrIjoiYzNjNzhjOGEtNjJkMi00YWNlLThmYjMtNzYzYjE1MGE5MWVkIiwidCI6ImRiZDY2NjRkLTRlYjktNDZlYi05OWQ4LTVjNDNiYTE1M2M2MSIsImMiOjl9"  
+        src= {POWERBI_URL}
         allowFullScreen
       ></iframe>
     </Card>

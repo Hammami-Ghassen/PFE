@@ -90,6 +90,7 @@ Admin endpoints:
 
 Additional business controllers:
 - `server/src/main/java/com/sante/app/controller/LeaveController.java`
+- `server/src/main/java/com/sante/app/controller/LeaveBalanceController.java`
 - `server/src/main/java/com/sante/app/controller/LeaveValidationController.java`
 - `server/src/main/java/com/sante/app/controller/CorrectionController.java`
 - `server/src/main/java/com/sante/app/controller/AdminCorrectionController.java`
@@ -147,8 +148,8 @@ Admin UI updates:
 - `client/src/utils/constants.js`
 
 Leave and correction UI updates:
-- `client/src/pages/leave/LeaveSubmitPage.jsx`
-- `client/src/pages/leave/MyLeaveRequestsPage.jsx`
+- `client/src/pages/leave/MyLeaveRequestsPage.jsx` (leave request form integrated/refactored)
+- `client/src/components/leave/LeaveValidationDetailModal.jsx`
 - `client/src/pages/leave/LeaveValidationPage.jsx`
 - `client/src/services/leaveService.js`
 - `client/src/services/correctionService.js`
@@ -251,6 +252,7 @@ Session behavior:
    - `controller/AuthController.java`
    - `controller/AdminController.java`
    - `controller/LeaveController.java`
+   - `controller/LeaveBalanceController.java`
    - `controller/LeaveValidationController.java`
    - `controller/CorrectionController.java`
    - `controller/AdminCorrectionController.java`
@@ -270,6 +272,8 @@ Session behavior:
    - `dto/response/EstablishmentResponse.java`
    - `dto/response/LeaveMotifResponse.java`
    - `dto/response/LeaveRequestResponse.java`
+   - `dto/response/LeaveBalanceResponse.java`
+   - `dto/response/LeaveHolidayResponse.java`
    - `dto/response/LeaveValidationResponse.java`
    - `dto/response/CorrectionRequestResponse.java`
    - `dto/response/AdminCorrectionRequestResponse.java`
@@ -283,6 +287,7 @@ Session behavior:
    - `model/leave/DemCng.java`
    - `model/leave/DemCngId.java`
    - `model/leave/LeaveValidationStatus.java`
+   - `model/leave/JoursFeriers.java`
    - `model/correction/DemandeCorrectionInfo.java`
    - `model/correction/CorrectionTargetAttribute.java`
    - `model/correction/CorrectionRequestStatus.java`
@@ -293,6 +298,7 @@ Session behavior:
    - `repository/AuthRefreshTokenRepository.java`
    - `repository/MotifJRepository.java`
    - `repository/DemCngRepository.java`
+   - `repository/JoursFeriersRepository.java`
    - `repository/DemandeCorrectionInfoRepository.java`
    - `repository/projection/PersonnelAdminProjection.java`
    - `repository/projection/ProfileProjection.java`
@@ -358,6 +364,7 @@ Session behavior:
    - `components/ui/StatCard.jsx`
    - `components/ui/ProfileHeader.jsx`
    - `components/ui/LeaveBalanceCard.jsx`
+   - `components/leave/LeaveValidationDetailModal.jsx`
 - Pages:
    - `pages/auth/LoginPage.jsx`
    - `pages/dashboard/DashboardPage.jsx`
@@ -365,7 +372,6 @@ Session behavior:
    - `pages/admin/UsersListPage.jsx`
    - `pages/admin/AddEmployeePage.jsx`
    - `pages/admin/CorrectionRequestsPage.jsx`
-   - `pages/leave/LeaveSubmitPage.jsx`
    - `pages/leave/MyLeaveRequestsPage.jsx`
    - `pages/leave/LeaveValidationPage.jsx`
 - Services and utils:
@@ -404,9 +410,9 @@ Session behavior:
 - `UsersListPage`: admin personnel list/search/filter/role update
 - `AddEmployeePage`: UI-only employee creation form (mock submit)
 - `CorrectionRequestsPage`: admin moderation UI for correction requests and attachments
-- `LeaveSubmitPage`: leave request form and motif selection
-- `MyLeaveRequestsPage`: authenticated employee leave history
+- `MyLeaveRequestsPage`: authenticated employee leave history and new leave submission form
 - `LeaveValidationPage`: director leave validation queue
+- `LeaveValidationDetailModal`: review detailed info before taking action
 - `DashboardPage`: authenticated profile view (`Mes Informations`) including enriched fields (`adresse`, `service`, `grade`, `posteTravail`)
 - `Sidebar/Header`: role-aware navigation and identity display
 - `StatCard`, `ProfileHeader`, `LeaveBalanceCard`: new dashboard-oriented UI building blocks
@@ -512,10 +518,12 @@ Session behavior:
    - `server/src/main/java/com/sante/app/repository/projection/ProfileProjection.java`
 - Leave APIs:
    - `server/src/main/java/com/sante/app/controller/LeaveController.java`
+   - `server/src/main/java/com/sante/app/controller/LeaveBalanceController.java`
    - `server/src/main/java/com/sante/app/controller/LeaveValidationController.java`
    - `server/src/main/java/com/sante/app/service/LeaveService.java`
    - `server/src/main/java/com/sante/app/repository/DemCngRepository.java`
    - `server/src/main/java/com/sante/app/repository/MotifJRepository.java`
+   - `server/src/main/java/com/sante/app/repository/JoursFeriersRepository.java`
 - Correction APIs:
    - `server/src/main/java/com/sante/app/controller/CorrectionController.java`
    - `server/src/main/java/com/sante/app/controller/AdminCorrectionController.java`
@@ -572,9 +580,9 @@ Session behavior:
    - `client/src/pages/admin/UsersListPage.jsx`
    - `client/src/pages/admin/AddEmployeePage.jsx`
    - `client/src/pages/admin/CorrectionRequestsPage.jsx`
-   - `client/src/pages/leave/LeaveSubmitPage.jsx`
    - `client/src/pages/leave/MyLeaveRequestsPage.jsx`
    - `client/src/pages/leave/LeaveValidationPage.jsx`
+   - `client/src/components/leave/LeaveValidationDetailModal.jsx`
    - `client/src/services/userService.js`
    - `client/src/services/addEmployeeMockService.js`
    - `client/src/services/leaveService.js`

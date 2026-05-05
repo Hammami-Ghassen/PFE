@@ -54,6 +54,7 @@ public class LeaveService {
     private final MotifJRepository motifJRepository;
     private final PersonnelRepository personnelRepository;
     private final JoursFeriersRepository joursFeriersRepository;
+    private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
     public List<LeaveMotifResponse> getMotifs() {
@@ -219,6 +220,17 @@ public class LeaveService {
             demande.setMotifRefus(null);
         }
         demCngRepository.save(demande);
+
+        // Create notification for the agent
+        String statusText = (reviewStatus == LeaveValidationStatus.APPROVED) ? "acceptée" : "refusée";
+        String notificationMessage = String.format("Votre demande de congé du %s au %s a été %s.", 
+                demande.getDatDebut(), demande.getDatFin(), statusText);
+                
+        notificationService.createNotification(
+                demande.getId().getMatPers(), 
+                notificationMessage, 
+                com.sante.app.model.NotificationType.LEAVE_UPDATE
+        );
 
         return demCngRepository.findValidationProjectionById(normalizedCodSoc, normalizedMatPers, normalizedNumDcng)
                 .map(this::mapValidationProjection)

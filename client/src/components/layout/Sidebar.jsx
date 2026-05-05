@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   HomeIcon,
+  UserIcon,
   ChartBarIcon,
   UsersIcon,
   UserPlusIcon,
@@ -17,7 +18,8 @@ import { logout } from '../../services/authService';
 import { ROLES } from '../../utils/constants';
 
 const navItems = [
-  { label: 'Mes Informations', to: '/dashboard', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
+  { label: 'Accueil', to: '/home', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
+  { label: 'Mes Informations', to: '/dashboard', icon: UserIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Tableau de bord', to: '/powerbi-dashboard', icon: ChartBarIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR] },
   { label: 'Mes demandes de congé', to: '/leave/my-requests', icon: CalendarDaysIcon, roles: [ROLES.AGENT, ROLES.DIRECTEUR] },
   { label: 'Validation congés', to: '/leave/validation', icon: ClipboardDocumentCheckIcon, roles: [ROLES.DIRECTEUR] },

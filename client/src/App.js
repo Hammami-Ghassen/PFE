@@ -9,6 +9,7 @@ import RoleRoute from './components/auth/RoleRoute';
 import DashboardLayout from './components/layout/DashboardLayout';
 
 import LoginPage from './pages/auth/LoginPage';
+import HomePage from './pages/dashboard/HomePage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import PowerBIDashboard from './pages/dashboard/PowerBIDashboard';
 import UsersListPage from './pages/admin/UsersListPage';
@@ -36,7 +37,8 @@ function App() {
         <Route element={<PersistLogin />}>
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/home" element={<HomePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
 
               <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.DIRECTEUR]} />}>

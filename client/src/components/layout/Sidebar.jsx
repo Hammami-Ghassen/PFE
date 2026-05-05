@@ -10,6 +10,7 @@ import {
   CalendarDaysIcon,
   ClipboardDocumentCheckIcon,
   ArrowRightOnRectangleIcon,
+  ChatBubbleLeftRightIcon,
 } from '@heroicons/react/24/outline';
 import Logo from './Logo';
 import useAuth from '../../hooks/useAuth';
@@ -20,6 +21,7 @@ import { ROLES } from '../../utils/constants';
 const navItems = [
   { label: 'Accueil', to: '/home', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Mes Informations', to: '/dashboard', icon: UserIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
+  { label: 'Messages', to: '/chat', icon: ChatBubbleLeftRightIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Tableau de bord', to: '/powerbi-dashboard', icon: ChartBarIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR] },
   { label: 'Mes demandes de congé', to: '/leave/my-requests', icon: CalendarDaysIcon, roles: [ROLES.AGENT, ROLES.DIRECTEUR] },
   { label: 'Validation congés', to: '/leave/validation', icon: ClipboardDocumentCheckIcon, roles: [ROLES.DIRECTEUR] },

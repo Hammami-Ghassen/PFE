@@ -17,6 +17,7 @@ import AddEmployeePage from './pages/admin/AddEmployeePage';
 import CorrectionRequestsPage from './pages/admin/CorrectionRequestsPage';
 import MyLeaveRequestsPage from './pages/leave/MyLeaveRequestsPage';
 import LeaveValidationPage from './pages/leave/LeaveValidationPage';
+import ChatPage from './pages/chat/ChatPage';
 import { ROLES } from './utils/constants';
 
 function App() {
@@ -40,6 +41,7 @@ function App() {
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/home" element={<HomePage />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/chat" element={<ChatPage />} />
 
               <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.DIRECTEUR]} />}>
                 <Route path="/powerbi-dashboard" element={<PowerBIDashboard />} />

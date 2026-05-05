@@ -10,6 +10,8 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.List;
+
 public interface PersonnelRepository extends JpaRepository<Personnel, String> {
 
     @Query(value = """
@@ -107,4 +109,16 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
        @Modifying
        @Query(value = "UPDATE \"PERSONNEL\" SET \"PREN_PERS\" = :prenom WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
        int updatePrenomPers(@Param("matPers") String matPers, @Param("prenom") String prenom);
+
+       @Query("SELECT p FROM Personnel p WHERE p.codSoc = :codSoc AND p.matPers != :currentMatPers")
+       List<Personnel> findContactsByCodSoc(@Param("codSoc") String codSoc, @Param("currentMatPers") String currentMatPers);
+
+       @Query("SELECT p FROM Personnel p WHERE p.codUser = 'DIRECTEUR' AND p.matPers != :currentMatPers")
+       List<Personnel> findAllDirectors(@Param("currentMatPers") String currentMatPers);
+
+       @Query("SELECT p.matPers FROM Personnel p WHERE p.codSoc = :codSoc")
+       List<String> findMatPersByCodSoc(@Param("codSoc") String codSoc);
+
+       @Query("SELECT p.matPers FROM Personnel p WHERE p.codUser = :role")
+       List<String> findMatPersByRole(@Param("role") String role);
 }

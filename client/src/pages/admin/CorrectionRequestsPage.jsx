@@ -56,11 +56,7 @@ const formatDate = (value) => {
 const CorrectionRequestsPage = () => {
   const axiosPrivate = useAxiosPrivate();
 
-  const [data, setData] = useState({
-    content: [],
-    totalPages: 0,
-    totalElements: 0,
-  });
+  const [allRequests, setAllRequests] = useState([]);
   const [statusFilter, setStatusFilter] = useState('PENDING');
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -71,21 +67,29 @@ const CorrectionRequestsPage = () => {
     setLoading(true);
     try {
       const response = await getCorrectionRequests(axiosPrivate, {
-        page,
-        size: PAGE_SIZE,
-        status: statusFilter,
+        page: 0,
+        size: 10000, // Fetch a large number to ensure all are loaded
+        status: '', // Fetch all statuses
       });
-      setData(response);
+      setAllRequests(response.content || []);
     } catch {
       toast.error('Erreur lors du chargement des demandes de correction.');
     } finally {
       setLoading(false);
     }
-  }, [axiosPrivate, page, statusFilter]);
+  }, [axiosPrivate]);
 
   useEffect(() => {
     loadRequests();
   }, [loadRequests]);
+
+  const filteredRequests = allRequests.filter(
+    (request) => statusFilter === '' || request.statut === statusFilter
+  );
+  
+  const totalElements = filteredRequests.length;
+  const totalPages = Math.ceil(totalElements / PAGE_SIZE);
+  const paginatedRequests = filteredRequests.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const handleStatusFilterChange = (event) => {
     setStatusFilter(event.target.value);
@@ -126,24 +130,28 @@ const CorrectionRequestsPage = () => {
     }
   };
 
+  const pendingCount = allRequests.filter((r) => r.statut === 'PENDING').length;
+  const approvedCount = allRequests.filter((r) => r.statut === 'APPROVED').length;
+  const rejectedCount = allRequests.filter((r) => r.statut === 'REJECTED').length;
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="VALIDATIONS EN ATTENTE"
-          value="42"
+          value={pendingCount}
           icon={ClipboardDocumentCheckIcon}
           accentColor="bg-blue-50 text-blue-600"
         />
         <StatCard
-          title="APPROUVÉES AUJOURD'HUI"
-          value="18"
+          title="APPROUVÉES"
+          value={approvedCount}
           icon={CheckCircleIcon}
           accentColor="bg-green-50 text-green-600"
         />
         <StatCard
-          title="REJETÉES AUJOURD'HUI"
-          value="3"
+          title="REJETÉES"
+          value={rejectedCount}
           icon={XCircleIcon}
           accentColor="bg-red-50 text-red-600"
         />
@@ -185,14 +193,14 @@ const CorrectionRequestsPage = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {data.content.length === 0 ? (
+                {paginatedRequests.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12 text-gray-400">
                       Aucune demande de correction.
                     </td>
                   </tr>
                 ) : (
-                  data.content.map((request) => {
+                  paginatedRequests.map((request) => {
                     const isPending = request.statut === 'PENDING';
 
                     return (
@@ -268,9 +276,9 @@ const CorrectionRequestsPage = () => {
           </div>
         )}
 
-        {data.totalPages > 1 && (
+        {totalPages > 1 && (
           <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 text-sm text-gray-500">
-            <span>{data.totalElements} demande(s)</span>
+            <span>{totalElements} demande(s)</span>
             <div className="flex gap-1">
               <button
                 onClick={() => setPage((currentPage) => Math.max(0, currentPage - 1))}
@@ -279,7 +287,7 @@ const CorrectionRequestsPage = () => {
               >
                 ←
               </button>
-              {buildPageWindow(page, data.totalPages).map((pageIndex, index, pages) => (
+              {buildPageWindow(page, totalPages).map((pageIndex, index, pages) => (
                 <React.Fragment key={pageIndex}>
                   {index > 0 && pageIndex - pages[index - 1] > 1 && (
                     <span className="px-1 text-gray-400" aria-hidden>
@@ -299,8 +307,8 @@ const CorrectionRequestsPage = () => {
                 </React.Fragment>
               ))}
               <button
-                onClick={() => setPage((currentPage) => Math.min(data.totalPages - 1, currentPage + 1))}
-                disabled={page >= data.totalPages - 1}
+                onClick={() => setPage((currentPage) => Math.min(totalPages - 1, currentPage + 1))}
+                disabled={page >= totalPages - 1}
                 className="px-3 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
               >
                 →

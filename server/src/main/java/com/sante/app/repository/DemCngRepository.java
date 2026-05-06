@@ -168,4 +168,20 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
     Optional<LeaveValidationProjection> findValidationProjectionById(@Param("codSoc") String codSoc,
                                                                      @Param("matPers") String matPers,
                                                                      @Param("numDcng") Integer numDcng);
+
+    @Query(value = """
+            SELECT EXISTS (
+                SELECT 1
+                FROM "DEM_CNG" d
+                WHERE d."COD_SOC" = :codSoc
+                  AND d."MAT_PERS" = :matPers
+                  AND d."VALID" IN ('I', 'O')
+                  AND d."DAT_DEBUT" <= :dateFin
+                  AND d."DAT_FIN" >= :dateDebut
+            )
+            """, nativeQuery = true)
+    boolean hasOverlappingRequests(@Param("codSoc") String codSoc,
+                                   @Param("matPers") String matPers,
+                                   @Param("dateDebut") java.time.LocalDate dateDebut,
+                                   @Param("dateFin") java.time.LocalDate dateFin);
 }

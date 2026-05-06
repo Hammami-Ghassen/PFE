@@ -217,7 +217,10 @@ export default function ChatPage() {
                                 messages.map((m, idx) => {
                                     const isMe = m.senderId === auth.user.matPers;
                                     return (
-                                        <div key={m.id || idx} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                                        <div key={m.id || idx} className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}>
+                                            <div className="text-xs text-gray-500 mb-1 ml-1 mr-1">
+                                                {m.senderName || m.senderId}
+                                            </div>
                                             <div className={`max-w-[70%] rounded-lg p-3 ${isMe ? 'bg-ministere-600 text-white rounded-br-none' : 'bg-white border text-gray-900 rounded-bl-none shadow-sm'}`}>
                                                 {m.type === 'FILE' && m.attachment ? (
                                                     <div className="flex items-center gap-3 bg-white/10 p-2 rounded">

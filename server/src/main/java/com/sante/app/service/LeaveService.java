@@ -109,6 +109,11 @@ public class LeaveService {
         validateDateRange(dateDebut, dateFin);
 
         String actorCodSoc = normalizeCodSoc(actor.getCodSoc());
+        
+        if (demCngRepository.hasOverlappingRequests(actorCodSoc, actor.getMatPers(), dateDebut, dateFin)) {
+            throw new BadRequestException("Vous avez déjà une demande de congé en attente ou acceptée qui chevauche ces dates.");
+        }
+
         String motifCode = normalizeCodeM(request.codeM());
         MotifJ motif = motifJRepository.findById(motifCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Motif de conge introuvable: " + motifCode));

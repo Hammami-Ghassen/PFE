@@ -152,6 +152,27 @@ public class ChatService {
             } else if ("0001".equals(sender.getCodSoc()) && "DIRECTEUR".equals(sender.getCodUser()) && "DIRECTEUR".equals(recipient.getCodUser())) {
                 notificationService.createNotification(recipient.getMatPers(), "Nouveau message du Ministère.", NotificationType.MESSAGE);
             }
+        } else if (message.getRoomId() != null) {
+            if ("DIRECTEUR".equals(sender.getCodUser())) {
+                if (message.getRoomId().startsWith("ROOM_SOC_")) {
+                    String codSoc = message.getRoomId().substring(9);
+                    if (codSoc.equals(sender.getCodSoc())) {
+                        List<String> targets = personnelRepository.findMatPersByCodSoc(codSoc);
+                        for (String matPers : targets) {
+                            if (!matPers.equals(sender.getMatPers())) {
+                                notificationService.createNotification(matPers, "Nouveau message de votre responsable dans le groupe.", NotificationType.MESSAGE);
+                            }
+                        }
+                    }
+                } else if (message.getRoomId().equals("ROOM_DIR") && "0001".equals(sender.getCodSoc())) {
+                    List<String> targets = personnelRepository.findMatPersByRole("DIRECTEUR");
+                    for (String matPers : targets) {
+                        if (!matPers.equals(sender.getMatPers())) {
+                            notificationService.createNotification(matPers, "Nouveau message du Ministère dans le groupe.", NotificationType.MESSAGE);
+                        }
+                    }
+                }
+            }
         }
 
         return mapToDTO(message);

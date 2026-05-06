@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import useAuth from '../../hooks/useAuth';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
@@ -8,9 +8,17 @@ import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Alert from '../../components/ui/Alert';
 import { requestCorrection } from '../../services/correctionService';
+import { getCurrentLeaveBalance } from '../../services/leaveService';
 import ProfileHeader from '../../components/ui/ProfileHeader';
 import LeaveBalanceCard from '../../components/ui/LeaveBalanceCard';
 import { ClockIcon } from '@heroicons/react/24/outline';
+
+const formatBalanceValue = (value) => {
+  if (value === null || value === undefined) return '0';
+  const parsed = Number.parseFloat(value);
+  if (Number.isNaN(parsed)) return '0';
+  return String(Number.isInteger(parsed) ? parsed : parsed.toFixed(3));
+};
 
 const MAX_FILE_SIZE_BYTES = 2 * 1024 * 1024;
 
@@ -35,6 +43,25 @@ const DashboardPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [submitError, setSubmitError] = useState('');
   const [submittingCorrection, setSubmittingCorrection] = useState(false);
+
+  const [balance, setBalance] = useState(null);
+  const [loadingBalance, setLoadingBalance] = useState(true);
+
+  const loadBalance = useCallback(async () => {
+    setLoadingBalance(true);
+    try {
+      const response = await getCurrentLeaveBalance(axiosPrivate);
+      setBalance(response);
+    } catch {
+      toast.error('Erreur lors du chargement de votre solde de conge.');
+    } finally {
+      setLoadingBalance(false);
+    }
+  }, [axiosPrivate]);
+
+  useEffect(() => {
+    loadBalance();
+  }, [loadBalance]);
 
   const resetCorrectionForm = () => {
     setCorrectionForm({ attributCible: '', nouvelleValeur: '', pieceJointe: null });
@@ -131,10 +158,10 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-10">
       {/* Profile Header */}
-      <ProfileHeader 
-        user={auth.user} 
-        onResetPassword={() => toast.success('E-mail de réinitialisation envoyé.')} 
-        onEditProfile={openCorrectionModal} 
+      <ProfileHeader
+        user={auth.user}
+        onResetPassword={() => toast.success('E-mail de réinitialisation envoyé.')}
+        onEditProfile={openCorrectionModal}
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -143,7 +170,7 @@ const DashboardPage = () => {
             <h3 className="text-xl font-semibold text-gray-800 mb-6 border-b pb-2">
               Informations professionnelles
             </h3>
-            
+
             <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
               <div>
                 <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">MAT_PERS (MATRICULE)</dt>
@@ -175,23 +202,12 @@ const DashboardPage = () => {
 
         <div className="lg:col-span-1 space-y-6">
           <Card className="h-full flex flex-col items-stretch p-0 overflow-hidden">
-            <div className="p-6 border-b border-gray-100">
-              <h3 className="text-xl font-semibold text-gray-800">Soldes de congé</h3>
-            </div>
-            <div className="p-6 space-y-4 bg-gray-50/50 flex-1">
-              <LeaveBalanceCard
-                title="CONGÉ ANNUEL"
-                balance="18"
-                subtitle="Restant pour 2024"
-                type="annual"
-              />
-              <LeaveBalanceCard
-                title="CONGÉ MALADIE"
-                balance="12"
-                subtitle="Quota restant"
-                type="sick"
-              />
-            </div>
+            <LeaveBalanceCard
+              title="SOLDE ACTUEL"
+              balance={loadingBalance ? '...' : formatBalanceValue(balance?.currentBalance)}
+              subtitle={`Restant pour ${new Date().getFullYear()}`}
+              type="annual"
+            />
             <div className="p-4 border-t border-gray-100 bg-white">
               <Button variant="outline" className="w-full justify-center text-accent-red border-accent-red hover:bg-red-50">
                 <ClockIcon className="w-4 h-4 mr-2" />
@@ -233,9 +249,8 @@ const DashboardPage = () => {
               name="attributCible"
               value={correctionForm.attributCible}
               onChange={handleCorrectionFieldChange}
-              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-transparent ${
-                formErrors.attributCible ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'
-              }`}
+              className={`w-full px-4 py-2.5 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-transparent ${formErrors.attributCible ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'
+                }`}
             >
               <option value="">Sélectionner un attribut</option>
               {correctionAttributes.map((attribute) => (
@@ -266,9 +281,8 @@ const DashboardPage = () => {
               name="pieceJointe"
               type="file"
               onChange={handleAttachmentChange}
-              className={`w-full px-3 py-2.5 border rounded-lg text-sm file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-ministere-50 file:text-ministere-700 hover:file:bg-ministere-100 ${
-                formErrors.pieceJointe ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'
-              }`}
+              className={`w-full px-3 py-2.5 border rounded-lg text-sm file:mr-3 file:px-3 file:py-1.5 file:rounded-md file:border-0 file:bg-ministere-50 file:text-ministere-700 hover:file:bg-ministere-100 ${formErrors.pieceJointe ? 'border-red-400 bg-red-50' : 'border-gray-300 bg-white'
+                }`}
             />
             <p className="text-xs text-gray-500">Taille maximale autorisée: 2 Mo.</p>
             {formErrors.pieceJointe && <p className="text-xs text-red-500">{formErrors.pieceJointe}</p>}

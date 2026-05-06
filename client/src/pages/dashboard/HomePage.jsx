@@ -43,7 +43,7 @@ const HomePage = () => {
   return (
     <div className="space-y-6">
       <div className="bg-white shadow rounded-lg p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Bienvenue, {auth?.user?.nom || auth?.user?.matPers}</h1>
+        <h1 className="text-2xl font-bold text-gray-900 mb-2">Bienvenue, {auth?.user?.firstName || auth?.user?.matPers}</h1>
         <p className="text-gray-600">
           Bienvenue sur le portail des ressources humaines du Ministère de la Santé Publique.
         </p>

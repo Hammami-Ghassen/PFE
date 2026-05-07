@@ -163,7 +163,7 @@ export default function ChatPage() {
     return (
         <div className="flex h-[calc(100vh-140px)] bg-white rounded-lg shadow overflow-hidden">
             {/* Contacts Sidebar */}
-            <div className="w-1/3 border-r flex flex-col bg-gray-50">
+            <div className={`w-full md:w-1/3 md:border-r flex flex-col bg-gray-50 ${activeContact ? "hidden md:flex" : "flex"}`}>
                 <div className="p-4 border-b bg-white">
                     <h2 className="text-lg font-bold text-gray-900">Discussions</h2>
                     <div className="mt-2 text-xs text-gray-500">
@@ -198,13 +198,15 @@ export default function ChatPage() {
             </div>
 
             {/* Chat Window */}
-            <div className="w-2/3 flex flex-col bg-white">
+            <div className={`w-full md:w-2/3 flex flex-col bg-white ${!activeContact ? "hidden md:flex" : "flex"}`}>
                 {activeContact ? (
                     <>
                         <div className="p-4 border-b bg-white flex justify-between items-center shadow-sm z-10">
-                            <div>
-                                <h3 className="text-lg font-bold text-gray-900">{activeContact.name}</h3>
-                                <p className="text-xs text-gray-500">{activeContact.role}</p>
+                            <div className="flex items-center gap-3">
+                                <button className="md:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700" onClick={() => setActiveContact(null)}><ChatBubbleLeftIcon className="w-6 h-6 transform rotate-180" /></button>
+                                <div><h3 className="text-lg font-bold text-gray-900">{activeContact.name}</h3>
+                                    <p className="text-xs text-gray-500">{activeContact.role}</p>
+                                </div>
                             </div>
                         </div>
 

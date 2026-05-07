@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import useAuth from '../../hooks/useAuth';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
@@ -11,7 +12,16 @@ import { requestCorrection } from '../../services/correctionService';
 import { getCurrentLeaveBalance } from '../../services/leaveService';
 import ProfileHeader from '../../components/ui/ProfileHeader';
 import LeaveBalanceCard from '../../components/ui/LeaveBalanceCard';
-import { ClockIcon } from '@heroicons/react/24/outline';
+import { 
+  ClockIcon, 
+  IdentificationIcon, 
+  BuildingOfficeIcon, 
+  EnvelopeIcon, 
+  PhoneIcon, 
+  MapPinIcon, 
+  BriefcaseIcon, 
+  AcademicCapIcon 
+} from '@heroicons/react/24/outline';
 
 const formatBalanceValue = (value) => {
   if (value === null || value === undefined) return '0';
@@ -33,6 +43,7 @@ const correctionAttributes = [
 const DashboardPage = () => {
   const { auth } = useAuth();
   const axiosPrivate = useAxiosPrivate();
+  const navigate = useNavigate();
 
   const [isCorrectionModalOpen, setIsCorrectionModalOpen] = useState(false);
   const [correctionForm, setCorrectionForm] = useState({
@@ -171,30 +182,72 @@ const DashboardPage = () => {
               Informations professionnelles
             </h3>
 
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
-              <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">MAT_PERS (MATRICULE)</dt>
-                <dd className="text-base text-gray-900 font-medium">{auth.user?.matPers || '—'}</dd>
+            <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex items-start p-4 rounded-xl bg-gray-50/50 border border-gray-100 transition-colors hover:bg-gray-50">
+                <div className="flex-shrink-0 p-2 bg-white rounded-lg border border-gray-100 mr-4 shadow-sm">
+                  <IdentificationIcon className="w-5 h-5 text-gray-500" />
+                </div>
+                <div>
+                  <dt className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Matricule (MAT_PERS)</dt>
+                  <dd className="text-sm text-gray-900 font-semibold">{auth.user?.matPers || '—'}</dd>
+                </div>
               </div>
-              <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DÉPARTEMENT</dt>
-                <dd className="text-base text-gray-900">{auth.user?.service || 'Administration de la santé publique'}</dd>
+              <div className="flex items-start p-4 rounded-xl bg-gray-50/50 border border-gray-100 transition-colors hover:bg-gray-50">
+                <div className="flex-shrink-0 p-2 bg-white rounded-lg border border-gray-100 mr-4 shadow-sm">
+                  <BriefcaseIcon className="w-5 h-5 text-gray-500" />
+                </div>
+                <div>
+                  <dt className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Poste de travail</dt>
+                  <dd className="text-sm text-gray-900 font-semibold">{auth.user?.posteTravail || '—'}</dd>
+                </div>
               </div>
-              <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">EMAIL</dt>
-                <dd className="text-base text-gray-900 break-all">{auth.user?.email || '—'}</dd>
+              <div className="flex items-start p-4 rounded-xl bg-gray-50/50 border border-gray-100 transition-colors hover:bg-gray-50">
+                <div className="flex-shrink-0 p-2 bg-white rounded-lg border border-gray-100 mr-4 shadow-sm">
+                  <AcademicCapIcon className="w-5 h-5 text-gray-500" />
+                </div>
+                <div>
+                  <dt className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Grade</dt>
+                  <dd className="text-sm text-gray-900 font-semibold">{auth.user?.grade || '—'}</dd>
+                </div>
               </div>
-              <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">TÉLÉPHONE</dt>
-                <dd className="text-base text-gray-900">{auth.user?.phone || '—'}</dd>
+              <div className="flex items-start p-4 rounded-xl bg-gray-50/50 border border-gray-100 transition-colors hover:bg-gray-50">
+                <div className="flex-shrink-0 p-2 bg-white rounded-lg border border-gray-100 mr-4 shadow-sm">
+                  <BuildingOfficeIcon className="w-5 h-5 text-gray-500" />
+                </div>
+                <div>
+                  <dt className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Établissement & Service</dt>
+                  <dd className="text-sm text-gray-900 font-semibold">
+                    {auth.user?.establishmentName || '—'}<br />
+                    <span className="text-xs text-gray-500 font-normal mt-0.5 inline-block">{auth.user?.service || '—'}</span>
+                  </dd>
+                </div>
               </div>
-              <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">DATE D'EMBAUCHE</dt>
-                <dd className="text-base text-gray-900">14 septembre 2012</dd>
+              <div className="flex items-start p-4 rounded-xl bg-gray-50/50 border border-gray-100 transition-colors hover:bg-gray-50">
+                <div className="flex-shrink-0 p-2 bg-white rounded-lg border border-gray-100 mr-4 shadow-sm">
+                  <EnvelopeIcon className="w-5 h-5 text-gray-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <dt className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Email</dt>
+                  <dd className="text-sm text-gray-900 font-semibold break-words">{auth.user?.email || '—'}</dd>
+                </div>
               </div>
-              <div>
-                <dt className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">TYPE DE CONTRAT</dt>
-                <dd className="text-base text-gray-900">CDI</dd>
+              <div className="flex items-start p-4 rounded-xl bg-gray-50/50 border border-gray-100 transition-colors hover:bg-gray-50">
+                <div className="flex-shrink-0 p-2 bg-white rounded-lg border border-gray-100 mr-4 shadow-sm">
+                  <PhoneIcon className="w-5 h-5 text-gray-500" />
+                </div>
+                <div>
+                  <dt className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Téléphone</dt>
+                  <dd className="text-sm text-gray-900 font-semibold">{auth.user?.phone || '—'}</dd>
+                </div>
+              </div>
+              <div className="flex items-start p-4 rounded-xl bg-gray-50/50 border border-gray-100 transition-colors hover:bg-gray-50 md:col-span-2">
+                <div className="flex-shrink-0 p-2 bg-white rounded-lg border border-gray-100 mr-4 shadow-sm">
+                  <MapPinIcon className="w-5 h-5 text-gray-500" />
+                </div>
+                <div>
+                  <dt className="text-[11px] font-bold text-gray-500 uppercase tracking-wider mb-1">Adresse</dt>
+                  <dd className="text-sm text-gray-900 font-semibold">{auth.user?.adresse || '—'}</dd>
+                </div>
               </div>
             </dl>
           </Card>
@@ -209,7 +262,11 @@ const DashboardPage = () => {
               type="annual"
             />
             <div className="p-4 border-t border-gray-100 bg-white">
-              <Button variant="outline" className="w-full justify-center text-accent-red border-accent-red hover:bg-red-50">
+              <Button 
+                variant="outline" 
+                className="w-full justify-center text-accent-red border-accent-red hover:bg-red-50"
+                onClick={() => navigate('/leave/my-requests')}
+              >
                 <ClockIcon className="w-4 h-4 mr-2" />
                 VOIR L'HISTORIQUE DES CONGÉS
               </Button>

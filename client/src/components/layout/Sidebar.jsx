@@ -11,6 +11,7 @@ import {
   ClipboardDocumentCheckIcon,
   ArrowRightOnRectangleIcon,
   ChatBubbleLeftRightIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 import Logo from './Logo';
 import useAuth from '../../hooks/useAuth';
@@ -30,7 +31,7 @@ const navItems = [
   { label: 'Ajouter un employé', to: '/admin/employees/new', icon: UserPlusIcon, roles: [ROLES.ADMIN] },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ onClose }) => {
   const { auth, clearSession } = useAuth();
   const axiosPrivate = useAxiosPrivate();
   const navigate = useNavigate();
@@ -46,10 +47,18 @@ const Sidebar = () => {
     }
   };
 
-  const userRole = auth.user?.role;
+  const userRole = auth?.user?.role;
 
   return (
-    <aside className="bg-ministere-900 text-white w-64 h-full flex flex-col flex-shrink-0">
+    <aside className="bg-ministere-900 text-white w-64 h-full flex flex-col flex-shrink-0 relative">
+      {/* Mobile close button */}
+      <button 
+        onClick={onClose}
+        className="md:hidden absolute top-4 right-4 text-white hover:text-gray-300 p-2"
+      >
+        <XMarkIcon className="w-6 h-6" />
+      </button>
+
       {/* Logo */}
       <div className="px-6 py-6 border-b border-ministere-800 shrink-0">
         <Logo size="md" showText />
@@ -61,6 +70,7 @@ const Sidebar = () => {
           .filter((item) => item.roles.includes(userRole))
           .map(({ label, to, icon: Icon }) => (
             <NavLink
+              onClick={onClose}
               key={to}
               to={to}
               className={({ isActive }) =>
@@ -72,7 +82,7 @@ const Sidebar = () => {
               }
             >
               <Icon className="w-5 h-5 flex-shrink-0" />
-              {label}
+              <span className="truncate">{label}</span>
             </NavLink>
           ))}
       </nav>
@@ -83,8 +93,8 @@ const Sidebar = () => {
           onClick={handleLogout}
           className="flex items-center gap-3 w-full px-3 py-3 text-sm font-medium text-ministere-100 hover:bg-red-500/20 hover:text-red-300 transition-all duration-150 border-l-4 border-transparent"
         >
-          <ArrowRightOnRectangleIcon className="w-5 h-5" />
-          Déconnexion
+          <ArrowRightOnRectangleIcon className="w-5 h-5 flex-shrink-0" />
+          <span className="truncate">Déconnexion</span>
         </button>
       </div>
     </aside>

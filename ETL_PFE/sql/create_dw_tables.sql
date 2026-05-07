@@ -8,8 +8,9 @@ CREATE TABLE IF NOT EXISTS d_temps (
 
 CREATE TABLE IF NOT EXISTS d_service (
     id_service SERIAL PRIMARY KEY,
-    code_service VARCHAR(50) UNIQUE NOT NULL,
-    libelle_service VARCHAR(255)
+    code_service VARCHAR(50) NOT NULL,
+    libelle_service VARCHAR(255),
+    cle_service_source VARCHAR(150) NOT NULL UNIQUE
 );
 
 CREATE TABLE IF NOT EXISTS d_societe (
@@ -37,12 +38,6 @@ CREATE TABLE IF NOT EXISTS d_etat_act (
     id_etat_act SERIAL PRIMARY KEY,
     code_etat_act VARCHAR(50) UNIQUE NOT NULL,
     libelle_etat_act VARCHAR(255)
-);
-
-CREATE TABLE IF NOT EXISTS d_sexe (
-    id_sexe SERIAL PRIMARY KEY,
-    code_sexe VARCHAR(10) UNIQUE NOT NULL,
-    libelle_sexe VARCHAR(50)
 );
 
 CREATE TABLE IF NOT EXISTS d_personnel (
@@ -90,7 +85,7 @@ CREATE TABLE IF NOT EXISTS f_effectif_snapshot (
     id_gouvernorat INT,
     id_grade INT,
     id_etat_act INT,
-    id_sexe INT,
+    code_sexe VARCHAR(10),
     nb_agent INT,
     age INT,
     anciennete_jours INT
@@ -128,3 +123,22 @@ CREATE TABLE IF NOT EXISTS f_pointage_retard (
 
 ALTER TABLE d_service ADD COLUMN IF NOT EXISTS code_service_parent VARCHAR(50);
 ALTER TABLE d_service ADD COLUMN IF NOT EXISTS type_service VARCHAR(100);
+
+CREATE TABLE IF NOT EXISTS public.user_societe_access (
+    id_access BIGSERIAL PRIMARY KEY,
+    cod_user VARCHAR(50) NOT NULL,
+    adr_electronique VARCHAR(255) NOT NULL,
+    cod_soc VARCHAR(4) NOT NULL,
+    access_all BOOLEAN NOT NULL DEFAULT FALSE,
+    actif BOOLEAN NOT NULL DEFAULT TRUE,
+    date_sync TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS uq_user_societe_access_cod_user_soc
+    ON public.user_societe_access (cod_user, cod_soc);
+
+CREATE INDEX IF NOT EXISTS idx_user_societe_access_email
+    ON public.user_societe_access (adr_electronique);
+
+CREATE INDEX IF NOT EXISTS idx_user_societe_access_soc
+    ON public.user_societe_access (cod_soc);

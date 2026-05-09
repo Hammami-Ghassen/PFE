@@ -2,14 +2,18 @@ package com.sante.app.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.sante.app.dto.request.OtpChannel;
 import com.sante.app.dto.response.AuthResponse;
 import com.sante.app.exception.BadRequestException;
 import com.sante.app.exception.UnauthorizedException;
+import com.sante.app.model.legacy.AdrPers;
 import com.sante.app.model.legacy.Personnel;
 import com.sante.app.repository.AdrPersRepository;
 import com.sante.app.repository.PersonnelRepository;
@@ -22,6 +26,7 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -38,6 +43,8 @@ class OtpAuthServiceTest {
     private OtpStoreService otpStoreService;
     @Mock
     private AuthTokenService authTokenService;
+    @Mock
+    private OtpEmailService otpEmailService;
 
     private OtpAuthService otpAuthService;
 
@@ -48,7 +55,29 @@ class OtpAuthServiceTest {
                 adrPersRepository,
                 jwtTokenProvider,
                 otpStoreService,
-                authTokenService);
+                authTokenService,
+                otpEmailService);
+    }
+
+    @Test
+    void requestOtp_sendsEmailOtpThroughSmtpService() {
+        String matPers = "00091651";
+        Personnel personnel = new Personnel();
+        personnel.setMatPers(matPers);
+
+        AdrPers adrPers = new AdrPers();
+        adrPers.setMatPers(matPers);
+        adrPers.setAdrElectronique("ali@example.com");
+
+        when(personnelRepository.findById(matPers)).thenReturn(Optional.of(personnel));
+        when(adrPersRepository.findById(matPers)).thenReturn(Optional.of(adrPers));
+
+        otpAuthService.requestOtp(matPers, OtpChannel.EMAIL);
+
+        ArgumentCaptor<String> otpCaptor = ArgumentCaptor.forClass(String.class);
+        verify(otpStoreService).storeOtpHash(eq(matPers), anyString());
+        verify(otpEmailService).sendOtp(eq("ali@example.com"), eq(matPers), otpCaptor.capture());
+        assertTrue(otpCaptor.getValue().matches("\\d{6}"));
     }
 
     @Test

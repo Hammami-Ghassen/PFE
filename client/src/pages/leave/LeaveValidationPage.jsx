@@ -54,6 +54,9 @@ const LeaveValidationPage = () => {
   const [loadingSelectedBalance, setLoadingSelectedBalance] = useState(false);
   const [selectedBalance, setSelectedBalance] = useState(null);
 
+  const [stats, setStats] = useState({ pending: 0, approved: 0, rejected: 0 });
+  const [loadingStats, setLoadingStats] = useState(false);
+
   const loadQueue = useCallback(async () => {
     setLoading(true);
     try {
@@ -70,9 +73,33 @@ const LeaveValidationPage = () => {
     }
   }, [axiosPrivate, page, statusFilter]);
 
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    try {
+      const [pendingRes, approvedRes, rejectedRes] = await Promise.all([
+        getLeaveValidationQueue(axiosPrivate, { page: 0, size: 1, status: 'I' }),
+        getLeaveValidationQueue(axiosPrivate, { page: 0, size: 1, status: 'O' }),
+        getLeaveValidationQueue(axiosPrivate, { page: 0, size: 1, status: 'N' }),
+      ]);
+      setStats({
+        pending: pendingRes.totalElements || 0,
+        approved: approvedRes.totalElements || 0,
+        rejected: rejectedRes.totalElements || 0,
+      });
+    } catch {
+      console.error('Erreur de chargement des statistiques');
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [axiosPrivate]);
+
   useEffect(() => {
     loadQueue();
   }, [loadQueue]);
+
+  useEffect(() => {
+    loadStats();
+  }, [loadStats]);
 
   useEffect(() => {
     const loadHolidays = async () => {
@@ -135,16 +162,13 @@ const LeaveValidationPage = () => {
       setSelectedRequest(null);
       setSelectedBalance(null);
       await loadQueue();
+      await loadStats();
     } catch (error) {
       toast.error(error?.response?.data?.message || 'Traitement impossible.');
     } finally {
       setDetailSubmitting(false);
     }
   };
-
-  const pendingCount = data.content.filter((request) => request.statusCode === 'I').length;
-  const approvedCount = data.content.filter((request) => request.statusCode === 'O').length;
-  const rejectedCount = data.content.filter((request) => request.statusCode === 'N').length;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
@@ -153,21 +177,21 @@ const LeaveValidationPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="DEMANDES EN ATTENTE"
-          value={pendingCount || '0'}
+          value={loadingStats ? '...' : (stats.pending || '0')}
           subtitle="À traiter en priorité"
           icon={ClipboardDocumentCheckIcon}
           accentColor="bg-blue-50 text-blue-600"
         />
         <StatCard
-          title="APPROUVÉES AUJOURD'HUI"
-          value={approvedCount || '0'}
+          title="APPROUVÉES"
+          value={loadingStats ? '...' : (stats.approved || '0')}
           subtitle="Traitées par votre équipe"
           icon={CheckCircleIcon}
           accentColor="bg-green-50 text-green-600"
         />
         <StatCard
           title="REFUSÉES"
-          value={rejectedCount || '0'}
+          value={loadingStats ? '...' : (stats.rejected || '0')}
           subtitle="Retournées au demandeur"
           icon={XCircleIcon}
           accentColor="bg-red-50 text-red-600"

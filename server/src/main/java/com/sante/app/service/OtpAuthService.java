@@ -37,6 +37,7 @@ public class OtpAuthService {
     private final JwtTokenProvider jwtTokenProvider;
     private final OtpStoreService otpStoreService;
     private final AuthTokenService authTokenService;
+    private final OtpEmailService otpEmailService;
 
     // This service now orchestrates the auth workflow while delegating token and Redis concerns.
 
@@ -55,8 +56,7 @@ public class OtpAuthService {
 
         otpStoreService.storeOtpHash(normalizedMatPers, hash);
 
-        log.info("Mock OTP dispatch via {} to {} for MAT_PERS {}", channel, maskTarget(target), normalizedMatPers);
-        log.debug("DEV OTP for MAT_PERS {}: {}", normalizedMatPers, otp);
+        dispatchOtp(channel, target, normalizedMatPers, otp);
     }
 
     @Transactional
@@ -234,6 +234,16 @@ public class OtpAuthService {
             throw new BadRequestException(message);
         }
         return target;
+    }
+
+    private void dispatchOtp(OtpChannel channel, String target, String normalizedMatPers, String otp) {
+        switch (channel) {
+            case EMAIL -> otpEmailService.sendOtp(target, normalizedMatPers, otp);
+            case SMS -> {
+                log.info("Mock OTP dispatch via {} to {} for MAT_PERS {}", channel, maskTarget(target), normalizedMatPers);
+                log.debug("DEV OTP for MAT_PERS {}: {}", normalizedMatPers, otp);
+            }
+        }
     }
 
     private String generateOtp() {

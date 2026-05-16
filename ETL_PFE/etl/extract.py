@@ -8,7 +8,7 @@ def run_extract() -> dict[str, pd.DataFrame]:
         SELECT
             "COD_SOC", "MAT_PERS", "NOM_PERS", "PREN_PERS",
             "SEXE", "DAT_EMB", "DAT_NAIS",
-            "COD_SERV", "COD_GOUV", "COD_CATEG", "COD_CAT", "COD_GRAD", "ETAT_ACT"
+            "COD_SERV", "COD_GOUV", "COD_CATEG", "COD_CAT", "COD_GRAD", "ETAT_ACT", "COD_USER"
         FROM public."PERSONNEL"
     """, engine)
 
@@ -34,7 +34,7 @@ def run_extract() -> dict[str, pd.DataFrame]:
     
     service = pd.read_sql_query("""
     SELECT
-        "COD_SERV", "SER_COD_SERV", "LIB_SERV", "ABR_SERV", "TYPE_SERV"
+        "COD_SERV", "SER_COD_SERV", "LIB_SERV", "ABR_SERV", "TYPE_SERV", "COD_SOC"
     FROM public."SERVICE"
 """, engine)
 
@@ -82,6 +82,11 @@ def run_extract() -> dict[str, pd.DataFrame]:
             "MAT_PERS", "DAT_POINT", "DUREE_TOT"
         FROM public."RETARD_JOURNEE"
     """, engine)
+    adr_pers = pd.read_sql_query("""
+    SELECT
+        "ADR_ELECTRONIQUE", "MAT_PERS"
+    FROM public."ADR_PERS"
+""", engine)
 
     print("[EXTRACT] Extraction terminée.")
 
@@ -98,4 +103,5 @@ def run_extract() -> dict[str, pd.DataFrame]:
         "etat_paie": etat_paie,
         "motif_j": motif_j,
         "societe": societe,
+        "adr_pers": adr_pers
     }

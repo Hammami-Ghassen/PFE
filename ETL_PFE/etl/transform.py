@@ -27,24 +27,37 @@ def parse_duration_to_minutes(value):
         return float(s.replace("m", ""))
     return 0.0
 
+def make_service_source_key(code_soc: pd.Series, code_service: pd.Series) -> pd.Series:
+    return (
+        code_soc.astype("string").str.strip().fillna("")
+        + "_"
+        + code_service.astype("string").str.strip().fillna("")
+    )
+
 def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, typ_conge, etat_paie, motif_j, societe):
     d_service = service.copy()
+    d_service["COD_SOC"] = clean_text(d_service["COD_SOC"])
     d_service["COD_SERV"] = clean_text(d_service["COD_SERV"])
     d_service["LIB_SERV"] = clean_text(d_service["LIB_SERV"])
     d_service["TYPE_SERV"] = clean_text(d_service["TYPE_SERV"])
     d_service["SER_COD_SERV"] = clean_text(d_service["SER_COD_SERV"])
 
+    d_service["cle_service_source"] = make_service_source_key(
+        d_service["COD_SOC"],
+        d_service["COD_SERV"]
+    )
+
     d_service = (
-        d_service[["COD_SERV", "SER_COD_SERV", "LIB_SERV", "TYPE_SERV"]]
-        .dropna(subset=["COD_SERV"])
-        .drop_duplicates(subset=["COD_SERV"])
+        d_service[["cle_service_source", "COD_SERV", "SER_COD_SERV", "LIB_SERV", "TYPE_SERV"]]
+        .dropna(subset=["cle_service_source", "COD_SERV"])
+        .drop_duplicates(subset=["cle_service_source"])
         .rename(columns={
-        "COD_SERV": "code_service",
-        "SER_COD_SERV": "code_service_parent",
-        "LIB_SERV": "libelle_service",
-        "TYPE_SERV": "type_service",
-    })
-)
+            "COD_SERV": "code_service",
+            "SER_COD_SERV": "code_service_parent",
+            "LIB_SERV": "libelle_service",
+            "TYPE_SERV": "type_service",
+        })
+    )
 
     d_gouvernorat = gouvernorat.copy()
     d_gouvernorat["COD_GOUV"] = clean_text(d_gouvernorat["COD_GOUV"])
@@ -110,14 +123,6 @@ def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, t
     })
 )
 
-    d_sexe = (
-        personnel[["SEXE"]]
-        .assign(SEXE=lambda x: clean_text(x["SEXE"]).str.upper())
-        .dropna()
-        .drop_duplicates()
-        .rename(columns={"SEXE": "code_sexe"})
-    )
-    d_sexe["libelle_sexe"] = d_sexe["code_sexe"].map({"M": "Masculin", "F": "Feminin"}).fillna("Non defini")
 
     d_personnel = personnel.copy()
     for col in ["MAT_PERS", "NOM_PERS", "PREN_PERS"]:
@@ -232,7 +237,6 @@ def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, t
         "d_gouvernorat": d_gouvernorat,
         "d_grade": d_grade,
         "d_etat_act": d_etat_act,
-        "d_sexe": d_sexe,
         "d_personnel": d_personnel,
         "d_motif_conge": d_motif_conge,
         "d_statut_demande_conge": d_statut_demande_conge,
@@ -242,7 +246,7 @@ def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, t
 
     }
 
-def build_fact_effectif(personnel, societe):
+def build_fact_effectif(personnel, societe, d_temps):
     df = personnel.copy()
 
     for col in ["MAT_PERS", "COD_SOC", "COD_SERV", "COD_CATEG", "COD_CAT", "COD_GRAD", "ETAT_ACT", "SEXE"]:
@@ -251,8 +255,6 @@ def build_fact_effectif(personnel, societe):
     soc = societe.copy()
     soc["COD_SOC"] = clean_text(soc["COD_SOC"])
     soc["COD_GOUV"] = clean_text(soc["COD_GOUV"])
-
-    # Renommer pour éviter le conflit avec PERSONNEL.COD_GOUV
     soc = soc.rename(columns={"COD_GOUV": "COD_GOUV_TRAVAIL"})
 
     df = df.merge(
@@ -263,25 +265,63 @@ def build_fact_effectif(personnel, societe):
 
     df["DAT_NAIS"] = pd.to_datetime(df["DAT_NAIS"], errors="coerce")
     df["DAT_EMB"] = pd.to_datetime(df["DAT_EMB"], errors="coerce")
-    snapshot = pd.to_datetime(SNAPSHOT_DATE)
 
-    fact = pd.DataFrame({
-        "snapshot_date": snapshot,
-        "matricule": df["MAT_PERS"],
-        "code_soc": df["COD_SOC"],
-        "code_service": df["COD_SERV"],
-        "code_gouvernorat": df["COD_GOUV_TRAVAIL"], # gouvernorat du lieu de travail
-        "code_categ": df["COD_CATEG"],
-        "code_cat": df["COD_CAT"],
-        "code_grade": df["COD_GRAD"],
-        "code_etat_act": df["ETAT_ACT"],
-        "code_sexe": df["SEXE"],
-        "nb_agent": 1,
-        "age": ((snapshot - df["DAT_NAIS"]).dt.days / 365.25).round().astype("Int64"),
-        "anciennete_jours": (snapshot - df["DAT_EMB"]).dt.days.astype("Int64"),
+    # dates de la dimension temps
+    temps = d_temps.copy()
+    temps["date_complete"] = pd.to_datetime(temps["date_complete"], errors="coerce")
+
+    # fins de trimestre
+    quarter_end_dates = temps[
+        temps["date_complete"].dt.month.isin([3, 6, 9, 12])
+    ].copy()
+
+    quarter_end_dates = quarter_end_dates[
+        (
+            ((quarter_end_dates["date_complete"].dt.month == 3) & (quarter_end_dates["date_complete"].dt.day == 31)) |
+            ((quarter_end_dates["date_complete"].dt.month == 6) & (quarter_end_dates["date_complete"].dt.day == 30)) |
+            ((quarter_end_dates["date_complete"].dt.month == 9) & (quarter_end_dates["date_complete"].dt.day == 30)) |
+            ((quarter_end_dates["date_complete"].dt.month == 12) & (quarter_end_dates["date_complete"].dt.day == 31))
+        )
+    ]
+
+    snapshot_dates = sorted(quarter_end_dates["date_complete"].dropna().unique())
+
+    # ajouter la dernière date disponible si elle n'est pas déjà incluse
+    last_available_date = temps["date_complete"].max()
+    if pd.notna(last_available_date) and last_available_date not in snapshot_dates:
+        snapshot_dates.append(last_available_date)
+
+    snapshots = []
+
+    for snapshot in snapshot_dates:
+        df_snapshot = df[df["DAT_EMB"].isna() | (df["DAT_EMB"] <= snapshot)].copy()
+        fact_snapshot = pd.DataFrame({
+            "snapshot_date": snapshot,
+            "matricule": df_snapshot["MAT_PERS"],
+            "code_soc": df_snapshot["COD_SOC"],
+            "code_service": df_snapshot["COD_SERV"],
+            "cle_service_source": make_service_source_key(
+                df_snapshot["COD_SOC"],
+                df_snapshot["COD_SERV"]
+            ),
+            "code_gouvernorat": df_snapshot["COD_GOUV_TRAVAIL"],
+            "code_categ": df_snapshot["COD_CATEG"],
+            "code_cat": df_snapshot["COD_CAT"],
+            "code_grade": df_snapshot["COD_GRAD"],
+            "code_etat_act": df_snapshot["ETAT_ACT"],
+            "code_sexe": df_snapshot["SEXE"],
+            "nb_agent": 1,
+            "age": ((snapshot - df_snapshot["DAT_NAIS"]).dt.days / 365.25).round().astype("Int64"),
+            "anciennete_jours": (snapshot - df_snapshot["DAT_EMB"]).dt.days.astype("Int64"),
     })
 
-    return fact.dropna(subset=["matricule"]).drop_duplicates(subset=["snapshot_date", "matricule"])
+        snapshots.append(fact_snapshot)
+
+    fact = pd.concat(snapshots, ignore_index=True)
+
+    return fact.dropna(subset=["matricule"]).drop_duplicates(
+        subset=["snapshot_date", "matricule"]
+    )
 
 def build_fact_conge(dem_cng, justif, personnel):
     dem = dem_cng.copy()
@@ -289,14 +329,11 @@ def build_fact_conge(dem_cng, justif, personnel):
     for col in ["COD_SOC", "MAT_PERS", "CODE_M", "VALID"]:
         dem[col] = clean_text(dem[col])
 
-    # harmoniser le type de la clé métier avant le merge
     dem["NUM_DCNG"] = dem["NUM_DCNG"].astype("string").str.strip()
-
     dem["DAT_DEBUT"] = pd.to_datetime(dem["DAT_DEBUT"], errors="coerce")
     dem["DAT_FIN"] = pd.to_datetime(dem["DAT_FIN"], errors="coerce")
     dem["NBR_JOURS"] = pd.to_numeric(dem["NBR_JOURS"], errors="coerce")
 
-    # une ligne par demande
     dem = dem.drop_duplicates(subset=["COD_SOC", "MAT_PERS", "NUM_DCNG"])
 
     j = justif.copy()
@@ -311,14 +348,24 @@ def build_fact_conge(dem_cng, justif, personnel):
         .reset_index(name="nb_justificatifs")
     )
 
-    # récupérer le service depuis personnel
+    # récupérer le service depuis personnel avec la société
     pers = personnel.copy()
+    pers["COD_SOC"] = clean_text(pers["COD_SOC"])
     pers["MAT_PERS"] = clean_text(pers["MAT_PERS"])
     pers["COD_SERV"] = clean_text(pers["COD_SERV"])
-    pers = pers[["MAT_PERS", "COD_SERV"]].drop_duplicates(subset=["MAT_PERS"])
+
+    pers = (
+        pers[["COD_SOC", "MAT_PERS", "COD_SERV"]]
+        .drop_duplicates(subset=["COD_SOC", "MAT_PERS"])
+    )
 
     fact = dem.merge(j, how="left", on=["COD_SOC", "MAT_PERS", "NUM_DCNG"])
-    fact = fact.merge(pers, how="left", on="MAT_PERS")
+    fact = fact.merge(pers, how="left", on=["COD_SOC", "MAT_PERS"])
+
+    fact["cle_service_source"] = make_service_source_key(
+        fact["COD_SOC"],
+        fact["COD_SERV"]
+    )
 
     fact["nb_justificatifs"] = fact["nb_justificatifs"].fillna(0).astype(int)
     fact["est_justifie"] = fact["nb_justificatifs"] > 0
@@ -337,13 +384,13 @@ def build_fact_conge(dem_cng, justif, personnel):
     fact["nb_demande"] = 1
     fact["nbr_jours"] = pd.to_numeric(fact["nbr_jours"], errors="coerce")
 
-    # code_soc reste seulement pour permettre le mapping vers id_societe dans load.py
     fact = fact[[
         "date_debut",
         "date_fin",
         "code_soc",
         "matricule",
         "code_service",
+        "cle_service_source",
         "code_motif_conge",
         "valid_code",
         "nb_demande",
@@ -352,7 +399,10 @@ def build_fact_conge(dem_cng, justif, personnel):
         "nb_justificatifs",
     ]]
 
-    fact = fact.drop_duplicates(subset=["code_soc", "matricule", "date_debut", "date_fin", "code_motif_conge"])
+    fact = fact.drop_duplicates(
+        subset=["code_soc", "matricule", "date_debut", "date_fin", "code_motif_conge"]
+    )
+
     return fact
 
 def build_fact_pointage_retard(pointer, retard, personnel):
@@ -387,6 +437,10 @@ def build_fact_pointage_retard(pointer, retard, personnel):
 
     fact = pt.merge(rt, how="left", left_on=["MAT_PERS", "DATE_POINT"], right_on=["MAT_PERS", "DAT_POINT"])
     fact = fact.merge(pers, how="left", on="MAT_PERS")
+    fact["cle_service_source"] = make_service_source_key(
+        fact["COD_SOC"],
+        fact["COD_SERV"]
+    )
 
     
     fact["ret_min"] = pd.to_numeric(fact["ret_min"], errors="coerce").fillna(0.0)
@@ -402,11 +456,49 @@ def build_fact_pointage_retard(pointer, retard, personnel):
     })
 
     fact = fact[[
-        "date_point", "matricule", "code_soc", "code_service", "code_type_pointage",
+        "date_point", "matricule", "code_soc", "code_service", "cle_service_source", "code_type_pointage",
         "code_etat_retard", "nb_pointage", "ret_min", "duree_tot"
     ]]
 
     return fact.drop_duplicates(subset=["date_point", "matricule", "code_type_pointage"])
+
+
+def build_user_societe_access(personnel, adr_pers):
+    pers = personnel.copy()
+    adr = adr_pers.copy()
+
+    for col in ["COD_USER", "COD_SOC", "MAT_PERS"]:
+        pers[col] = clean_text(pers[col])
+
+    adr["MAT_PERS"] = clean_text(adr["MAT_PERS"])
+    adr["ADR_ELECTRONIQUE"] = clean_text(adr["ADR_ELECTRONIQUE"])
+
+    # garder seulement les directeurs
+    pers = pers[pers["COD_USER"] == "DIRECTEUR"].copy()
+
+    # jointure par MAT_PERS
+    src = pers.merge(
+        adr[["MAT_PERS", "ADR_ELECTRONIQUE"]].drop_duplicates(subset=["MAT_PERS"]),
+        on="MAT_PERS",
+        how="left"
+    )
+
+    src = src.rename(columns={
+        "COD_USER": "cod_user",
+        "COD_SOC": "cod_soc",
+        "ADR_ELECTRONIQUE": "adr_electronique",
+    })
+
+    src["access_all"] = src["cod_soc"].eq("0001")
+    src["actif"] = True
+
+    access = (
+        src[["cod_user", "adr_electronique", "cod_soc", "access_all", "actif"]]
+        .dropna(subset=["cod_user", "adr_electronique", "cod_soc"])
+        .drop_duplicates(subset=["adr_electronique", "cod_soc"])
+    )
+
+    return access
 
 def run_transform(extracted_data: dict) -> dict:
     personnel = extracted_data["personnel"]
@@ -421,14 +513,22 @@ def run_transform(extracted_data: dict) -> dict:
     etat_paie = extracted_data["etat_paie"]
     motif_j = extracted_data["motif_j"]
     societe = extracted_data["societe"]
-    
+    adr_pers = extracted_data["adr_pers"]
 
-    dims = build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, typ_conge, etat_paie, motif_j, societe)
+    dims = build_dimensions(
+        personnel, dem_cng, pointer,
+        gouvernorat, service, grade,
+        typ_conge, etat_paie, motif_j, societe
+    )
+
     facts = {
-        "f_effectif_snapshot": build_fact_effectif(personnel, societe),
+        "f_effectif_snapshot": build_fact_effectif(personnel, societe, dims["d_temps"]),
         "f_demande_conge": build_fact_conge(dem_cng, justif, personnel),
         "f_pointage_retard": build_fact_pointage_retard(pointer, retard, personnel),
     }
+    security = {
+    "user_societe_access": build_user_societe_access(personnel, adr_pers)
+}
 
     print("[TRANSFORM] Transformation terminée.")
-    return {"dimensions": dims, "facts": facts}
+    return {"dimensions": dims, "facts": facts, "security": security}

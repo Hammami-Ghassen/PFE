@@ -9,6 +9,7 @@ import Button from '../../components/ui/Button';
 import Alert from '../../components/ui/Alert';
 import LoginMatPersStep from '../../components/auth/LoginMatPersStep';
 import LoginOtpStep from '../../components/auth/LoginOtpStep';
+import { getDefaultRouteForRole } from '../../utils/constants';
 
 const LoginPage = () => {
   const [step, setStep] = useState(1);
@@ -22,7 +23,7 @@ const LoginPage = () => {
   const { setSession } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const from = location.state?.from?.pathname || '/dashboard';
+  const from = location.state?.from?.pathname;
 
   useEffect(() => {
     let interval;
@@ -73,7 +74,7 @@ const LoginPage = () => {
         const displayName = user.fullName || [user.firstName, user.lastName].filter(Boolean).join(' ').trim() || user.matPers;
         setSession(authData.accessToken, user);
         toast.success(`Bienvenue ${displayName}`);
-        navigate(from, { replace: true });
+        navigate(from || getDefaultRouteForRole(user.role), { replace: true });
       }
     } catch (err) {
       const msg = err?.response?.data?.message || 'Impossible de se connecter.';

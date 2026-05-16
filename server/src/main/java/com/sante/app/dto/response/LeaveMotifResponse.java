@@ -4,6 +4,7 @@ public record LeaveMotifResponse(
         String codeM,
         String libMot,
         String typCng,
+        String sexe,
         Boolean requiresAttachment,
         Integer maxDaysPerYear,
         Integer maxDaysPerCareer,

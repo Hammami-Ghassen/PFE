@@ -50,4 +50,13 @@ public class DemandeCorrectionInfo {
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "\"PIECE_JOINTE\"", nullable = false)
     private byte[] pieceJointe;
+
+    @Column(name = "\"PIECE_JOINTE_NOM\"")
+    private String pieceJointeNom;
+
+    @Column(name = "\"PIECE_JOINTE_TYPE\"")
+    private String pieceJointeType;
+
+    @Column(name = "\"PIECE_JOINTE_TAILLE\"")
+    private Long pieceJointeTaille;
 }

@@ -1,12 +1,18 @@
 import React from 'react';
 import useAuth from '../../hooks/useAuth';
 import GuardedRoute from './GuardedRoute';
+import { getDefaultRouteForRole } from '../../utils/constants';
 
 const RoleRoute = ({ allowedRoles = [] }) => {
   const { auth } = useAuth();
 
   // Uses the shared guard wrapper so role-based redirects stay consistent across route types.
-  return <GuardedRoute allow={allowedRoles.includes(auth.user?.role)} redirectTo="/dashboard" />;
+  return (
+    <GuardedRoute
+      allow={allowedRoles.includes(auth.user?.role)}
+      redirectTo={getDefaultRouteForRole(auth.user?.role)}
+    />
+  );
 };
 
 export default RoleRoute;

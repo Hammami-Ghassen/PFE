@@ -38,8 +38,9 @@ public class LeaveController {
 
     @GetMapping("/motifs")
     @Operation(summary = "Lister les motifs de conge")
-    public ResponseEntity<ApiResponse<List<LeaveMotifResponse>>> motifs() {
-        return ResponseEntity.ok(ApiResponse.success(leaveService.getMotifs()));
+    public ResponseEntity<ApiResponse<List<LeaveMotifResponse>>> motifs(Authentication authentication) {
+        String matPers = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(ApiResponse.success(leaveService.getMotifs(matPers)));
     }
 
     @GetMapping("/holidays")

@@ -21,6 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -55,6 +56,9 @@ public class CorrectionService {
         entity.setNouvelleValeur(normalizedValue);
         entity.setStatut(CorrectionRequestStatus.PENDING);
         entity.setPieceJointe(toBytes(pieceJointe));
+        entity.setPieceJointeNom(normalizeAttachmentFileName(pieceJointe.getOriginalFilename()));
+        entity.setPieceJointeType(emptyToNull(pieceJointe.getContentType()) == null ? "application/octet-stream" : pieceJointe.getContentType());
+        entity.setPieceJointeTaille(pieceJointe.getSize());
 
         DemandeCorrectionInfo saved = demandeCorrectionInfoRepository.saveAndFlush(entity);
         return mapUserResponse(saved);
@@ -112,7 +116,10 @@ public class CorrectionService {
             throw new ResourceNotFoundException("Aucune pièce jointe trouvée pour la demande: " + id);
         }
 
-        return new CorrectionAttachmentResponse("demande-correction-" + id + ".bin", content);
+        return new CorrectionAttachmentResponse(
+                resolveAttachmentFileName(request),
+                emptyToNull(request.getPieceJointeType()) == null ? "application/octet-stream" : request.getPieceJointeType(),
+                content);
     }
 
     private CorrectionTargetAttribute requireAttribut(CorrectionTargetAttribute attributCible) {
@@ -153,6 +160,38 @@ public class CorrectionService {
         if (pieceJointe.getSize() > MAX_ATTACHMENT_SIZE_BYTES) {
             throw new BadRequestException("La pièce jointe dépasse la taille maximale de 2 Mo.");
         }
+    }
+
+    private String normalizeAttachmentFileName(String fileName) {
+        String normalized = emptyToNull(fileName);
+        if (normalized == null) {
+            return "piece-jointe-correction.bin";
+        }
+        return normalized.length() <= 255 ? normalized : normalized.substring(0, 255);
+    }
+
+    private String resolveAttachmentFileName(DemandeCorrectionInfo request) {
+        String storedName = emptyToNull(request.getPieceJointeNom());
+        if (storedName != null) {
+            return storedName;
+        }
+
+        String extension = extensionFromContentType(request.getPieceJointeType());
+        return "demande-correction-" + request.getId() + extension;
+    }
+
+    private String extensionFromContentType(String contentType) {
+        String normalized = emptyToNull(contentType);
+        if (normalized == null) {
+            return "";
+        }
+        return switch (normalized.toLowerCase(Locale.ROOT)) {
+            case "application/pdf" -> ".pdf";
+            case "image/jpeg" -> ".jpg";
+            case "image/png" -> ".png";
+            case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> ".docx";
+            default -> "";
+        };
     }
 
     private byte[] toBytes(MultipartFile pieceJointe) {

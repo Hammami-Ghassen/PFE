@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 public record LeaveEntitlementResponse(
         String codeM,
         String libMot,
+        String sexe,
         Boolean requiresAttachment,
         Integer maxDaysPerYear,
         Integer maxDaysPerCareer,

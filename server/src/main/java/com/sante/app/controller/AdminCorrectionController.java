@@ -8,6 +8,7 @@ import com.sante.app.service.CorrectionService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import java.nio.charset.StandardCharsets;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
@@ -56,8 +57,9 @@ public class AdminCorrectionController {
         CorrectionAttachmentResponse attachment = correctionService.getAttachment(id);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(attachment.fileName()).build().toString())
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                        ContentDisposition.attachment().filename(attachment.fileName(), StandardCharsets.UTF_8).build().toString())
+                .header("X-Attachment-Filename", attachment.fileName())
+                .contentType(MediaType.parseMediaType(attachment.fileType()))
                 .body(attachment.content());
     }
 }

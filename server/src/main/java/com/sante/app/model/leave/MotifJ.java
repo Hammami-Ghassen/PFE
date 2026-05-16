@@ -23,6 +23,9 @@ public class MotifJ {
     @Column(name = "\"TYP_CNG\"", length = 4)
     private String typCng;
 
+    @Column(name = "\"SEXE\"", length = 1)
+    private String sexe;
+
     @Column(name = "\"REQUIRES_ATTACHMENT\"")
     private Boolean requiresAttachment = false;
 

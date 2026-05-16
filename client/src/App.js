@@ -2,6 +2,7 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
+import useAuth from './hooks/useAuth';
 import PersistLogin from './components/auth/PersistLogin';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
@@ -13,12 +14,16 @@ import HomePage from './pages/dashboard/HomePage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import PowerBIDashboard from './pages/dashboard/PowerBIDashboard';
 import UsersListPage from './pages/admin/UsersListPage';
-import AddEmployeePage from './pages/admin/AddEmployeePage';
 import CorrectionRequestsPage from './pages/admin/CorrectionRequestsPage';
 import MyLeaveRequestsPage from './pages/leave/MyLeaveRequestsPage';
 import LeaveValidationPage from './pages/leave/LeaveValidationPage';
 import ChatPage from './pages/chat/ChatPage';
-import { ROLES } from './utils/constants';
+import { getDefaultRouteForRole, ROLES } from './utils/constants';
+
+const DefaultRouteRedirect = () => {
+  const { auth } = useAuth();
+  return <Navigate to={getDefaultRouteForRole(auth.user?.role)} replace />;
+};
 
 function App() {
   return (
@@ -38,10 +43,13 @@ function App() {
         <Route element={<PersistLogin />}>
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
-              <Route path="/" element={<Navigate to="/home" replace />} />
+              <Route path="/" element={<DefaultRouteRedirect />} />
               <Route path="/home" element={<HomePage />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/chat" element={<ChatPage />} />
+
+              <Route element={<RoleRoute allowedRoles={[ROLES.AGENT, ROLES.DIRECTEUR]} />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+              </Route>
 
               <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.DIRECTEUR]} />}>
                 <Route path="/powerbi-dashboard" element={<PowerBIDashboard />} />
@@ -59,7 +67,6 @@ function App() {
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersListPage />} />
                 <Route path="/admin/corrections" element={<CorrectionRequestsPage />} />
-                <Route path="/admin/employees/new" element={<AddEmployeePage />} />
               </Route>
             </Route>
           </Route>

@@ -28,4 +28,7 @@ public class Personnel {
 
     @Column(name = "\"NOM_PERS\"")
     private String nomPers;
+
+    @Column(name = "\"SEXE\"", length = 1)
+    private String sexe;
 }

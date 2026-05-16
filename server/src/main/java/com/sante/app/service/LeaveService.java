@@ -32,9 +32,12 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -58,6 +61,7 @@ public class LeaveService {
     private static final String HAJJ_CODE = "15";
     private static final String PATERNITY_CODE = "12";
     private static final Set<String> FAMILY_CODES = Set.of("10", "11", "13", "14", "17", "18");
+    private static final Map<String, Integer> MOTIF_DISPLAY_ORDER = buildMotifDisplayOrder();
     private static final Set<String> CALENDAR_LIMIT_CODES = Set.of("04", "05", "50");
     private static final List<String> PENDING_OR_APPROVED_STATUS_CODES = List.of(
             LeaveValidationStatus.PENDING.getCode(),
@@ -76,12 +80,20 @@ public class LeaveService {
     private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
-    public List<LeaveMotifResponse> getMotifs() {
+    public List<LeaveMotifResponse> getMotifs(String requesterMatPers) {
+        Personnel actor = requirePersonnel(normalizeMatPers(requesterMatPers));
+        ensureRequesterRole(actor);
         return motifJRepository.findAllByOrderByCodMAsc().stream()
+                .filter(motif -> isMotifAllowedForPersonnel(motif, actor))
+                .sorted(Comparator
+                        .comparingInt((MotifJ motif) -> getMotifDisplayOrder(motif.getCodM()))
+                        .thenComparing(motif -> emptyToNull(motif.getLibMot()), Comparator.nullsLast(String::compareToIgnoreCase))
+                        .thenComparing(MotifJ::getCodM, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .map(motif -> new LeaveMotifResponse(
                         motif.getCodM(),
                         emptyToNull(motif.getLibMot()),
                         emptyToNull(motif.getTypCng()),
+                        emptyToNull(motif.getSexe()),
                         isTrue(motif.getRequiresAttachment()),
                         motif.getMaxDaysPerYear(),
                         motif.getMaxDaysPerCareer(),
@@ -99,6 +111,11 @@ public class LeaveService {
         int currentYear = LocalDate.now().getYear();
 
         return motifJRepository.findAllByOrderByCodMAsc().stream()
+                .filter(motif -> isMotifAllowedForPersonnel(motif, actor))
+                .sorted(Comparator
+                        .comparingInt((MotifJ motif) -> getMotifDisplayOrder(motif.getCodM()))
+                        .thenComparing(motif -> emptyToNull(motif.getLibMot()), Comparator.nullsLast(String::compareToIgnoreCase))
+                        .thenComparing(MotifJ::getCodM, Comparator.nullsLast(String::compareToIgnoreCase)))
                 .map(motif -> buildEntitlementResponse(codSoc, matPers, currentYear, motif))
                 .toList();
     }
@@ -159,6 +176,7 @@ public class LeaveService {
         String motifCode = normalizeCodeM(request.codeM());
         MotifJ motif = motifJRepository.findById(motifCode)
                 .orElseThrow(() -> new ResourceNotFoundException("Motif de conge introuvable: " + motifCode));
+        ensureMotifAllowedForPersonnel(motif, actor);
 
         Set<String> holidayDayMonthSet = getHolidayDayMonthSet();
         BigDecimal requestedDays = calculateRequestedDays(dateDebut, dateFin, holidayDayMonthSet);
@@ -419,6 +437,7 @@ public class LeaveService {
         return new LeaveEntitlementResponse(
                 motif.getCodM(),
                 emptyToNull(motif.getLibMot()),
+                emptyToNull(motif.getSexe()),
                 isTrue(motif.getRequiresAttachment()),
                 motif.getMaxDaysPerYear(),
                 motif.getMaxDaysPerCareer(),
@@ -448,8 +467,55 @@ public class LeaveService {
         return List.of(motifCode);
     }
 
+    private static Map<String, Integer> buildMotifDisplayOrder() {
+        Map<String, Integer> order = new HashMap<>();
+        List<String> orderedCodes = List.of(
+                "01",
+                "11", "18", "10", "13", "17", "14",
+                "15",
+                "04",
+                "05",
+                "12",
+                "50",
+                "02",
+                "03",
+                "16", "F",
+                "54", "57", "56");
+
+        for (int index = 0; index < orderedCodes.size(); index++) {
+            order.put(orderedCodes.get(index), index);
+        }
+        return Map.copyOf(order);
+    }
+
+    private int getMotifDisplayOrder(String motifCode) {
+        String normalizedCode = normalizeOptionalCode(motifCode);
+        return MOTIF_DISPLAY_ORDER.getOrDefault(normalizedCode, 10_000);
+    }
+
     private boolean usesCalendarLimit(String motifCode) {
         return CALENDAR_LIMIT_CODES.contains(motifCode);
+    }
+
+    private void ensureMotifAllowedForPersonnel(MotifJ motif, Personnel personnel) {
+        if (!isMotifAllowedForPersonnel(motif, personnel)) {
+            throw new BadRequestException("Ce motif de conge n'est pas applicable a votre profil.");
+        }
+    }
+
+    private boolean isMotifAllowedForPersonnel(MotifJ motif, Personnel personnel) {
+        String motifSexe = normalizeOptionalCode(motif.getSexe());
+        if (motifSexe == null) {
+            return true;
+        }
+
+        String personnelSexe = normalizeOptionalCode(personnel.getSexe());
+        if (personnelSexe == null) {
+            // If the legacy profile has no sex value, avoid hiding legitimate options.
+            return true;
+        }
+
+        return motifSexe.equals(personnelSexe);
     }
 
     private BigDecimal sumUsage(String codSoc,
@@ -790,6 +856,13 @@ public class LeaveService {
             throw new BadRequestException("Le code motif est invalide.");
         }
         return normalized;
+    }
+
+    private String normalizeOptionalCode(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim().toUpperCase(Locale.ROOT);
     }
 
     private String normalizeRole(String role) {

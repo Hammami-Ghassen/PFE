@@ -76,7 +76,7 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
                              WHEN servParent."LIB_SERV" IS NULL THEN serv."LIB_SERV"
                              ELSE CONCAT(serv."LIB_SERV", ', ', servParent."LIB_SERV")
                       END AS service,
-             CAST(COALESCE(g."COD_GRAD", p."COD_GRAD") AS VARCHAR) AS grade,
+             CAST(CONCAT(g."COD_CATEG", ' - ', g."LIB_GRAD") AS VARCHAR) AS grade,
              pt."LIB_POST" AS posteTravail
         FROM "PERSONNEL" p
         LEFT JOIN "SOCIETE" s ON s."COD_SOC" = p."COD_SOC"

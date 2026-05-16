@@ -29,14 +29,44 @@ export const reviewCorrectionRequest = async (axiosPrivate, id, status) => {
   return response.data.data;
 };
 
+const decodeHeaderValue = (value) => {
+  if (!value) return null;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const getAttachmentFileName = (response, id) => {
+  const directFileName = response.headers?.['x-attachment-filename'];
+  if (directFileName) {
+    return directFileName;
+  }
+
+  const contentDisposition = response.headers?.['content-disposition'] || '';
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeHeaderValue(utf8Match[1].replace(/^"|"$/g, ''));
+  }
+
+  const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  if (fileNameMatch?.[1]) {
+    return fileNameMatch[1];
+  }
+
+  return `demande-correction-${id}`;
+};
+
 export const downloadCorrectionAttachment = async (axiosPrivate, id) => {
   const response = await axiosPrivate.get(`/admin/corrections/${id}/attachment`, {
     responseType: 'blob',
   });
 
-  const contentDisposition = response.headers['content-disposition'] || '';
-  const fileNameMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
-  const fileName = fileNameMatch?.[1] || `demande-correction-${id}.bin`;
+  const fileName = getAttachmentFileName(response, id);
+  const blob = new Blob([response.data], {
+    type: response.headers?.['content-type'] || 'application/octet-stream',
+  });
 
-  return { blob: response.data, fileName };
+  return { blob, fileName };
 };

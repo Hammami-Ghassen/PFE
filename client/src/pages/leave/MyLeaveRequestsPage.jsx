@@ -27,6 +27,19 @@ import {
 } from '@heroicons/react/24/outline';
 
 const PAGE_SIZE = 50;
+const MAIN_MOTIF_CODES = new Set([
+  '01',
+  '11', '18', '10', '13', '17', '14',
+  '15',
+  '04',
+  '05',
+  '12',
+  '50',
+  '02',
+  '03',
+  '16', 'F',
+  '54', '57', '56',
+]);
 
 const statusClassNames = {
   I: 'bg-amber-100 text-amber-800',
@@ -211,6 +224,16 @@ const MyLeaveRequestsPage = () => {
   const selectedMotif = useMemo(
     () => motifs.find((motif) => motif.codeM === form.codeM) || null,
     [form.codeM, motifs]
+  );
+
+  const mainMotifs = useMemo(
+    () => motifs.filter((motif) => MAIN_MOTIF_CODES.has(motif.codeM)),
+    [motifs]
+  );
+
+  const otherMotifs = useMemo(
+    () => motifs.filter((motif) => !MAIN_MOTIF_CODES.has(motif.codeM)),
+    [motifs]
   );
 
   const selectedEntitlement = useMemo(
@@ -585,11 +608,24 @@ const MyLeaveRequestsPage = () => {
                 }`}
               >
                 <option value="">Selectionner un motif</option>
-                {motifs.map((motif) => (
-                  <option key={motif.codeM} value={motif.codeM}>
-                    {motif.codeM} - {motif.libMot || 'Sans libelle'}
-                  </option>
-                ))}
+                {mainMotifs.length > 0 && (
+                  <optgroup label="Motifs principaux">
+                    {mainMotifs.map((motif) => (
+                      <option key={motif.codeM} value={motif.codeM}>
+                        {motif.libMot || 'Sans libelle'}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {otherMotifs.length > 0 && (
+                  <optgroup label="Autres motifs">
+                    {otherMotifs.map((motif) => (
+                      <option key={motif.codeM} value={motif.codeM}>
+                        {motif.libMot || 'Sans libelle'}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
               {formErrors.codeM && <p className="mt-1 text-xs text-red-500">{formErrors.codeM}</p>}
             </div>

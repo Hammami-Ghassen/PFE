@@ -39,11 +39,21 @@ public class LeaveMotifRulesInitializer implements ApplicationRunner {
 
         motifJRepository.findAll().forEach(motif -> applyRule(motif, rules.get(motif.getCodM())));
 
+        motifJRepository.findById("04").ifPresent(motif -> {
+            motif.setSexe("F");
+            motifJRepository.save(motif);
+        });
+        motifJRepository.findById("12").ifPresent(motif -> {
+            motif.setSexe("M");
+            motifJRepository.save(motif);
+        });
+
         MotifJ postnatal = motifJRepository.findById("05").orElseGet(() -> {
             MotifJ motif = new MotifJ();
             motif.setCodM("05");
             motif.setTypCng("02");
             motif.setLibMot("Cong\u00e9 postnatal");
+            motif.setSexe("F");
             return motif;
         });
         applyRule(postnatal, rules.get("05"));
@@ -53,6 +63,7 @@ public class LeaveMotifRulesInitializer implements ApplicationRunner {
         if (postnatal.getTypCng() == null || postnatal.getTypCng().isBlank()) {
             postnatal.setTypCng("02");
         }
+        postnatal.setSexe("F");
         motifJRepository.save(postnatal);
     }
 

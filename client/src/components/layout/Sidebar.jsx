@@ -5,7 +5,6 @@ import {
   UserIcon,
   ChartBarIcon,
   UsersIcon,
-  UserPlusIcon,
   ClipboardDocumentListIcon,
   CalendarDaysIcon,
   ClipboardDocumentCheckIcon,
@@ -21,14 +20,13 @@ import { ROLES } from '../../utils/constants';
 
 const navItems = [
   { label: 'Accueil', to: '/home', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
-  { label: 'Mes Informations', to: '/dashboard', icon: UserIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
+  { label: 'Mes Informations', to: '/dashboard', icon: UserIcon, roles: [ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Messages', to: '/chat', icon: ChatBubbleLeftRightIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Tableau de bord', to: '/powerbi-dashboard', icon: ChartBarIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR] },
   { label: 'Mes demandes de congé', to: '/leave/my-requests', icon: CalendarDaysIcon, roles: [ROLES.AGENT, ROLES.DIRECTEUR] },
   { label: 'Validation congés', to: '/leave/validation', icon: ClipboardDocumentCheckIcon, roles: [ROLES.DIRECTEUR] },
   { label: 'Personnel', to: '/admin/users', icon: UsersIcon, roles: [ROLES.ADMIN] },
   { label: 'Demandes de correction', to: '/admin/corrections', icon: ClipboardDocumentListIcon, roles: [ROLES.ADMIN] },
-  { label: 'Ajouter un employé', to: '/admin/employees/new', icon: UserPlusIcon, roles: [ROLES.ADMIN] },
 ];
 
 const Sidebar = ({ onClose }) => {

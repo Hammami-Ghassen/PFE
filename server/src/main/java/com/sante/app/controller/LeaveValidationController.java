@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import java.nio.charset.StandardCharsets;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
@@ -75,7 +76,8 @@ public class LeaveValidationController {
         return ResponseEntity.ok()
                 .contentType(MediaType.parseMediaType(attachment.fileType()))
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        ContentDisposition.attachment().filename(attachment.fileName()).build().toString())
+                        ContentDisposition.attachment().filename(attachment.fileName(), StandardCharsets.UTF_8).build().toString())
+                .header("X-Attachment-Filename", attachment.fileName())
                 .body(attachment.content());
     }
 }

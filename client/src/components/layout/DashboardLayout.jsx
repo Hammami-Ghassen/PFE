@@ -11,13 +11,13 @@ const pageTitles = {
   '/admin/users': 'Gestion du Personnel',
   '/admin/corrections': 'Demandes de correction',
   '/admin/employees/new': 'Ajout Employe (UI)',
+  '/home': 'Accueil',
 };
 
 const DashboardLayout = () => {
   const location = useLocation();
   const title =
-    pageTitles[location.pathname] ||
-    (location.pathname.includes('/edit') ? 'Modifier Utilisateur' : 'Système de Gestion');
+    pageTitles[location.pathname];
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 

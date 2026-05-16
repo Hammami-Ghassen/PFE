@@ -19,6 +19,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
   EyeIcon,
+  ArrowDownTrayIcon,
+  PaperClipIcon,
 } from '@heroicons/react/24/outline';
 
 const PAGE_SIZE = 50;
@@ -34,6 +36,35 @@ const statusClassNames = {
   I: 'bg-amber-100 text-amber-800',
   O: 'bg-emerald-100 text-emerald-800',
   N: 'bg-red-100 text-red-700',
+};
+
+const decodeHeaderValue = (value) => {
+  if (!value) return null;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+};
+
+const getAttachmentFilename = (response, request) => {
+  const directFilename = response.headers?.['x-attachment-filename'];
+  if (directFilename) {
+    return directFilename;
+  }
+
+  const disposition = response.headers?.['content-disposition'] || '';
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    return decodeHeaderValue(utf8Match[1].replace(/^"|"$/g, ''));
+  }
+
+  const filenameMatch = disposition.match(/filename="?([^";]+)"?/i);
+  if (filenameMatch?.[1]) {
+    return filenameMatch[1];
+  }
+
+  return `justificatif-conge-${request.numDcng}`;
 };
 
 const LeaveValidationPage = () => {
@@ -180,10 +211,10 @@ const LeaveValidationPage = () => {
         matPers: request.matPers,
         numDcng: request.numDcng,
       });
-      const disposition = response.headers?.['content-disposition'] || '';
-      const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
-      const filename = filenameMatch?.[1] || `justificatif-conge-${request.numDcng}.bin`;
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const filename = getAttachmentFilename(response, request);
+      const url = window.URL.createObjectURL(new Blob([response.data], {
+        type: response.headers?.['content-type'] || 'application/octet-stream',
+      }));
       const link = document.createElement('a');
       link.href = url;
       link.download = filename;
@@ -256,6 +287,7 @@ const LeaveValidationPage = () => {
                   <th className="px-6 py-4 text-left">RÔLE</th>
                   <th className="px-6 py-4 text-left">DATES</th>
                   <th className="px-6 py-4 text-left">MOTIF</th>
+                  <th className="px-6 py-4 text-left">JUSTIFICATIF</th>
                   <th className="px-6 py-4 text-left">STATUT</th>
                   <th className="px-6 py-4 text-right">DÉTAILS</th>
                 </tr>
@@ -263,7 +295,7 @@ const LeaveValidationPage = () => {
               <tbody className="divide-y divide-gray-100">
                 {data.content.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="text-center py-12 text-gray-400">
+                    <td colSpan={8} className="text-center py-12 text-gray-400">
                       Aucune demande a traiter.
                     </td>
                   </tr>
@@ -286,6 +318,24 @@ const LeaveValidationPage = () => {
                           <div className="text-gray-400">au {formatDate(request.dateFin)}</div>
                         </td>
                         <td className="px-6 py-4 text-gray-700">{request.libMot || request.codeM || '—'}</td>
+                        <td className="px-6 py-4">
+                          {request.hasAttachment ? (
+                            <button
+                              type="button"
+                              onClick={() => handleDownloadAttachment(request)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 rounded-md hover:bg-blue-100 transition-colors"
+                              title="Telecharger le justificatif"
+                            >
+                              <ArrowDownTrayIcon className="w-4 h-4" />
+                              Voir
+                            </button>
+                          ) : (
+                            <span className="inline-flex items-center gap-1.5 text-xs text-gray-400">
+                              <PaperClipIcon className="w-4 h-4" />
+                              Aucun
+                            </span>
+                          )}
+                        </td>
                         <td className="px-6 py-4">
                           <span
                             className={`inline-flex px-3 py-1 rounded-sm text-[10px] font-bold uppercase tracking-wider ${

@@ -1,6 +1,7 @@
 package com.sante.app.service;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -160,6 +161,48 @@ class LeaveServiceTest {
         leaveService.createRequest("00000001", request, attachment);
 
         verify(leaveAttachmentRepository).save(any());
+    }
+
+    @Test
+    void getMotifs_filtersSexSpecificMotifsForMaleAgent() {
+        Personnel male = new Personnel();
+        male.setMatPers("00000001");
+        male.setCodSoc("0100");
+        male.setCodUser("AGENT");
+        male.setSexe("M");
+        when(personnelRepository.findById("00000001")).thenReturn(Optional.of(male));
+
+        MotifJ maternity = motif("04", false, 60, null, false, false);
+        maternity.setSexe("F");
+        MotifJ annual = motif("01", false, 30, null, true, false);
+        when(motifJRepository.findAllByOrderByCodMAsc()).thenReturn(List.of(annual, maternity));
+
+        var motifs = leaveService.getMotifs("00000001");
+
+        assertEquals(1, motifs.size());
+        assertEquals("01", motifs.getFirst().codeM());
+    }
+
+    @Test
+    void createRequest_rejectsMotifThatDoesNotMatchAgentSex() {
+        Personnel male = new Personnel();
+        male.setMatPers("00000001");
+        male.setCodSoc("0100");
+        male.setCodUser("AGENT");
+        male.setSexe("M");
+        when(personnelRepository.findById("00000001")).thenReturn(Optional.of(male));
+
+        MotifJ maternity = motif("04", false, 60, null, false, false);
+        maternity.setSexe("F");
+        when(motifJRepository.findById("04")).thenReturn(Optional.of(maternity));
+
+        CreateLeaveRequest request = new CreateLeaveRequest(
+                LocalDate.of(2026, 1, 5),
+                LocalDate.of(2026, 1, 9),
+                "04",
+                null);
+
+        assertThrows(BadRequestException.class, () -> leaveService.createRequest("00000001", request));
     }
 
     private MotifJ motif(String code,

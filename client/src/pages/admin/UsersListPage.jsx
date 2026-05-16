@@ -69,19 +69,6 @@ const UsersListPage = () => {
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-
-        <div className="flex gap-3 shrink-0">
-          <Button variant="outline" className="text-gray-700 bg-white border-gray-300 hover:bg-gray-50 flex items-center gap-2">
-            <ArrowDownTrayIcon className="w-4 h-4" />
-            Exporter l'annuaire
-          </Button>
-          <Button className="bg-accent-red hover:bg-red-700 border-none flex items-center gap-2">
-            <UserPlusIcon className="w-4 h-4" />
-            Ajouter du personnel
-          </Button>
-        </div>
-      </div>
 
       <div className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm flex flex-col md:flex-row md:items-end gap-5">
         <form onSubmit={submitSearch} className="flex-1 flex flex-col gap-1.5">

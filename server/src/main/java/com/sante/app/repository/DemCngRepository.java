@@ -4,6 +4,8 @@ import com.sante.app.model.leave.DemCng;
 import com.sante.app.model.leave.DemCngId;
 import com.sante.app.repository.projection.LeaveValidationProjection;
 import com.sante.app.repository.projection.MyLeaveRequestProjection;
+import java.math.BigDecimal;
+import java.util.Collection;
 import java.util.Optional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -76,6 +78,14 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                    m.\"LIB_MOT\" AS libMot,
                    d."MOTIF_CNG" AS motifCng,
                    d.\"NBR_JOURS\" AS nbrJours,
+                   EXISTS (
+                       SELECT 1
+                       FROM \"LEAVE_ATTACHMENTS\" a
+                       WHERE a.\"COD_SOC\" = d.\"COD_SOC\"
+                         AND a.\"MAT_PERS\" = d.\"MAT_PERS\"
+                         AND a.\"NUM_DCNG\" = d.\"NUM_DCNG\"
+                   ) AS hasAttachment,
+                   COALESCE(m.\"IS_HALF_PAY\", false) AS isHalfPay,
                    d."VALID" AS valid,
                    d."MOTIF_REFUS" AS motifRefus
             FROM \"DEM_CNG\" d
@@ -116,6 +126,14 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                    m.\"LIB_MOT\" AS libMot,
                    d."MOTIF_CNG" AS motifCng,
                    d.\"NBR_JOURS\" AS nbrJours,
+                   EXISTS (
+                       SELECT 1
+                       FROM \"LEAVE_ATTACHMENTS\" a
+                       WHERE a.\"COD_SOC\" = d.\"COD_SOC\"
+                         AND a.\"MAT_PERS\" = d.\"MAT_PERS\"
+                         AND a.\"NUM_DCNG\" = d.\"NUM_DCNG\"
+                   ) AS hasAttachment,
+                   COALESCE(m.\"IS_HALF_PAY\", false) AS isHalfPay,
                    d."VALID" AS valid,
                    d."MOTIF_REFUS" AS motifRefus
             FROM \"DEM_CNG\" d
@@ -153,7 +171,16 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                    d.\"DAT_FIN\" AS datFin,
                    d.\"CODE_M\" AS codeM,
                    m.\"LIB_MOT\" AS libMot,
+                   d."MOTIF_CNG" AS motifCng,
                    d.\"NBR_JOURS\" AS nbrJours,
+                   EXISTS (
+                       SELECT 1
+                       FROM \"LEAVE_ATTACHMENTS\" a
+                       WHERE a.\"COD_SOC\" = d.\"COD_SOC\"
+                         AND a.\"MAT_PERS\" = d.\"MAT_PERS\"
+                         AND a.\"NUM_DCNG\" = d.\"NUM_DCNG\"
+                   ) AS hasAttachment,
+                   COALESCE(m.\"IS_HALF_PAY\", false) AS isHalfPay,
                    d."VALID" AS valid,
                    d."MOTIF_REFUS" AS motifRefus
             FROM \"DEM_CNG\" d
@@ -184,4 +211,61 @@ public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
                                    @Param("matPers") String matPers,
                                    @Param("dateDebut") java.time.LocalDate dateDebut,
                                    @Param("dateFin") java.time.LocalDate dateFin);
+
+    @Query("""
+            SELECT COALESCE(SUM(d.nbrJours), 0)
+            FROM DemCng d
+            WHERE d.id.codSoc = :codSoc
+              AND d.id.matPers = :matPers
+              AND d.codeM IN :codes
+              AND d.anneeCng = :year
+              AND d.valid IN :statusCodes
+            """)
+    BigDecimal sumBusinessDaysByCodesForYear(@Param("codSoc") String codSoc,
+                                             @Param("matPers") String matPers,
+                                             @Param("codes") Collection<String> codes,
+                                             @Param("year") Integer year,
+                                             @Param("statusCodes") Collection<String> statusCodes);
+
+    @Query("""
+            SELECT COALESCE(SUM(d.nbrJoursCal), 0)
+            FROM DemCng d
+            WHERE d.id.codSoc = :codSoc
+              AND d.id.matPers = :matPers
+              AND d.codeM IN :codes
+              AND d.anneeCng = :year
+              AND d.valid IN :statusCodes
+            """)
+    BigDecimal sumCalendarDaysByCodesForYear(@Param("codSoc") String codSoc,
+                                             @Param("matPers") String matPers,
+                                             @Param("codes") Collection<String> codes,
+                                             @Param("year") Integer year,
+                                             @Param("statusCodes") Collection<String> statusCodes);
+
+    @Query("""
+            SELECT COALESCE(SUM(d.nbrJours), 0)
+            FROM DemCng d
+            WHERE d.id.codSoc = :codSoc
+              AND d.id.matPers = :matPers
+              AND d.codeM IN :codes
+              AND d.valid IN :statusCodes
+            """)
+    BigDecimal sumBusinessDaysByCodesForCareer(@Param("codSoc") String codSoc,
+                                               @Param("matPers") String matPers,
+                                               @Param("codes") Collection<String> codes,
+                                               @Param("statusCodes") Collection<String> statusCodes);
+
+    @Query("""
+            SELECT COALESCE(SUM(d.nbrJoursCal), 0)
+            FROM DemCng d
+            WHERE d.id.codSoc = :codSoc
+              AND d.id.matPers = :matPers
+              AND d.codeM IN :codes
+              AND d.valid IN :statusCodes
+            """)
+    BigDecimal sumCalendarDaysByCodesForCareer(@Param("codSoc") String codSoc,
+                                               @Param("matPers") String matPers,
+                                               @Param("codes") Collection<String> codes,
+                                               @Param("statusCodes") Collection<String> statusCodes);
+
 }

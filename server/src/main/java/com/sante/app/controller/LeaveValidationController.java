@@ -2,6 +2,7 @@ package com.sante.app.controller;
 
 import com.sante.app.dto.request.ReviewLeaveRequest;
 import com.sante.app.dto.response.ApiResponse;
+import com.sante.app.dto.response.LeaveAttachmentResponse;
 import com.sante.app.dto.response.LeaveValidationResponse;
 import com.sante.app.service.LeaveService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -9,6 +10,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -57,5 +61,21 @@ public class LeaveValidationController {
             request.status(),
             request.comment());
         return ResponseEntity.ok(ApiResponse.success("Demande de conge traitee.", response));
+    }
+
+    @GetMapping("/{codSoc}/{matPers}/{numDcng}/attachment")
+    @Operation(summary = "Telecharger le justificatif d'une demande de conge")
+    public ResponseEntity<byte[]> downloadAttachment(
+            Authentication authentication,
+            @PathVariable String codSoc,
+            @PathVariable String matPers,
+            @PathVariable Integer numDcng) {
+        String reviewerMatPers = (String) authentication.getPrincipal();
+        LeaveAttachmentResponse attachment = leaveService.getValidationAttachment(reviewerMatPers, codSoc, matPers, numDcng);
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(attachment.fileType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION,
+                        ContentDisposition.attachment().filename(attachment.fileName()).build().toString())
+                .body(attachment.content());
     }
 }

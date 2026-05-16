@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { PaperClipIcon, PaperAirplaneIcon, DocumentIcon, ArrowDownTrayIcon, FunnelIcon, ChatBubbleLeftIcon } from '@heroicons/react/24/outline';
+import { PaperClipIcon, PaperAirplaneIcon, DocumentIcon, ArrowDownTrayIcon, FunnelIcon, ChatBubbleLeftIcon, UserGroupIcon, UserIcon, MagnifyingGlassIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
 import useAuth from '../../hooks/useAuth';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import useChatWebSocket from '../../hooks/useChatWebSocket';
@@ -16,11 +16,19 @@ export default function ChatPage() {
     const [activeContact, setActiveContact] = useState(null);
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
+    const [searchQuery, setSearchQuery] = useState('');
     const [loadingContacts, setLoadingContacts] = useState(true);
     const [loadingMessages, setLoadingMessages] = useState(false);
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
     const messagesEndRef = useRef(null);
+
+    const filteredContacts = contacts.filter(c => {
+        if (!searchQuery) return true;
+        const q = searchQuery.toLowerCase();
+        return (c.name && c.name.toLowerCase().includes(q)) || 
+               (c.matPers && c.matPers.toLowerCase().includes(q) && c.role !== 'GROUPE');
+    });
 
     const handleMessageReceived = (message) => {
         const targetContactId = message.roomId ? message.roomId : (message.senderId === auth.user.matPers ? message.recipientId : message.senderId);
@@ -166,30 +174,61 @@ export default function ChatPage() {
             <div className={`w-full md:w-1/3 md:border-r flex flex-col bg-gray-50 ${activeContact ? "hidden md:flex" : "flex"}`}>
                 <div className="p-4 border-b bg-white">
                     <h2 className="text-lg font-bold text-gray-900">Discussions</h2>
-                    <div className="mt-2 text-xs text-gray-500">
+                    <div className="mt-2 text-xs text-gray-500 flex items-center justify-between mb-2">
                         {chatWs.connected ? <span className="text-green-500">● Connecté</span> : <span className="text-red-500">● Hors ligne</span>}
+                    </div>
+                    <div className="relative mt-2">
+                        <MagnifyingGlassIcon className="w-5 h-5 absolute left-2.5 top-2 text-gray-400" />
+                        <input 
+                            type="text" 
+                            placeholder="Rechercher (Nom ou Matricule)..." 
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="w-full pl-9 pr-3 py-1.5 border rounded-lg text-sm bg-gray-50 focus:outline-none focus:ring-1 focus:ring-ministere-500"
+                        />
                     </div>
                 </div>
                 <div className="flex-1 overflow-y-auto">
                     {loadingContacts ? (
                         <div className="p-4 flex justify-center"><Spinner /></div>
-                    ) : contacts.length === 0 ? (
+                    ) : filteredContacts.length === 0 ? (
                         <div className="p-6 text-center text-gray-500 text-sm">Aucun contact trouvé.</div>
                     ) : (
-                        contacts.map(c => (
+                        filteredContacts.map(c => (
                             <div 
                                 key={c.matPers}
                                 onClick={() => setActiveContact(c)}
                                 className={`p-4 border-b cursor-pointer transition-colors ${activeContact?.matPers === c.matPers ? 'bg-blue-50 border-blue-200' : 'hover:bg-gray-100 bg-white'}`}
                             >
                                 <div className="flex justify-between items-start">
-                                    <div className="font-medium text-gray-900">{c.name}</div>
+                                    <div className="font-medium text-gray-900 flex items-center gap-1.5 min-w-0 pr-2">
+                                        {c.role === 'GROUPE' ? (
+                                            <UserGroupIcon className="w-4 h-4 text-ministere-600 flex-shrink-0" />
+                                        ) : c.role === 'DIRECTEUR' ? (
+                                            <BriefcaseIcon className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                                        ) : (
+                                            <UserIcon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                                        )}
+                                        <span className="truncate">{c.name}</span>
+                                    </div>
                                     {c.unreadCount > 0 && (
-                                        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">{c.unreadCount}</span>
+                                        <span className="bg-red-500 text-white text-xs px-2 py-0.5 rounded-full flex-shrink-0">{c.unreadCount}</span>
                                     )}
                                 </div>
-                                <div className="text-sm text-gray-500 truncate mt-1">
-                                    {c.lastMessage?.type === 'FILE' ? '📎 Pièce jointe' : c.lastMessage?.content || 'Nouvelle discussion'}
+                                <div className="text-sm text-gray-500 truncate mt-1 flex items-center">
+                                    {c.role !== 'GROUPE' && (
+                                        <span 
+                                            className={`text-[10px] px-1.5 py-0.5 rounded mr-1.5 border inline-flex items-center flex-shrink-0 max-w-[140px] truncate ${
+                                                c.role === 'DIRECTEUR' 
+                                                ? 'bg-blue-50 text-blue-700 border-blue-200 font-medium' 
+                                                : 'bg-gray-100 text-gray-600 border-gray-200'
+                                            }`} 
+                                            title={`${c.matPers}${c.role === 'DIRECTEUR' ? ' - ' + (c.libSoc || c.codSoc) : ''}`}
+                                        >
+                                            {c.role === 'DIRECTEUR' ? `DIR - ${c.libSoc || c.codSoc}` : `AGT - ${c.matPers}`}
+                                        </span>
+                                    )}
+                                    <span className="truncate">{c.lastMessage?.type === 'FILE' ? '📎 Pièce jointe' : c.lastMessage?.content || 'Nouvelle discussion'}</span>
                                 </div>
                             </div>
                         ))
@@ -204,8 +243,26 @@ export default function ChatPage() {
                         <div className="p-4 border-b bg-white flex justify-between items-center shadow-sm z-10">
                             <div className="flex items-center gap-3">
                                 <button className="md:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700" onClick={() => setActiveContact(null)}><ChatBubbleLeftIcon className="w-6 h-6 transform rotate-180" /></button>
-                                <div><h3 className="text-lg font-bold text-gray-900">{activeContact.name}</h3>
-                                    <p className="text-xs text-gray-500">{activeContact.role}</p>
+                                {activeContact.role === 'GROUPE' ? (
+                                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-ministere-600 flex-shrink-0">
+                                        <UserGroupIcon className="w-6 h-6" />
+                                    </div>
+                                ) : activeContact.role === 'DIRECTEUR' ? (
+                                    <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-600 border border-blue-100 flex-shrink-0">
+                                        <BriefcaseIcon className="w-6 h-6" />
+                                    </div>
+                                ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center text-gray-500 flex-shrink-0">
+                                        <UserIcon className="w-6 h-6" />
+                                    </div>
+                                )}
+                                <div className="min-w-0">
+                                    <h3 className="text-lg font-bold text-gray-900 truncate">{activeContact.name}</h3>
+                                    <p className="text-xs text-gray-500 truncate">
+                                        {activeContact.role === 'GROUPE' ? 'Discussion de groupe' : 
+                                         activeContact.role === 'DIRECTEUR' ? `${activeContact.matPers} - ${activeContact.role} - ${activeContact.libSoc || activeContact.codSoc}` :
+                                         `${activeContact.matPers} - ${activeContact.role}`}
+                                    </p>
                                 </div>
                             </div>
                         </div>

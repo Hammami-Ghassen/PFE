@@ -4,6 +4,7 @@ import Button from '../ui/Button';
 import Spinner from '../ui/Spinner';
 import Alert from '../ui/Alert';
 import { formatDate } from '../../utils/helpers';
+import { ArrowDownTrayIcon } from '@heroicons/react/24/outline';
 
 const WEEK_DAYS = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
 
@@ -81,6 +82,7 @@ const LeaveValidationDetailModal = ({
   submitting,
   onApprove,
   onReject,
+  onDownloadAttachment,
 }) => {
   const [comment, setComment] = useState('');
 
@@ -205,6 +207,17 @@ const LeaveValidationDetailModal = ({
                 <p className="text-xs text-gray-600">Motif: {request.libMot || request.codeM || '—'}</p>
                 <p className="text-xs text-gray-600">Durée: {request.nbrJours ?? '—'} jour(s)</p>
                 <p className="text-xs text-gray-600">Statut: {request.statusLabel || request.statusCode || '—'}</p>
+                {request.isHalfPay && <p className="text-xs text-orange-700 font-semibold">Demi-salaire</p>}
+                {request.hasAttachment && (
+                  <button
+                    type="button"
+                    onClick={() => onDownloadAttachment?.(request)}
+                    className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-semibold text-ministere-700 bg-white border border-ministere-200 rounded-md hover:bg-ministere-50 transition-colors"
+                  >
+                    <ArrowDownTrayIcon className="w-4 h-4" />
+                    Justificatif
+                  </button>
+                )}
               </div>
               <div className="md:col-span-2 border border-gray-200 rounded-lg p-4 bg-white">
                 <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Commentaire de la demande</p>

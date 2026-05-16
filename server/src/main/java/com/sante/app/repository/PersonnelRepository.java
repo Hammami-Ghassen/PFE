@@ -83,8 +83,8 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
         LEFT JOIN "ADR_PERS" a ON a."MAT_PERS" = p."MAT_PERS"
         LEFT JOIN "DELEGATION" d ON d."COD_DELEG" = a."COD_DELEG"
         LEFT JOIN "GOUVERNORAT" gouv ON gouv."COD_GOUV" = d."COD_GOUV"
-        LEFT JOIN "SERVICE" serv ON serv."COD_SERV" = p."COD_SERV"
-       LEFT JOIN "SERVICE" servParent ON servParent."COD_SERV" = serv."SER_COD_SERV"
+        LEFT JOIN "SERVICE" serv ON serv."COD_SERV" = p."COD_SERV" and serv."COD_SOC" = p."COD_SOC"
+       LEFT JOIN "SERVICE" servParent ON servParent."COD_SERV" = serv."SER_COD_SERV" and servParent."COD_SOC" = p."COD_SOC"
        LEFT JOIN "POSTE_TRAV" pt ON pt."COD_POST" = p."POSTE_TRAV"
         LEFT JOIN "GRADE" g
                ON g."COD_GRAD" = p."COD_GRAD"

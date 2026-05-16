@@ -3,6 +3,7 @@ package com.sante.app.controller;
 import com.sante.app.dto.request.CreateLeaveRequest;
 import com.sante.app.dto.response.ApiResponse;
 import com.sante.app.dto.response.LeaveBalanceResponse;
+import com.sante.app.dto.response.LeaveEntitlementResponse;
 import com.sante.app.dto.response.LeaveHolidayResponse;
 import com.sante.app.dto.response.LeaveMotifResponse;
 import com.sante.app.dto.response.LeaveRequestResponse;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -21,7 +23,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/leaves")
@@ -44,6 +48,13 @@ public class LeaveController {
         return ResponseEntity.ok(ApiResponse.success(leaveService.getHolidays()));
     }
 
+    @GetMapping("/entitlements")
+    @Operation(summary = "Lister les droits de conge par motif")
+    public ResponseEntity<ApiResponse<List<LeaveEntitlementResponse>>> entitlements(Authentication authentication) {
+        String matPers = (String) authentication.getPrincipal();
+        return ResponseEntity.ok(ApiResponse.success(leaveService.getEntitlements(matPers)));
+    }
+
     @GetMapping("/balance")
     @Operation(summary = "Consulter mon solde de conge")
     public ResponseEntity<ApiResponse<LeaveBalanceResponse>> currentBalance(Authentication authentication) {
@@ -51,13 +62,24 @@ public class LeaveController {
         return ResponseEntity.ok(ApiResponse.success(leaveService.getCurrentBalance(matPers)));
     }
 
-    @PostMapping
+    @PostMapping(consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Deposer une demande de conge")
     public ResponseEntity<ApiResponse<LeaveRequestResponse>> createLeaveRequest(
             Authentication authentication,
             @Valid @RequestBody CreateLeaveRequest request) {
         String matPers = (String) authentication.getPrincipal();
         LeaveRequestResponse response = leaveService.createRequest(matPers, request);
+        return ResponseEntity.ok(ApiResponse.success("Demande de conge creee.", response));
+    }
+
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @Operation(summary = "Deposer une demande de conge avec justificatif")
+    public ResponseEntity<ApiResponse<LeaveRequestResponse>> createLeaveRequestWithAttachment(
+            Authentication authentication,
+            @Valid @RequestPart("request") CreateLeaveRequest request,
+            @RequestPart(value = "attachment", required = false) MultipartFile attachment) {
+        String matPers = (String) authentication.getPrincipal();
+        LeaveRequestResponse response = leaveService.createRequest(matPers, request, attachment);
         return ResponseEntity.ok(ApiResponse.success("Demande de conge creee.", response));
     }
 

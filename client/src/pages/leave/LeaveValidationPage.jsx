@@ -8,6 +8,7 @@ import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import { formatDate } from '../../utils/helpers';
 import {
+  downloadLeaveAttachment,
   getLeaveBalanceByMatPers,
   getLeaveHolidays,
   getLeaveValidationQueue,
@@ -167,6 +168,31 @@ const LeaveValidationPage = () => {
       toast.error(error?.response?.data?.message || 'Traitement impossible.');
     } finally {
       setDetailSubmitting(false);
+    }
+  };
+
+  const handleDownloadAttachment = async (request) => {
+    if (!request?.hasAttachment) return;
+
+    try {
+      const response = await downloadLeaveAttachment(axiosPrivate, {
+        codSoc: request.codSoc,
+        matPers: request.matPers,
+        numDcng: request.numDcng,
+      });
+      const disposition = response.headers?.['content-disposition'] || '';
+      const filenameMatch = disposition.match(/filename="?([^"]+)"?/);
+      const filename = filenameMatch?.[1] || `justificatif-conge-${request.numDcng}.bin`;
+      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      toast.error(error?.response?.data?.message || 'Telechargement du justificatif impossible.');
     }
   };
 
@@ -342,6 +368,7 @@ const LeaveValidationPage = () => {
         submitting={detailSubmitting}
         onApprove={(comment) => handleReviewFromModal('O', comment)}
         onReject={(comment) => handleReviewFromModal('N', comment)}
+        onDownloadAttachment={handleDownloadAttachment}
       />
     </div>
   );

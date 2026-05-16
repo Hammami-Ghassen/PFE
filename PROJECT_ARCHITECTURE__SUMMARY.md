@@ -106,6 +106,18 @@ Additional endpoints:
 - `PATCH /api/admin/corrections/{id}/review`
 - `GET /api/admin/corrections/{id}/attachment`
 
+Additional real-time & content controllers:
+- `server/src/main/java/com/sante/app/controller/chat/ChatController.java`
+- `server/src/main/java/com/sante/app/controller/chat/ChatFileController.java`
+- `server/src/main/java/com/sante/app/controller/NotificationController.java`
+- `server/src/main/java/com/sante/app/controller/NewsController.java`
+
+Endpoints:
+- WebSockets: `/ws-chat` endpoint
+- Chat APIs: `GET /api/chat/history`, `POST /api/chat/send`, `POST /api/chat/upload`
+- Notifications APIs: `GET /api/notifications`, `PATCH /api/notifications/{id}/read`
+- News APIs: `GET /api/news`
+
 ### 2.5 JWT and security filter layer
 Updated JWT property model:
 - `server/src/main/java/com/sante/app/security/jwt/JwtProperties.java`
@@ -153,6 +165,12 @@ Leave and correction UI updates:
 - `client/src/pages/leave/LeaveValidationPage.jsx`
 - `client/src/services/leaveService.js`
 - `client/src/services/correctionService.js`
+
+Communication and engagement updates:
+- `client/src/pages/chat/` (real-time enterprise messaging)
+- `client/src/services/chatService.js` and `hooks/useChatWebSocket.js`
+- `client/src/services/newsService.js` (fetching ministry news)
+- `client/src/services/notificationService.js` (push/in-app notifications)
 
 ### 2.7 Operational/runtime fixes
 - Added dedicated Redis unavailability handling in:
@@ -226,9 +244,9 @@ Layers:
 2. `components/`:
    - reusable UI and layout/auth guards
 3. `services/`:
-   - API adapters (`authService`, `userService`, `leaveService`, `correctionService`)
+   - API adapters (`authService`, `userService`, `leaveService`, `correctionService`, `chatService`, `newsService`, `notificationService`)
 4. `hooks/`:
-   - auth-aware Axios handling (`useAxiosPrivate`)
+   - auth-aware Axios handling (`useAxiosPrivate`), websocket hook (`useChatWebSocket`)
 5. `context/`:
    - in-memory auth session state
 6. `api/`:
@@ -396,6 +414,10 @@ Session behavior:
 - `CorrectionController`: employee correction submission with attachment upload
 - `AdminCorrectionController`: admin correction review queue + attachment download
 - `CorrectionService`: correction persistence, attachment retrieval, and review state transitions
+- `ChatController` / `ChatFileController`: WebSocket STOMP messaging and attachment handling
+- `ChatService`: chat message persistence, room generation
+- `NotificationController` / `NotificationService`: in-app notifications lifecycle
+- `NewsController` / `NewsScraperService`: fetching external or internal news feed
 - `AuthTokenService`: access/refresh token generation, hashing, persistence and revocation
 - `OtpStoreService`: Redis-backed OTP hash storage (`otp:{MAT_PERS}` + TTL)
 - `PersonnelRepository`: native SQL search/update/profile projection including legacy joins for profile enrichment
@@ -479,6 +501,13 @@ Session behavior:
 2. `ADMIN` lists requests with pagination and optional status filtering via `GET /api/admin/corrections`.
 3. `ADMIN` downloads evidence files through `GET /api/admin/corrections/{id}/attachment`.
 4. `ADMIN` applies review decision through `PATCH /api/admin/corrections/{id}/review`.
+
+### 5.9 Real-time Chat and Notifications flow
+1. Frontend hooks into WebSocket (`/ws-chat`) using current JWT bearer authorization on connection.
+2. Users can fetch chat history via `GET /api/chat/history`.
+3. Real-time messages are dispatched via `STOMP` and saved by `ChatService` into the DB.
+4. If a message contains an attachment, the file is uploaded via `POST /api/chat/upload` and its URL is streamed through STOMP.
+5. In-app notifications are polled via `GET /api/notifications` or triggered by real-time events.
 
 ## 6. Current Known Limitations
 1. OTP delivery is still mocked (log-based), not integrated with real SMTP/SMS gateways.

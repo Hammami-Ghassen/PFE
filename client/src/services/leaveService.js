@@ -8,6 +8,11 @@ export const getLeaveHolidays = async (axiosPrivate) => {
   return response.data.data;
 };
 
+export const getLeaveEntitlements = async (axiosPrivate) => {
+  const response = await axiosPrivate.get('/leaves/entitlements');
+  return response.data.data;
+};
+
 export const getCurrentLeaveBalance = async (axiosPrivate) => {
   const response = await axiosPrivate.get('/leaves/balance');
   return response.data.data;
@@ -20,11 +25,25 @@ export const getLeaveBalanceByMatPers = async (axiosPrivate, matPers) => {
 
 export const createLeaveRequest = async (
   axiosPrivate,
-  { dateDebut, dateFin, codeM, motifCng }
+  { dateDebut, dateFin, codeM, motifCng, attachment }
 ) => {
   const payload = { dateDebut, dateFin, codeM };
   if (motifCng && motifCng.trim()) {
     payload.motifCng = motifCng.trim();
+  }
+
+  if (attachment) {
+    const formData = new FormData();
+    formData.append(
+      'request',
+      new Blob([JSON.stringify(payload)], { type: 'application/json' })
+    );
+    formData.append('attachment', attachment);
+
+    const response = await axiosPrivate.post('/leaves', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+    return response.data.data;
   }
 
   const response = await axiosPrivate.post('/leaves', payload);
@@ -66,4 +85,15 @@ export const reviewLeaveRequest = async (
     payload
   );
   return response.data.data;
+};
+
+export const downloadLeaveAttachment = async (
+  axiosPrivate,
+  { codSoc, matPers, numDcng }
+) => {
+  const response = await axiosPrivate.get(
+    `/leaves/validation/${codSoc}/${matPers}/${numDcng}/attachment`,
+    { responseType: 'blob' }
+  );
+  return response;
 };

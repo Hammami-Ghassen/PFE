@@ -29,6 +29,10 @@ public interface LeaveValidationProjection {
 
     BigDecimal getNbrJours();
 
+    Boolean getHasAttachment();
+
+    Boolean getIsHalfPay();
+
     String getValid();
 
     String getMotifRefus();

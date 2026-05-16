@@ -16,6 +16,8 @@ public record LeaveValidationResponse(
         String libMot,
         BigDecimal nbrJours,
         String requestComment,
+        Boolean hasAttachment,
+        Boolean isHalfPay,
         String statusCode,
         String statusLabel,
         String rejectionComment

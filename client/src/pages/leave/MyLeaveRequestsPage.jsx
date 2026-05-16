@@ -9,9 +9,11 @@ import LeaveBalanceCard from '../../components/ui/LeaveBalanceCard';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import { formatDate } from '../../utils/helpers';
+import { isLeaveAttachmentRequired } from './leaveRequestRules';
 import {
   createLeaveRequest,
   getCurrentLeaveBalance,
+  getLeaveEntitlements,
   getLeaveHolidays,
   getLeaveMotifs,
   getMyLeaveRequests,
@@ -63,6 +65,14 @@ const calculateBusinessDays = (startDate, endDate, holidaysSet) => {
   return days;
 };
 
+const calculateCalendarDays = (startDate, endDate) => {
+  if (!startDate || !endDate) return 0;
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return 0;
+  return Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
+};
+
 const formatBalanceValue = (value) => {
   if (value === null || value === undefined) return '0';
   const parsed = Number.parseFloat(value);
@@ -85,6 +95,7 @@ const MyLeaveRequestsPage = () => {
   const [loadingBalance, setLoadingBalance] = useState(true);
 
   const [motifs, setMotifs] = useState([]);
+  const [entitlements, setEntitlements] = useState([]);
   const [holidays, setHolidays] = useState([]);
   const [loadingModalData, setLoadingModalData] = useState(false);
 
@@ -98,6 +109,7 @@ const MyLeaveRequestsPage = () => {
     dateFin: '',
     codeM: '',
     motifCng: '',
+    attachment: null,
   });
 
   const loadRequests = useCallback(async () => {
@@ -130,9 +142,10 @@ const MyLeaveRequestsPage = () => {
   const loadModalData = useCallback(async () => {
     setLoadingModalData(true);
     try {
-      const [motifResult, holidayResult] = await Promise.allSettled([
+      const [motifResult, holidayResult, entitlementResult] = await Promise.allSettled([
         getLeaveMotifs(axiosPrivate),
         getLeaveHolidays(axiosPrivate),
+        getLeaveEntitlements(axiosPrivate),
       ]);
 
       if (motifResult.status === 'fulfilled') {
@@ -146,6 +159,12 @@ const MyLeaveRequestsPage = () => {
         setHolidays(Array.isArray(holidayResult.value) ? holidayResult.value : []);
       } else {
         setHolidays([]);
+      }
+
+      if (entitlementResult.status === 'fulfilled') {
+        setEntitlements(Array.isArray(entitlementResult.value) ? entitlementResult.value : []);
+      } else {
+        setEntitlements([]);
       }
     } catch {
       toast.error('Erreur lors du chargement du formulaire de conge.');
@@ -163,10 +182,10 @@ const MyLeaveRequestsPage = () => {
   }, [loadBalance]);
 
   useEffect(() => {
-    if (isSubmitModalOpen && (motifs.length === 0 || holidays.length === 0)) {
+    if (isSubmitModalOpen && (motifs.length === 0 || holidays.length === 0 || entitlements.length === 0)) {
       loadModalData();
     }
-  }, [holidays.length, isSubmitModalOpen, loadModalData, motifs.length]);
+  }, [entitlements.length, holidays.length, isSubmitModalOpen, loadModalData, motifs.length]);
 
   const holidayDayMonthSet = useMemo(() => {
     const result = new Set();
@@ -184,12 +203,34 @@ const MyLeaveRequestsPage = () => {
     [form.dateDebut, form.dateFin, holidayDayMonthSet]
   );
 
+  const requestedCalendarDays = useMemo(
+    () => calculateCalendarDays(form.dateDebut, form.dateFin),
+    [form.dateDebut, form.dateFin]
+  );
+
+  const selectedMotif = useMemo(
+    () => motifs.find((motif) => motif.codeM === form.codeM) || null,
+    [form.codeM, motifs]
+  );
+
+  const selectedEntitlement = useMemo(
+    () => entitlements.find((entitlement) => entitlement.codeM === form.codeM) || null,
+    [entitlements, form.codeM]
+  );
+
   const availableBalance = useMemo(() => {
     const parsed = Number.parseFloat(balance?.currentBalance ?? 0);
     return Number.isNaN(parsed) ? 0 : parsed;
   }, [balance]);
 
-  const hasInsufficientBalance = requestedBusinessDays > availableBalance;
+  const isBalanceDeductingMotif = Boolean(selectedMotif?.deductsFromBalance);
+  const hasInsufficientBalance = isBalanceDeductingMotif && requestedBusinessDays > availableBalance;
+  const usesCalendarLimit = ['04', '05', '50'].includes(form.codeM);
+  const requestedLimitDays = usesCalendarLimit ? requestedCalendarDays : requestedBusinessDays;
+  const remainingDays = Number.parseFloat(selectedEntitlement?.remainingDaysYear ?? selectedEntitlement?.remainingDaysCareer ?? NaN);
+  const hasRemainingLimit = !Number.isNaN(remainingDays);
+  const hasExceededEntitlement = hasRemainingLimit && requestedLimitDays > remainingDays;
+  const isAttachmentRequired = isLeaveAttachmentRequired(selectedMotif, form.codeM, requestedBusinessDays);
 
   const pendingCount = data.content.filter((request) => request.statusCode === 'I').length;
   const approvedCount = data.content.filter((request) => request.statusCode === 'O').length;
@@ -200,6 +241,7 @@ const MyLeaveRequestsPage = () => {
       dateFin: '',
       codeM: '',
       motifCng: '',
+      attachment: null,
     });
     setFormErrors({});
     setSubmitError('');
@@ -219,6 +261,13 @@ const MyLeaveRequestsPage = () => {
     const { name, value } = event.target;
     setForm((current) => ({ ...current, [name]: value }));
     setFormErrors((current) => ({ ...current, [name]: null }));
+    setSubmitError('');
+  };
+
+  const handleAttachmentChange = (event) => {
+    const file = event.target.files?.[0] || null;
+    setForm((current) => ({ ...current, attachment: file }));
+    setFormErrors((current) => ({ ...current, attachment: null }));
     setSubmitError('');
   };
 
@@ -243,6 +292,12 @@ const MyLeaveRequestsPage = () => {
     if (hasInsufficientBalance) {
       errors.dateFin = 'La duree demandee depasse votre solde disponible.';
     }
+    if (hasExceededEntitlement) {
+      errors.dateFin = 'La duree demandee depasse le plafond restant pour ce motif.';
+    }
+    if (isAttachmentRequired && !form.attachment) {
+      errors.attachment = 'La piece jointe est obligatoire pour ce motif.';
+    }
 
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
@@ -261,6 +316,7 @@ const MyLeaveRequestsPage = () => {
       toast.success(`Demande envoyee (N° ${response.numDcng || 'n/a'}).`);
       setIsSubmitModalOpen(false);
       resetForm();
+      setEntitlements([]);
       await Promise.all([loadRequests(), loadBalance()]);
     } catch (error) {
       const message = error?.response?.data?.message || 'Creation de demande impossible.';
@@ -445,7 +501,7 @@ const MyLeaveRequestsPage = () => {
             <Button variant="secondary" onClick={closeSubmitModal} disabled={submitting}>
               Annuler
             </Button>
-            <Button type="submit" form="leave-submit-form" loading={submitting} disabled={hasInsufficientBalance}>
+            <Button type="submit" form="leave-submit-form" loading={submitting} disabled={hasInsufficientBalance || hasExceededEntitlement}>
               Envoyer
             </Button>
           </>
@@ -462,6 +518,21 @@ const MyLeaveRequestsPage = () => {
               <Alert
                 type="warning"
                 message={`Solde insuffisant: ${requestedBusinessDays} jour(s) demandes pour ${formatBalanceValue(balance?.currentBalance)} jour(s) disponibles.`}
+              />
+            )}
+            {selectedEntitlement && hasRemainingLimit && (
+              <Alert
+                type={hasExceededEntitlement ? 'warning' : 'info'}
+                message={`Il vous reste ${formatBalanceValue(remainingDays)} jour(s) pour ce type de conge.`}
+              />
+            )}
+            {selectedMotif?.isHalfPay && (
+              <Alert type="warning" message="Attention, ce conge est remunere a demi-salaire." />
+            )}
+            {form.codeM === '12' && (
+              <Alert
+                type="info"
+                message="Conge paternite: 7 jours autorises. Jusqu'a 10 jours autorises en cas de naissances multiples ou situation medicale avec justificatif."
               />
             )}
 
@@ -539,8 +610,31 @@ const MyLeaveRequestsPage = () => {
               />
             </div>
 
+            {(isAttachmentRequired || selectedMotif) && (
+              <div>
+                <label htmlFor="attachment" className="block text-sm font-medium text-gray-700 mb-1">
+                  Piece jointe {isAttachmentRequired ? '*' : '(optionnel)'}
+                </label>
+                <input
+                  id="attachment"
+                  name="attachment"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.docx"
+                  required={isAttachmentRequired}
+                  onChange={handleAttachmentChange}
+                  className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
+                    formErrors.attachment ? 'border-red-400' : 'border-gray-300'
+                  }`}
+                />
+                {formErrors.attachment && <p className="mt-1 text-xs text-red-500">{formErrors.attachment}</p>}
+              </div>
+            )}
+
             <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700">
               Duree demandee (jours ouvrables): <span className="font-semibold">{requestedBusinessDays}</span>
+              {usesCalendarLimit && (
+                <span className="ml-2 text-gray-500">({requestedCalendarDays} jour(s) calendaires)</span>
+              )}
             </div>
           </form>
         )}

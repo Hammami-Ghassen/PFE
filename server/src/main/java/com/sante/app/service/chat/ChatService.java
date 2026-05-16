@@ -9,6 +9,7 @@ import com.sante.app.model.legacy.Personnel;
 import com.sante.app.repository.PersonnelRepository;
 import com.sante.app.repository.chat.ChatAttachmentRepository;
 import com.sante.app.repository.chat.ChatMessageRepository;
+import com.sante.app.repository.SocieteRepository;
 import com.sante.app.service.NotificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,9 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import com.sante.app.model.NotificationType;
+import com.sante.app.model.legacy.Societe;
+import java.util.Map;
+import java.util.function.Function;
 
 @Service
 @RequiredArgsConstructor
@@ -29,6 +33,7 @@ public class ChatService {
     private final ChatMessageRepository chatMessageRepository;
     private final ChatAttachmentRepository chatAttachmentRepository;
     private final PersonnelRepository personnelRepository;
+    private final SocieteRepository societeRepository;
     private final NotificationService notificationService;
 
     @Transactional(readOnly = true)
@@ -40,12 +45,17 @@ public class ChatService {
 
         List<ChatContactDTO> dtoList = new ArrayList<>();
 
+        // Optimize by fetching societes mapped by codSoc upfront
+        Map<String, String> societesMap = societeRepository.findAll().stream()
+                .collect(Collectors.toMap(Societe::getCodSoc, Societe::getLibSoc, (a,b)->a));
+
         // 1. Etablissement Group Chat
         ChatMessage lastSocMsg = chatMessageRepository.findLastMessageByRoomId("ROOM_SOC_" + codSoc);
         dtoList.add(ChatContactDTO.builder()
                 .matPers("ROOM_SOC_" + codSoc)
                 .name("Discussion Établissement")
                 .codSoc(codSoc)
+                .libSoc(societesMap.getOrDefault(codSoc, codSoc))
                 .role("GROUPE")
                 .unreadCount(0) // Simplified for groups for now
                 .lastMessage(lastSocMsg != null ? mapToDTO(lastSocMsg) : null)
@@ -58,6 +68,7 @@ public class ChatService {
                     .matPers("ROOM_DIR")
                     .name("Discussion Directeurs")
                     .codSoc("ALL")
+                    .libSoc("N/A")
                     .role("GROUPE")
                     .unreadCount(0)
                     .lastMessage(lastDirMsg != null ? mapToDTO(lastDirMsg) : null)
@@ -68,16 +79,30 @@ public class ChatService {
         List<Personnel> individuals = new ArrayList<>();
         if ("DIRECTEUR".equals(role)) {
             individuals.addAll(personnelRepository.findContactsByCodSoc(codSoc, currentMatPers));
-            individuals.addAll(personnelRepository.findAllDirectors(currentMatPers));
-        } else {
-            // Agent sees only people they have private messaged with
-            List<String> messagedIds = Stream.concat(
-                    chatMessageRepository.findSendersToUser(currentMatPers).stream(),
-                    chatMessageRepository.findRecipientsFromUser(currentMatPers).stream()
-            ).distinct().filter(id -> !id.equals(currentMatPers)).collect(Collectors.toList());
-            if (!messagedIds.isEmpty()) {
-                individuals.addAll(personnelRepository.findAllById(messagedIds));
+            if ("0001".equals(codSoc)) {
+                individuals.addAll(personnelRepository.findAllDirectors(currentMatPers));
             }
+        }
+        
+        // Everyone sees people they have already private messaged with
+        List<String> messagedIds = Stream.concat(
+                chatMessageRepository.findSendersToUser(currentMatPers).stream(),
+                chatMessageRepository.findRecipientsFromUser(currentMatPers).stream()
+        ).distinct().filter(id -> !id.equals(currentMatPers)).collect(Collectors.toList());
+        
+        if (!messagedIds.isEmpty()) {
+            individuals.addAll(personnelRepository.findAllById(messagedIds));
+        }
+
+        // --- STRICT FILTERING (Removes legacy/cached contacts) ---
+        // If current user is a non-ministere director, hide other non-ministere directors
+        // outside of their own establishment.
+        if ("DIRECTEUR".equals(role) && !"0001".equals(codSoc)) {
+            individuals.removeIf(contact -> 
+                "DIRECTEUR".equals(contact.getCodUser()) && 
+                !codSoc.equals(contact.getCodSoc()) && 
+                !"0001".equals(contact.getCodSoc())
+            );
         }
 
         // Map individuals and add to list
@@ -89,6 +114,7 @@ public class ChatService {
                     .matPers(contact.getMatPers())
                     .name(contact.getPrenPers() + " " + contact.getNomPers())
                     .codSoc(contact.getCodSoc())
+                    .libSoc(societesMap.getOrDefault(contact.getCodSoc(), contact.getCodSoc()))
                     .role(contact.getCodUser())
                     .unreadCount(unreadCount)
                     .lastMessage(lastMessage != null ? mapToDTO(lastMessage) : null)
@@ -129,6 +155,14 @@ public class ChatService {
         } else {
             Personnel recipient = personnelRepository.findById(recipientStr)
                     .orElseThrow(() -> new RuntimeException("Recipient not found"));
+            
+            // Validation: Only Directeurs Ministere can send private messages to other Directeurs
+            // Non-ministere directeurs can only talk to agents or reply to ministere directeurs
+            if ("DIRECTEUR".equals(sender.getCodUser()) && "DIRECTEUR".equals(recipient.getCodUser()) 
+                && !"0001".equals(sender.getCodSoc()) && !"0001".equals(recipient.getCodSoc())) {
+                throw new RuntimeException("Seuls les directeurs du ministère peuvent envoyer des messages privés aux autres directeurs.");
+            }
+            
             builder.roomId(null);
             builder.recipient(recipient);
         }

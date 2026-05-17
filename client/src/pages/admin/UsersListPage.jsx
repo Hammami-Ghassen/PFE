@@ -7,9 +7,7 @@ import useEstablishments from '../../hooks/useEstablishments';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/ui/Spinner';
-import { 
-  ArrowDownTrayIcon, 
-  UserPlusIcon, 
+import {
   MagnifyingGlassIcon,
   EnvelopeIcon,
   PhoneIcon,
@@ -137,7 +135,7 @@ const UsersListPage = () => {
               <thead className="bg-gray-50/80 text-gray-500 uppercase tracking-wider text-xs font-semibold border-b border-gray-200">
                 <tr>
                   <th className="px-5 py-4 text-left font-bold min-w-[250px]">Agent</th>
-                  <th className="px-5 py-4 text-left font-bold">Établissement et rôle</th>
+                  <th className="px-5 py-4 text-left font-bold">Établissement</th>
                   <th className="px-5 py-4 text-left font-bold">Contact</th>
                   <th className="px-5 py-4 text-left font-bold">Statut</th>
                   <th className="px-5 py-4 text-right font-bold w-24">Actions</th>
@@ -154,10 +152,11 @@ const UsersListPage = () => {
                       <td className="px-5 py-4 whitespace-nowrap">
                         <div className="flex items-center gap-3">
                           <div className="w-10 h-10 rounded-full bg-ministere-100 flex items-center justify-center text-ministere-700 font-bold text-sm shrink-0 border border-ministere-200 shadow-sm">
-                            {person.matPers ? person.matPers.substring(0, 2) : 'MP'}
+                            {person.prenomPers ? person.prenomPers.substring(0, 1).toUpperCase() + (person.nomPers ? person.nomPers.substring(0, 1).toUpperCase() : '') : (person.matPers ? person.matPers.substring(0, 2) : 'MP')}
                           </div>
                           <div>
-                            <div className="font-semibold text-gray-900">{person.matPers}</div>
+                            <div className="font-semibold text-gray-900">{person.prenomPers && person.nomPers ? `${person.prenomPers} ${person.nomPers}` : person.matPers}</div>
+                            {person.prenomPers && person.nomPers && <div className="text-xs font-medium text-gray-500 mt-0.5">Matricule : {person.matPers}</div>}
                             <div className="text-xs font-medium text-gray-500 mt-0.5">Rôle : <Badge label={person.codUser || 'N/D'} className="px-1.5 py-0 text-[10px]" /></div>
                           </div>
                         </div>

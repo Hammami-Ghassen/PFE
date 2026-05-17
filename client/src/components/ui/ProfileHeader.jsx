@@ -1,5 +1,5 @@
 import React from 'react';
-import { UserCircleIcon, ArrowPathIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
+import { UserCircleIcon, PencilSquareIcon } from '@heroicons/react/24/solid';
 
 const ProfileHeader = ({ user, onEditProfile }) => {
   const displayName = user?.fullName || [user?.firstName, user?.lastName].filter(Boolean).join(' ').trim() || user?.matPers;

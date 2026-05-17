@@ -36,8 +36,13 @@ public class AdminService {
                 .map(this::mapProjection);
     }
 
+    private static final List<String> VALID_ROLES = List.of("AGENT", "DIRECTEUR", "ADMIN");
+
     @Transactional
     public PersonnelAdminResponse updateRole(String matPers, String codUser) {
+        if (!VALID_ROLES.contains(codUser)) {
+            throw new com.sante.app.exception.BadRequestException("Rôle invalide: " + codUser + ". Valeurs autorisées: " + VALID_ROLES);
+        }
         String normalizedMatPers = matPers.trim();
 
         int updated = personnelRepository.updateCodUser(normalizedMatPers, codUser);
@@ -70,6 +75,8 @@ public class AdminService {
     private PersonnelAdminResponse mapProjection(PersonnelAdminProjection p) {
         return new PersonnelAdminResponse(
             p.getMatPers(),
+            p.getNomPers(),
+            p.getPrenomPers(),
             p.getCodUser(),
             p.getCodSoc(),
             p.getLibSoc(),

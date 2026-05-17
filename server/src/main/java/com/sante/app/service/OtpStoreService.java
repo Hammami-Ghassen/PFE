@@ -29,4 +29,34 @@ public class OtpStoreService {
     private String redisKey(String matPers) {
         return "otp:" + matPers;
     }
+
+    public void incrementFailedAttempts(String matPers) {
+        String key = "otp_attempts:" + matPers;
+        redisTemplate.opsForValue().increment(key);
+        if (redisTemplate.getExpire(key) == null || redisTemplate.getExpire(key) < 0) {
+            redisTemplate.expire(key, Duration.ofMinutes(15));
+        }
+    }
+
+    public int getFailedAttempts(String matPers) {
+        String val = redisTemplate.opsForValue().get("otp_attempts:" + matPers);
+        return val == null ? 0 : Integer.parseInt(val);
+    }
+
+    public void clearFailedAttempts(String matPers) {
+        redisTemplate.delete("otp_attempts:" + matPers);
+    }
+
+    public boolean isBlocked(String matPers) {
+        return getFailedAttempts(matPers) >= 5;
+    }
+
+    public boolean isOtpRequestAllowed(String matPers) {
+        String key = "otp_request_limit:" + matPers;
+        if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
+            return false;
+        }
+        redisTemplate.opsForValue().set(key, "1", Duration.ofSeconds(60));
+        return true;
+    }
 }

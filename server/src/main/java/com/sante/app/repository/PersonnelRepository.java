@@ -16,6 +16,8 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
 
     @Query(value = """
             SELECT p."MAT_PERS" AS matPers,
+                   p."NOM_PERS" AS nomPers,
+                   p."PREN_PERS" AS prenomPers,
                    p."COD_USER" AS codUser,
                    p."COD_SOC" AS codSoc,
                    s."LIB_SOC" AS libSoc,
@@ -40,6 +42,8 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
 
     @Query(value = """
             SELECT p."MAT_PERS" AS matPers,
+                   p."NOM_PERS" AS nomPers,
+                   p."PREN_PERS" AS prenomPers,
                    p."COD_USER" AS codUser,
                    p."COD_SOC" AS codSoc,
                    s."LIB_SOC" AS libSoc,

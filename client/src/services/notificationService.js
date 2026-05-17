@@ -3,11 +3,6 @@ export const getMyNotifications = async (axiosPrivate) => {
   return response.data;
 };
 
-export const getUnreadCount = async (axiosPrivate) => {
-  const response = await axiosPrivate.get('/notifications/my/unread-count');
-  return response.data;
-};
-
 export const markAsRead = async (axiosPrivate, id) => {
   const response = await axiosPrivate.patch(`/notifications/${id}/read`);
   return response.data;

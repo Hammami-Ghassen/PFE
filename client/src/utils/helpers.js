@@ -9,11 +9,3 @@ export const formatDate = (dateStr) => {
     year: 'numeric',
   });
 };
-
-/**
- * Truncate a string to a given length.
- */
-export const truncate = (str, maxLen = 30) => {
-  if (!str) return '';
-  return str.length > maxLen ? str.substring(0, maxLen) + '…' : str;
-};

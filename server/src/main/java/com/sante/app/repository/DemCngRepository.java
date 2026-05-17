@@ -16,10 +16,13 @@ import org.springframework.data.repository.query.Param;
 public interface DemCngRepository extends JpaRepository<DemCng, DemCngId> {
 
     @Query(value = """
-            SELECT COALESCE(MAX(d.\"NUM_DCNG\"), 0) + 1
-            FROM \"DEM_CNG\" d
-            WHERE d.\"COD_SOC\" = :codSoc
-              AND d.\"MAT_PERS\" = :matPers
+            SELECT nextval FROM (
+                SELECT COALESCE(MAX(d.\"NUM_DCNG\"), 0) + 1 AS nextval,
+                       pg_advisory_xact_lock(hashtext(:codSoc || :matPers))
+                FROM \"DEM_CNG\" d
+                WHERE d.\"COD_SOC\" = :codSoc
+                  AND d.\"MAT_PERS\" = :matPers
+            ) sub
             """, nativeQuery = true)
     Integer findNextNumDcng(@Param("codSoc") String codSoc,
                             @Param("matPers") String matPers);

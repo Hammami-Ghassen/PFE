@@ -15,10 +15,10 @@ const PowerBIDashboard = () => {
 
   return (
     <Card className="flex flex-col h-[calc(100vh-7rem)] overflow-hidden" padding={false}>
-      <iframe 
-        title="tp" 
+      <iframe
+        title="tp"
         className="w-full h-full flex-1"
-        src="https://app.powerbi.com/reportEmbed?reportId=112539b7-fbfd-4228-be04-34443f349a88&autoAuth=true&ctid=dbd6664d-4eb9-46eb-99d8-5c43ba153c61?filter=Table_1/ProductName eq 'Chai'"
+        src={powerbiUrl}
         allowFullScreen
       ></iframe>
     </Card>

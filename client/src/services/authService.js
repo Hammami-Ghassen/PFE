@@ -18,8 +18,3 @@ export const refreshToken = async () => {
 export const logout = async (axiosPrivate) => {
   await axiosPrivate.post('/auth/logout');
 };
-
-export const getMe = async (axiosPrivate) => {
-  const response = await axiosPrivate.get('/auth/me');
-  return response.data.data;
-};

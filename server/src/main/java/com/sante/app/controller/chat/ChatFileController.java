@@ -86,12 +86,18 @@ public class ChatFileController {
 
         try {
             Path filePath = Paths.get(attachment.getFilePath()).normalize();
+            Path allowedDir = uploadDir.toAbsolutePath().normalize();
+            if (!filePath.startsWith(allowedDir)) {
+                throw new BadRequestException("Invalid file path");
+            }
+
             Resource resource = new UrlResource(filePath.toUri());
 
             if (resource.exists() && resource.isReadable()) {
+                String safeFileName = attachment.getFileName().replaceAll("[\"\\r\\n]", "_");
                 return ResponseEntity.ok()
                         .contentType(MediaType.parseMediaType(attachment.getFileType() != null ? attachment.getFileType() : "application/octet-stream"))
-                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + attachment.getFileName() + "\"")
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + safeFileName + "\"")
                         .body(resource);
             } else {
                 throw new ResourceNotFoundException("File not found or not readable");

@@ -105,10 +105,21 @@ public class ChatService {
             );
         }
 
-        // Map individuals and add to list
+        // Batch-load unread counts and last messages to avoid N+1
+        Map<String, Long> unreadMap = chatMessageRepository.countUnreadMessagesGroupedBySender(currentMatPers)
+                .stream().collect(Collectors.toMap(row -> (String) row[0], row -> (Long) row[1]));
+        Map<String, ChatMessage> lastMsgMap = chatMessageRepository.findLastMessagesForUser(currentMatPers)
+                .stream().collect(Collectors.toMap(
+                    msg -> msg.getSender().getMatPers().equals(currentMatPers)
+                        ? msg.getRecipient().getMatPers()
+                        : msg.getSender().getMatPers(),
+                    msg -> msg,
+                    (a, b) -> a.getTimestamp().isAfter(b.getTimestamp()) ? a : b
+                ));
+
         dtoList.addAll(individuals.stream().distinct().map(contact -> {
-            int unreadCount = chatMessageRepository.countUnreadMessages(currentMatPers, contact.getMatPers());
-            ChatMessage lastMessage = chatMessageRepository.findLastMessage(currentMatPers, contact.getMatPers());
+            int unreadCount = unreadMap.getOrDefault(contact.getMatPers(), 0L).intValue();
+            ChatMessage lastMessage = lastMsgMap.get(contact.getMatPers());
 
             return ChatContactDTO.builder()
                     .matPers(contact.getMatPers())
@@ -227,14 +238,8 @@ public class ChatService {
 
     @Transactional
     public void markMessagesAsRead(String recipientId, String senderId) {
-        if (senderId.startsWith("ROOM_")) return; // Skip mark as read for rooms for now
-        List<ChatMessage> messages = chatMessageRepository.findChatHistory(senderId, recipientId);
-        for (ChatMessage msg : messages) {
-            if (msg.getRecipient() != null && msg.getRecipient().getMatPers().equals(recipientId) && !msg.isRead()) {
-                msg.setRead(true);
-            }
-        }
-        chatMessageRepository.saveAll(messages);
+        if (senderId.startsWith("ROOM_")) return;
+        chatMessageRepository.markAllAsRead(senderId, recipientId);
     }
 
     private ChatMessageDTO mapToDTO(ChatMessage message) {

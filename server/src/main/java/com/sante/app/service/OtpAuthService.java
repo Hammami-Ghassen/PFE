@@ -44,6 +44,9 @@ public class OtpAuthService {
     @Transactional(readOnly = true)
     public void requestOtp(String matPers, OtpChannel channel) {
         String normalizedMatPers = normalizeMatPers(matPers);
+        if (!otpStoreService.isOtpRequestAllowed(normalizedMatPers)) {
+            throw new BadRequestException("Veuillez patienter avant de demander un nouveau code OTP.");
+        }
         personnelRepository.findById(normalizedMatPers)
                 .orElseThrow(() -> new UnauthorizedException("MAT_PERS introuvable."));
 
@@ -62,6 +65,9 @@ public class OtpAuthService {
     @Transactional
     public TokenSession verifyOtp(String matPers, String otp) {
         String normalizedMatPers = normalizeMatPers(matPers);
+        if (otpStoreService.isBlocked(normalizedMatPers)) {
+            throw new BadRequestException("Trop de tentatives. Veuillez patienter 15 minutes.");
+        }
         Personnel personnel = personnelRepository.findById(normalizedMatPers)
                 .orElseThrow(() -> new UnauthorizedException("MAT_PERS introuvable."));
 
@@ -72,10 +78,15 @@ public class OtpAuthService {
 
         String incomingHash = sha256(otp);
         if (!MessageDigest.isEqual(storedHash.getBytes(StandardCharsets.UTF_8), incomingHash.getBytes(StandardCharsets.UTF_8))) {
+            otpStoreService.incrementFailedAttempts(normalizedMatPers);
+            if (otpStoreService.getFailedAttempts(normalizedMatPers) >= 5) {
+                otpStoreService.deleteOtp(normalizedMatPers);
+            }
             throw new UnauthorizedException("OTP invalide.");
         }
 
         otpStoreService.deleteOtp(normalizedMatPers);
+        otpStoreService.clearFailedAttempts(normalizedMatPers);
 
         String appRole = personnel.getCodUser();
         String accessToken = authTokenService.generateAccessToken(normalizedMatPers, appRole);

@@ -171,7 +171,6 @@ const DashboardPage = () => {
       {/* Profile Header */}
       <ProfileHeader
         user={auth.user}
-        onResetPassword={() => toast.success('E-mail de réinitialisation envoyé.')}
         onEditProfile={openCorrectionModal}
       />
 
@@ -262,8 +261,8 @@ const DashboardPage = () => {
               type="annual"
             />
             <div className="p-4 border-t border-gray-100 bg-white">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="secondary"
                 className="w-full justify-center text-accent-red border-accent-red hover:bg-red-50"
                 onClick={() => navigate('/leave/my-requests')}
               >

@@ -1,6 +1,4 @@
-import { axiosPrivate } from '../api/axios';
-
-const chatService = {
+const chatService = (axiosPrivate) => ({
     getContacts: async () => {
         const response = await axiosPrivate.get('/chat/contacts');
         return response.data.data;
@@ -40,6 +38,6 @@ const chatService = {
         link.remove();
         window.URL.revokeObjectURL(url);
     }
-};
+});
 
 export default chatService;

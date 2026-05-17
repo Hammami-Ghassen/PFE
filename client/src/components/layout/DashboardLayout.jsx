@@ -10,7 +10,6 @@ const pageTitles = {
   '/leave/validation': 'Validation des conges',
   '/admin/users': 'Gestion du Personnel',
   '/admin/corrections': 'Demandes de correction',
-  '/admin/employees/new': 'Ajout Employe (UI)',
   '/home': 'Accueil',
 };
 

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
-import { PaperClipIcon, PaperAirplaneIcon, DocumentIcon, ArrowDownTrayIcon, FunnelIcon, ChatBubbleLeftIcon, UserGroupIcon, UserIcon, MagnifyingGlassIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
+import { PaperClipIcon, PaperAirplaneIcon, DocumentIcon, ArrowDownTrayIcon, ChatBubbleLeftIcon, UserGroupIcon, UserIcon, MagnifyingGlassIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
 import useAuth from '../../hooks/useAuth';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import useChatWebSocket from '../../hooks/useChatWebSocket';
@@ -12,6 +12,7 @@ import Spinner from '../../components/ui/Spinner';
 export default function ChatPage() {
     const { auth } = useAuth();
     const axiosPrivate = useAxiosPrivate();
+    const chat = chatService(axiosPrivate);
     const [contacts, setContacts] = useState([]);
     const [activeContact, setActiveContact] = useState(null);
     const [messages, setMessages] = useState([]);
@@ -36,7 +37,7 @@ export default function ChatPage() {
         // Update messages if it belongs to current active discussion
         if (activeContact && activeContact.matPers === targetContactId) {
             setMessages(prev => {
-                // Deduplicate if we already optimistically added it 
+                // Deduplicate if we already optimistically added it
                 // (matching content and sender since optimistic ID might differ from DB ID)
                 const isDuplicate = prev.some(m => m.id === message.id || (m.senderId === message.senderId && m.content === message.content && (!m.id || m.id > 1000000000000)));
                 if (isDuplicate) return prev;
@@ -44,7 +45,7 @@ export default function ChatPage() {
             });
             if (!message.roomId && message.recipientId === auth.user.matPers) {
                 // Mark as read immediately if window is open
-                chatService.markAsRead(message.senderId).catch(console.error);
+                chat.markAsRead(message.senderId).catch(console.error);
             }
         }
 
@@ -75,7 +76,7 @@ export default function ChatPage() {
             loadMessages(activeContact.matPers);
             // reset unread locally
             setContacts(prev => prev.map(c => c.matPers === activeContact.matPers ? { ...c, unreadCount: 0 } : c));
-            chatService.markAsRead(activeContact.matPers).catch(console.error);
+            chat.markAsRead(activeContact.matPers).catch(console.error);
         }
     }, [activeContact]);
 
@@ -90,7 +91,7 @@ export default function ChatPage() {
     const loadContacts = async () => {
         try {
             setLoadingContacts(true);
-            const data = await chatService.getContacts();
+            const data = await chat.getContacts();
             setContacts(data);
         } catch (err) {
             toast.error("Erreur lors du chargement des contacts.");
@@ -102,7 +103,7 @@ export default function ChatPage() {
     const loadMessages = async (otherMatPers) => {
         try {
             setLoadingMessages(true);
-            const data = await chatService.getChatHistory(otherMatPers);
+            const data = await chat.getChatHistory(otherMatPers);
             setMessages(data);
         } catch (err) {
             toast.error("Erreur lors du chargement de l'historique.");
@@ -151,7 +152,7 @@ export default function ChatPage() {
 
         try {
             setUploading(true);
-            const attachmentId = await chatService.uploadFile(file);
+            const attachmentId = await chat.uploadFile(file);
             chatWs.sendMessage(activeContact.matPers, "Pièce jointe", 'FILE', attachmentId);
             // For now, refreshing history to get the file metadata optimally
             // Wait a small delay to let backend save and WS to echo or just refetch
@@ -288,8 +289,8 @@ export default function ChatPage() {
                                                             <p className="text-sm font-medium truncate">{m.attachment.fileName}</p>
                                                             <p className="text-xs opacity-70">{(m.attachment.fileSize / 1024).toFixed(1)} KB</p>
                                                         </div>
-                                                        <button 
-                                                            onClick={() => chatService.downloadFile(m.attachment.id, m.attachment.fileName).catch(() => toast.error("Erreur lors du téléchargement"))}
+                                                        <button
+                                                            onClick={() => chat.downloadFile(m.attachment.id, m.attachment.fileName).catch(() => toast.error("Erreur lors du téléchargement"))}
                                                             className="p-1 hover:bg-white/20 rounded transition-colors"
                                                             title="Télécharger"
                                                         >

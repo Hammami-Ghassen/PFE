@@ -48,11 +48,11 @@ const NewsSlider = () => {
       <h2 className="text-xl font-bold text-gray-900 mb-4 shrink-0">Actualités du Ministère</h2>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 overflow-y-auto">
         {news.map((item, index) => (
-          <a filter="noopener noreferrer" 
-            key={index} 
-            href={item.link} 
-            target="_blank" 
-            rel="noreferrer"
+          <a
+            key={index}
+            href={item.link}
+            target="_blank"
+            rel="noopener noreferrer"
             className="flex flex-col border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition-shadow"
           >
             {item.imageUrl && (

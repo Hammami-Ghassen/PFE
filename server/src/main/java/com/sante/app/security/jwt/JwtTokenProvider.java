@@ -51,6 +51,8 @@ public class JwtTokenProvider {
                 .subject(matPers)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getAccessTokenExpiration()))
+                .issuer("grh-msp")
+                .audience().add("grh-msp-api").and()
                 .signWith(getPrivateKey(), Jwts.SIG.RS256)
                 .compact();
     }
@@ -65,6 +67,8 @@ public class JwtTokenProvider {
                 .subject(matPers)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtProperties.getRefreshTokenExpiration()))
+                .issuer("grh-msp")
+                .audience().add("grh-msp-api").and()
                 .signWith(getPrivateKey(), Jwts.SIG.RS256)
                 .compact();
     }
@@ -100,6 +104,8 @@ public class JwtTokenProvider {
     private Claims parseClaims(String token) {
         return Jwts.parser()
                 .verifyWith(getPublicKey())
+                .requireIssuer("grh-msp")
+                .requireAudience("grh-msp-api")
                 .build()
                 .parseSignedClaims(token)
                 .getPayload();

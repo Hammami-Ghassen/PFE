@@ -18,8 +18,7 @@ const LoginOtpStep = ({ otp, onOtpChange, onBack, onResend, resendTimer }) => (
     
     <div className="flex items-center justify-between text-sm mt-4 mb-2">
       <div className="flex items-center space-x-2">
-        <input type="checkbox" id="remember" className="rounded text-ministere-600 focus:ring-ministere-500 border-gray-300" />
-        <label htmlFor="remember" className="text-gray-500">Se souvenir de moi</label>
+
       </div>
       <div>
         <button

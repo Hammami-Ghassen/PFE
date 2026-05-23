@@ -354,8 +354,7 @@ const MyLeaveRequestsPage = () => {
     <div className="space-y-8 max-w-7xl mx-auto pb-10">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Mes demandes de conge</h2>
-          <p className="text-sm text-gray-500">Suivez votre historique et deposez une nouvelle demande.</p>
+
         </div>
         <Button onClick={openSubmitModal} className="gap-2">
           <PlusIcon className="w-4 h-4" />

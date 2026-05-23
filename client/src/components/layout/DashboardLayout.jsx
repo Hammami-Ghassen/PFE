@@ -11,6 +11,7 @@ const pageTitles = {
   '/admin/users': 'Gestion du Personnel',
   '/admin/corrections': 'Demandes de correction',
   '/home': 'Accueil',
+  '/chat': 'Messagerie',
 };
 
 const DashboardLayout = () => {

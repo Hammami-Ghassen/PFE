@@ -8,8 +8,8 @@ export const ROLES = {
 
 export const DEFAULT_ROUTE_BY_ROLE = {
   [ROLES.ADMIN]: '/admin/users',
-  [ROLES.DIRECTEUR]: '/dashboard',
-  [ROLES.AGENT]: '/dashboard',
+  [ROLES.DIRECTEUR]: '/home',
+  [ROLES.AGENT]: '/home',
 };
 
 export const getDefaultRouteForRole = (role) => DEFAULT_ROUTE_BY_ROLE[role] || '/home';

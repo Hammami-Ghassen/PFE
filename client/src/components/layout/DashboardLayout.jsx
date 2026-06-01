@@ -9,7 +9,7 @@ const pageTitles = {
   '/leave/my-requests': 'Mes demandes de conge',
   '/leave/validation': 'Validation des conges',
   '/admin/users': 'Gestion du Personnel',
-  '/admin/corrections': 'Demandes de correction',
+  '/admin/mise-a-jour': 'Demandes de mise à jour',
   '/home': 'Accueil',
   '/chat': 'Messagerie',
 };

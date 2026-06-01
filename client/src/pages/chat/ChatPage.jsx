@@ -243,7 +243,7 @@ export default function ChatPage() {
                     <>
                         <div className="p-4 border-b bg-white flex justify-between items-center shadow-sm z-10">
                             <div className="flex items-center gap-3">
-                                <button className="md:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700" onClick={() => setActiveContact(null)}><ChatBubbleLeftIcon className="w-6 h-6 transform rotate-180" /></button>
+                                <button className="md:hidden p-2 -ml-2 text-gray-500 hover:text-gray-700" onClick={() => setActiveContact(null)}><ChatBubbleLeftIcon className="w-6 h-6 transform " /></button>
                                 {activeContact.role === 'GROUPE' ? (
                                     <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-ministere-600 flex-shrink-0">
                                         <UserGroupIcon className="w-6 h-6" />

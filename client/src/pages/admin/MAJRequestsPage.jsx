@@ -5,7 +5,7 @@ import {
   downloadCorrectionAttachment,
   getCorrectionRequests,
   reviewCorrectionRequest,
-} from '../../services/correctionService';
+} from '../../services/MAJService';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import Spinner from '../../components/ui/Spinner';
 import StatCard from '../../components/ui/StatCard';
@@ -53,7 +53,7 @@ const formatDate = (value) => {
   });
 };
 
-const CorrectionRequestsPage = () => {
+const MAJRequestsPage = () => {
   const axiosPrivate = useAxiosPrivate();
 
   const [allRequests, setAllRequests] = useState([]);
@@ -73,7 +73,7 @@ const CorrectionRequestsPage = () => {
       });
       setAllRequests(response.content || []);
     } catch {
-      toast.error('Erreur lors du chargement des demandes de correction.');
+      toast.error('Erreur lors du chargement des demandes de mise à jour.');
     } finally {
       setLoading(false);
     }
@@ -185,7 +185,7 @@ const CorrectionRequestsPage = () => {
               <thead>
                 <tr className="bg-gray-50/80 text-gray-500 text-xs font-bold uppercase tracking-widest border-b border-gray-200">
                   <th className="px-6 py-4 text-left">DEMANDEUR</th>
-                  <th className="px-6 py-4 text-left">CHAMP À CORRIGER</th>
+                  <th className="px-6 py-4 text-left">CHAMP À METTRE À JOUR</th>
                   <th className="px-6 py-4 text-left">CHANGEMENT</th>
                   <th className="px-6 py-4 text-left">DATE SOUMISSION</th>
                   <th className="px-6 py-4 text-center">PIÈCE JOINTE</th>
@@ -196,7 +196,7 @@ const CorrectionRequestsPage = () => {
                 {paginatedRequests.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12 text-gray-400">
-                      Aucune demande de correction.
+                      Aucune demande de mise à jour.
                     </td>
                   </tr>
                 ) : (
@@ -321,4 +321,4 @@ const CorrectionRequestsPage = () => {
   );
 };
 
-export default CorrectionRequestsPage;
+export default MAJRequestsPage;

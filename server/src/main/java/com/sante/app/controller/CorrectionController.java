@@ -18,22 +18,22 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
-@RequestMapping("/api/corrections")
+@RequestMapping("/api/mise-a-jour")
 @RequiredArgsConstructor
-@Tag(name = "Demandes de correction", description = "Soumission des demandes de correction par les utilisateurs")
+@Tag(name = "Demandes de mise à jour", description = "Soumission des demandes de mise à jour par les utilisateurs")
 public class CorrectionController {
 
     private final CorrectionService correctionService;
 
     @PostMapping(value = "/request", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @Operation(summary = "Soumettre une demande de correction")
+    @Operation(summary = "Soumettre une demande de mise à jour")
     public ResponseEntity<ApiResponse<CorrectionRequestResponse>> requestCorrection(
             Authentication authentication,
             @RequestParam("attributCible") CorrectionTargetAttribute attributCible,
             @RequestParam("nouvelleValeur") String nouvelleValeur,
-            @RequestPart("pieceJointe") MultipartFile pieceJointe) {
+            @RequestPart(value = "pieceJointe", required = false) MultipartFile pieceJointe) {
         String matPers = (String) authentication.getPrincipal();
         CorrectionRequestResponse response = correctionService.createRequest(matPers, attributCible, nouvelleValeur, pieceJointe);
-        return ResponseEntity.ok(ApiResponse.success("Demande de correction envoyée.", response));
+        return ResponseEntity.ok(ApiResponse.success("Demande de mise à jour envoyée.", response));
     }
 }

@@ -5,9 +5,11 @@ export const requestCorrection = async (
   const formData = new FormData();
   formData.append('attributCible', attributCible);
   formData.append('nouvelleValeur', nouvelleValeur);
-  formData.append('pieceJointe', pieceJointe);
+  if (pieceJointe) {
+    formData.append('pieceJointe', pieceJointe);
+  }
 
-  const response = await axiosPrivate.post('/corrections/request', formData, {
+  const response = await axiosPrivate.post('/mise-a-jour/request', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data.data;
@@ -20,12 +22,12 @@ export const getCorrectionRequests = async (
   const params = { page, size };
   if (status) params.status = status;
 
-  const response = await axiosPrivate.get('/admin/corrections', { params });
+  const response = await axiosPrivate.get('/admin/mise-a-jour', { params });
   return response.data.data;
 };
 
 export const reviewCorrectionRequest = async (axiosPrivate, id, status) => {
-  const response = await axiosPrivate.patch(`/admin/corrections/${id}/review`, { status });
+  const response = await axiosPrivate.patch(`/admin/mise-a-jour/${id}/review`, { status });
   return response.data.data;
 };
 
@@ -55,11 +57,11 @@ const getAttachmentFileName = (response, id) => {
     return fileNameMatch[1];
   }
 
-  return `demande-correction-${id}`;
+  return `demande-mise-a-jour-${id}`;
 };
 
 export const downloadCorrectionAttachment = async (axiosPrivate, id) => {
-  const response = await axiosPrivate.get(`/admin/corrections/${id}/attachment`, {
+  const response = await axiosPrivate.get(`/admin/mise-a-jour/${id}/attachment`, {
     responseType: 'blob',
   });
 

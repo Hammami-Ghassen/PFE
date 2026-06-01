@@ -1,8 +1,8 @@
 package com.sante.app.service;
 
 import com.sante.app.dto.response.NotificationDto;
-import com.sante.app.model.AppNotification;
 import com.sante.app.model.NotificationType;
+import com.sante.app.model.notification.AppNotification;
 import com.sante.app.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

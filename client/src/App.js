@@ -14,7 +14,7 @@ import HomePage from './pages/dashboard/HomePage';
 import DashboardPage from './pages/dashboard/DashboardPage';
 import PowerBIDashboard from './pages/dashboard/PowerBIDashboard';
 import UsersListPage from './pages/admin/UsersListPage';
-import CorrectionRequestsPage from './pages/admin/CorrectionRequestsPage';
+import MAJRequestsPage from './pages/admin/MAJRequestsPage';
 import MyLeaveRequestsPage from './pages/leave/MyLeaveRequestsPage';
 import LeaveValidationPage from './pages/leave/LeaveValidationPage';
 import ChatPage from './pages/chat/ChatPage';
@@ -51,11 +51,14 @@ function App() {
                 <Route path="/dashboard" element={<DashboardPage />} />
               </Route>
 
-              <Route element={<RoleRoute allowedRoles={[ROLES.ADMIN, ROLES.DIRECTEUR]} />}>
+              <Route element={<RoleRoute allowedRoles={[ROLES.DIRECTEUR]} />}>
                 <Route path="/powerbi-dashboard" element={<PowerBIDashboard />} />
               </Route>
 
-              <Route element={<RoleRoute allowedRoles={[ROLES.AGENT, ROLES.DIRECTEUR]} />}>
+              <Route element={<RoleRoute 
+                allowedRoles={[ROLES.AGENT, ROLES.DIRECTEUR]} 
+                customCheck={(user) => !(user?.role === ROLES.DIRECTEUR && user?.codSoc === '0001')}
+              />}>
                 <Route path="/leave/my-requests" element={<MyLeaveRequestsPage />} />
               </Route>
 
@@ -66,7 +69,7 @@ function App() {
               {/* Admin only */}
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersListPage />} />
-                <Route path="/admin/corrections" element={<CorrectionRequestsPage />} />
+                <Route path="/admin/mise-a-jour" element={<MAJRequestsPage />} />
               </Route>
             </Route>
           </Route>

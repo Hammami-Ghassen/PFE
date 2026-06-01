@@ -8,7 +8,7 @@ import Button from '../../components/ui/Button';
 import Input from '../../components/ui/Input';
 import Modal from '../../components/ui/Modal';
 import Alert from '../../components/ui/Alert';
-import { requestCorrection } from '../../services/correctionService';
+import { requestCorrection } from '../../services/MAJService';
 import { getCurrentLeaveBalance } from '../../services/leaveService';
 import ProfileHeader from '../../components/ui/ProfileHeader';
 import LeaveBalanceCard from '../../components/ui/LeaveBalanceCard';
@@ -96,16 +96,14 @@ const DashboardPage = () => {
     const errors = {};
 
     if (!correctionForm.attributCible) {
-      errors.attributCible = 'Sélectionnez un attribut à corriger.';
+      errors.attributCible = 'Sélectionnez un attribut à mettre à jour.';
     }
 
     if (!correctionForm.nouvelleValeur || !correctionForm.nouvelleValeur.trim()) {
       errors.nouvelleValeur = 'La nouvelle valeur est obligatoire.';
     }
 
-    if (!correctionForm.pieceJointe) {
-      errors.pieceJointe = 'La pièce jointe est obligatoire.';
-    } else if (correctionForm.pieceJointe.size > MAX_FILE_SIZE_BYTES) {
+    if (correctionForm.pieceJointe && correctionForm.pieceJointe.size > MAX_FILE_SIZE_BYTES) {
       errors.pieceJointe = 'La pièce jointe ne doit pas dépasser 2 Mo.';
     }
 
@@ -126,12 +124,7 @@ const DashboardPage = () => {
     setCorrectionForm((prev) => ({ ...prev, pieceJointe: selectedFile }));
     setSubmitError('');
 
-    if (!selectedFile) {
-      setFormErrors((prev) => ({ ...prev, pieceJointe: 'La pièce jointe est obligatoire.' }));
-      return;
-    }
-
-    if (selectedFile.size > MAX_FILE_SIZE_BYTES) {
+    if (selectedFile && selectedFile.size > MAX_FILE_SIZE_BYTES) {
       setFormErrors((prev) => ({ ...prev, pieceJointe: 'La pièce jointe ne doit pas dépasser 2 Mo.' }));
       return;
     }
@@ -154,7 +147,7 @@ const DashboardPage = () => {
         nouvelleValeur: correctionForm.nouvelleValeur.trim(),
         pieceJointe: correctionForm.pieceJointe,
       });
-      toast.success('Demande de correction envoyée.');
+      toast.success('Demande de mise à jour envoyée.');
       setIsCorrectionModalOpen(false);
       resetCorrectionForm();
     } catch (err) {
@@ -252,32 +245,34 @@ const DashboardPage = () => {
           </Card>
         </div>
 
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="h-full flex flex-col items-stretch p-0 overflow-hidden">
-            <LeaveBalanceCard
-              title="SOLDE ACTUEL"
-              balance={loadingBalance ? '...' : formatBalanceValue(balance?.currentBalance)}
-              subtitle={`Restant pour ${new Date().getFullYear()}`}
-              type="annual"
-            />
-            <div className="p-4 border-t border-gray-100 bg-white">
-              <Button
-                variant="secondary"
-                className="w-full justify-center text-accent-red border-accent-red hover:bg-red-50"
-                onClick={() => navigate('/leave/my-requests')}
-              >
-                <ClockIcon className="w-4 h-4 mr-2" />
-                VOIR L'HISTORIQUE DES CONGÉS
-              </Button>
-            </div>
-          </Card>
-        </div>
+        {!(auth.user?.role === 'DIRECTEUR' && auth.user?.codSoc === '0001') && (
+          <div className="lg:col-span-1 space-y-6">
+            <Card className="h-full flex flex-col items-stretch p-0 overflow-hidden">
+              <LeaveBalanceCard
+                title="SOLDE ACTUEL"
+                balance={loadingBalance ? '...' : formatBalanceValue(balance?.currentBalance)}
+                subtitle={`Restant pour ${new Date().getFullYear()}`}
+                type="annual"
+              />
+              <div className="p-4 border-t border-gray-100 bg-white">
+                <Button
+                  variant="secondary"
+                  className="w-full justify-center text-accent-red border-accent-red hover:bg-red-50"
+                  onClick={() => navigate('/leave/my-requests')}
+                >
+                  <ClockIcon className="w-4 h-4 mr-2" />
+                  VOIR L'HISTORIQUE DES CONGÉS
+                </Button>
+              </div>
+            </Card>
+          </div>
+        )}
       </div>
 
       <Modal
         isOpen={isCorrectionModalOpen}
         onClose={closeCorrectionModal}
-        title="Demander une correction"
+        title="Demander une mise à jour de mes informations"
         footer={(
           <>
             <Button

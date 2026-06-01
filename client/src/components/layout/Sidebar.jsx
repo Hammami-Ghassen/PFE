@@ -22,11 +22,11 @@ const navItems = [
   { label: 'Accueil', to: '/home', icon: HomeIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Mes Informations', to: '/dashboard', icon: UserIcon, roles: [ROLES.DIRECTEUR, ROLES.AGENT] },
   { label: 'Messages', to: '/chat', icon: ChatBubbleLeftRightIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR, ROLES.AGENT] },
-  { label: 'Tableau de bord', to: '/powerbi-dashboard', icon: ChartBarIcon, roles: [ROLES.ADMIN, ROLES.DIRECTEUR] },
+  { label: 'Tableau de bord', to: '/powerbi-dashboard', icon: ChartBarIcon, roles: [ROLES.DIRECTEUR] },
   { label: 'Mes demandes de congé', to: '/leave/my-requests', icon: CalendarDaysIcon, roles: [ROLES.AGENT, ROLES.DIRECTEUR] },
   { label: 'Validation congés', to: '/leave/validation', icon: ClipboardDocumentCheckIcon, roles: [ROLES.DIRECTEUR] },
   { label: 'Personnel', to: '/admin/users', icon: UsersIcon, roles: [ROLES.ADMIN] },
-  { label: 'Demandes de correction', to: '/admin/corrections', icon: ClipboardDocumentListIcon, roles: [ROLES.ADMIN] },
+  { label: 'Demandes de mise à jour', to: '/admin/mise-a-jour', icon: ClipboardDocumentListIcon, roles: [ROLES.ADMIN] },
 ];
 
 const Sidebar = ({ onClose }) => {
@@ -65,7 +65,14 @@ const Sidebar = ({ onClose }) => {
       {/* Nav */}
       <nav className="flex-1 px-4 py-8 space-y-2 overflow-y-auto">
         {navItems
-          .filter((item) => item.roles.includes(userRole))
+          .filter((item) => {
+            if (!item.roles.includes(userRole)) return false;
+            // Hide My leave requests for DIRECTEUR with codSoc 0001
+            if (item.to === '/leave/my-requests' && userRole === ROLES.DIRECTEUR && auth?.user?.codSoc === '0001') {
+              return false;
+            }
+            return true;
+          })
           .map(({ label, to, icon: Icon }) => (
             <NavLink
               onClick={onClose}

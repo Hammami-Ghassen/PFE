@@ -1,8 +1,10 @@
-package com.sante.app.model;
+package com.sante.app.model.notification;
 
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+
+import com.sante.app.model.NotificationType;
 
 import java.time.LocalDateTime;
 

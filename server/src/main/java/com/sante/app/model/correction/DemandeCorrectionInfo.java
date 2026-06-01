@@ -48,7 +48,7 @@ public class DemandeCorrectionInfo {
     private LocalDateTime dateDemande;
 
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "\"PIECE_JOINTE\"", nullable = false)
+    @Column(name = "\"PIECE_JOINTE\"")
     private byte[] pieceJointe;
 
     @Column(name = "\"PIECE_JOINTE_NOM\"")

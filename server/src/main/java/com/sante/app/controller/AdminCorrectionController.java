@@ -25,16 +25,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api/admin/corrections")
+@RequestMapping("/api/admin/mise-a-jour")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Administration corrections", description = "Validation et rejet des demandes de correction")
+@Tag(name = "Administration mises a jour", description = "Validation et rejet des demandes de mise à jour")
 public class AdminCorrectionController {
 
     private final CorrectionService correctionService;
 
     @GetMapping
-    @Operation(summary = "Lister les demandes de correction")
+    @Operation(summary = "Lister les demandes de mise à jour")
     public ResponseEntity<ApiResponse<Page<AdminCorrectionRequestResponse>>> listCorrections(
             @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
@@ -43,12 +43,12 @@ public class AdminCorrectionController {
     }
 
     @PatchMapping("/{id}/review")
-    @Operation(summary = "Valider ou rejeter une demande de correction")
+    @Operation(summary = "Valider ou rejeter une demande de mise à jour")
     public ResponseEntity<ApiResponse<AdminCorrectionRequestResponse>> reviewCorrection(
             @PathVariable Long id,
             @Valid @RequestBody ReviewCorrectionRequest request) {
         AdminCorrectionRequestResponse response = correctionService.reviewCorrection(id, request.status());
-        return ResponseEntity.ok(ApiResponse.success("Demande de correction mise à jour.", response));
+        return ResponseEntity.ok(ApiResponse.success("Demande de mise à jour traitée.", response));
     }
 
     @GetMapping("/{id}/attachment")

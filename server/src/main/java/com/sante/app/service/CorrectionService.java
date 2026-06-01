@@ -55,10 +55,12 @@ public class CorrectionService {
         entity.setAncienneValeur(emptyToNull(readCurrentValue(normalizedMatPers, normalizedAttribut)));
         entity.setNouvelleValeur(normalizedValue);
         entity.setStatut(CorrectionRequestStatus.PENDING);
-        entity.setPieceJointe(toBytes(pieceJointe));
-        entity.setPieceJointeNom(normalizeAttachmentFileName(pieceJointe.getOriginalFilename()));
-        entity.setPieceJointeType(emptyToNull(pieceJointe.getContentType()) == null ? "application/octet-stream" : pieceJointe.getContentType());
-        entity.setPieceJointeTaille(pieceJointe.getSize());
+        if (pieceJointe != null && !pieceJointe.isEmpty()) {
+            entity.setPieceJointe(toBytes(pieceJointe));
+            entity.setPieceJointeNom(normalizeAttachmentFileName(pieceJointe.getOriginalFilename()));
+            entity.setPieceJointeType(emptyToNull(pieceJointe.getContentType()) == null ? "application/octet-stream" : pieceJointe.getContentType());
+            entity.setPieceJointeTaille(pieceJointe.getSize());
+        }
 
         DemandeCorrectionInfo saved = demandeCorrectionInfoRepository.saveAndFlush(entity);
         return mapUserResponse(saved);
@@ -154,11 +156,10 @@ public class CorrectionService {
     }
 
     private void validateAttachment(MultipartFile pieceJointe) {
-        if (pieceJointe == null || pieceJointe.isEmpty()) {
-            throw new BadRequestException("La pièce jointe est obligatoire.");
-        }
-        if (pieceJointe.getSize() > MAX_ATTACHMENT_SIZE_BYTES) {
-            throw new BadRequestException("La pièce jointe dépasse la taille maximale de 2 Mo.");
+        if (pieceJointe != null && !pieceJointe.isEmpty()) {
+            if (pieceJointe.getSize() > MAX_ATTACHMENT_SIZE_BYTES) {
+                throw new BadRequestException("La pièce jointe dépasse la taille maximale de 2 Mo.");
+            }
         }
     }
 

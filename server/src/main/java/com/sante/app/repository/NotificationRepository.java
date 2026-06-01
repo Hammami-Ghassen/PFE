@@ -1,8 +1,9 @@
 package com.sante.app.repository;
 
-import com.sante.app.model.AppNotification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+
+import com.sante.app.model.notification.AppNotification;
 
 import java.util.List;
 

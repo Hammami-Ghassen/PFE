@@ -13,10 +13,10 @@ CREATE TABLE IF NOT EXISTS d_service (
     cle_service_source VARCHAR(150) NOT NULL UNIQUE
 );
 
-CREATE TABLE IF NOT EXISTS d_societe (
-    id_societe SERIAL PRIMARY KEY,
-    code_societe VARCHAR(50) UNIQUE NOT NULL,
-    libelle_societe VARCHAR(255)
+CREATE TABLE IF NOT EXISTS d_etablissement (
+    id_etablissement SERIAL PRIMARY KEY,
+    code_etablissement VARCHAR(50) UNIQUE NOT NULL,
+    libelle_etablissement VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS d_gouvernorat (
@@ -34,11 +34,6 @@ CREATE TABLE IF NOT EXISTS d_grade (
     CONSTRAINT uq_d_grade UNIQUE (code_categ, code_cat, code_grade)
 );
 
-CREATE TABLE IF NOT EXISTS d_etat_act (
-    id_etat_act SERIAL PRIMARY KEY,
-    code_etat_act VARCHAR(50) UNIQUE NOT NULL,
-    libelle_etat_act VARCHAR(255)
-);
 
 CREATE TABLE IF NOT EXISTS d_personnel (
     id_personnel SERIAL PRIMARY KEY,
@@ -80,11 +75,10 @@ CREATE TABLE IF NOT EXISTS f_effectif_snapshot (
     id_effectif_snapshot BIGSERIAL PRIMARY KEY,
     id_temps INT,
     id_personnel INT,
-    id_societe INT,
+    id_etablissement INT,
     id_service INT,
     id_gouvernorat INT,
     id_grade INT,
-    id_etat_act INT,
     code_sexe VARCHAR(10),
     nb_agent INT,
     age INT,
@@ -96,7 +90,7 @@ CREATE TABLE IF NOT EXISTS f_demande_conge (
     id_temps_debut INT,
     id_temps_fin INT,
     id_personnel INT,
-    id_societe INT,
+    id_etablissement INT,
     id_service INT,
     id_motif_conge INT,
     id_statut_demande_conge INT,
@@ -110,7 +104,7 @@ CREATE TABLE IF NOT EXISTS f_pointage_retard (
     id_pointage_retard BIGSERIAL PRIMARY KEY,
     id_temps INT,
     id_personnel INT,
-    id_societe INT,
+    id_etablissement INT,
     id_service INT,
     id_type_pointage INT,
     id_etat_retard INT,
@@ -142,3 +136,13 @@ CREATE INDEX IF NOT EXISTS idx_user_societe_access_email
 
 CREATE INDEX IF NOT EXISTS idx_user_societe_access_soc
     ON public.user_societe_access (cod_soc);
+
+
+CREATE TABLE IF NOT EXISTS d_axe (
+    id_axe SERIAL PRIMARY KEY,
+    code_axe VARCHAR(50) UNIQUE NOT NULL,
+    libelle_axe VARCHAR(255)
+);
+
+ALTER TABLE f_effectif_snapshot
+ADD COLUMN IF NOT EXISTS id_axe INT;

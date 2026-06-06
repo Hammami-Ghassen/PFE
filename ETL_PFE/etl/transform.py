@@ -34,7 +34,7 @@ def make_service_source_key(code_soc: pd.Series, code_service: pd.Series) -> pd.
         + code_service.astype("string").str.strip().fillna("")
     )
 
-def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, typ_conge, etat_paie, motif_j, societe):
+def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, typ_conge, motif_j, societe, metier, axe):
     d_service = service.copy()
     d_service["COD_SOC"] = clean_text(d_service["COD_SOC"])
     d_service["COD_SERV"] = clean_text(d_service["COD_SERV"])
@@ -73,6 +73,20 @@ def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, t
         "LIB_GOUV": "libelle_gouvernorat",
     })
 )
+    
+    d_axe = axe.copy()
+    d_axe["COD_AXE"] = clean_text(d_axe["COD_AXE"])
+    d_axe["LIB_AXE"] = clean_text(d_axe["LIB_AXE"])
+
+    d_axe = (
+        d_axe[["COD_AXE", "LIB_AXE"]]
+        .dropna(subset=["COD_AXE"])
+        .drop_duplicates(subset=["COD_AXE"])
+        .rename(columns={
+            "COD_AXE": "code_axe",
+            "LIB_AXE": "libelle_axe",
+        })
+    )
 
     d_grade = grade.copy()
     d_grade["COD_GRAD"] = clean_text(d_grade["COD_GRAD"])
@@ -92,36 +106,21 @@ def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, t
     })
 )
 
-    d_societe = societe.copy()
-    d_societe["COD_SOC"] = clean_text(d_societe["COD_SOC"])
-    d_societe["LIB_SOC"] = clean_text(d_societe["LIB_SOC"])
+    d_etablissement = societe.copy()
+    d_etablissement["COD_SOC"] = clean_text(d_etablissement["COD_SOC"])
+    d_etablissement["LIB_SOC"] = clean_text(d_etablissement["LIB_SOC"])
 
-    d_societe = (
-    d_societe[["COD_SOC", "LIB_SOC"]]
+    d_etablissement = (
+    d_etablissement[["COD_SOC", "LIB_SOC"]]
     .dropna(subset=["COD_SOC"])
     .drop_duplicates(subset=["COD_SOC"])
     .rename(columns={
-        "COD_SOC": "code_societe",
-        "LIB_SOC": "libelle_societe",
+        "COD_SOC": "code_etablissement",
+        "LIB_SOC": "libelle_etablissement",
     })
 )
 
 
-
-
-    d_etat_act = etat_paie.copy()
-    d_etat_act["COD_ETAT"] = clean_text(d_etat_act["COD_ETAT"])
-    d_etat_act["LIB_ETAT"] = clean_text(d_etat_act["LIB_ETAT"])
-
-    d_etat_act = (
-    d_etat_act[["COD_ETAT", "LIB_ETAT"]]
-    .dropna(subset=["COD_ETAT"])
-    .drop_duplicates(subset=["COD_ETAT"])
-    .rename(columns={
-        "COD_ETAT": "code_etat_act",
-        "LIB_ETAT": "libelle_etat_act",
-    })
-)
 
 
     d_personnel = personnel.copy()
@@ -236,20 +235,19 @@ def build_dimensions(personnel, dem_cng, pointer, gouvernorat, service, grade, t
         "d_service": d_service,
         "d_gouvernorat": d_gouvernorat,
         "d_grade": d_grade,
-        "d_etat_act": d_etat_act,
         "d_personnel": d_personnel,
         "d_motif_conge": d_motif_conge,
         "d_statut_demande_conge": d_statut_demande_conge,
         "d_type_pointage": d_type_pointage,
         "d_etat_retard": d_etat_retard,
-        "d_societe": d_societe,
-
+        "d_etablissement": d_etablissement,
+        "d_axe": d_axe
     }
 
-def build_fact_effectif(personnel, societe, d_temps):
+def build_fact_effectif(personnel, societe, d_temps, metier):
     df = personnel.copy()
 
-    for col in ["MAT_PERS", "COD_SOC", "COD_SERV", "COD_CATEG", "COD_CAT", "COD_GRAD", "ETAT_ACT", "SEXE"]:
+    for col in ["MAT_PERS", "COD_SOC", "COD_SERV", "COD_CATEG", "COD_CAT", "COD_GRAD", "SEXE", "COD_METIER"]:
         df[col] = clean_text(df[col])
 
     soc = societe.copy()
@@ -260,6 +258,16 @@ def build_fact_effectif(personnel, societe, d_temps):
     df = df.merge(
         soc[["COD_SOC", "COD_GOUV_TRAVAIL"]],
         on="COD_SOC",
+        how="left"
+    )
+
+    met = metier.copy()
+    met["COD_METIER"] = clean_text(met["COD_METIER"])
+    met["COD_AXE"] = clean_text(met["COD_AXE"])
+
+    df = df.merge(
+        met[["COD_METIER", "COD_AXE"]],
+        on="COD_METIER",
         how="left"
     )
 
@@ -298,7 +306,7 @@ def build_fact_effectif(personnel, societe, d_temps):
         fact_snapshot = pd.DataFrame({
             "snapshot_date": snapshot,
             "matricule": df_snapshot["MAT_PERS"],
-            "code_soc": df_snapshot["COD_SOC"],
+            "code_etablissement": df_snapshot["COD_SOC"],
             "code_service": df_snapshot["COD_SERV"],
             "cle_service_source": make_service_source_key(
                 df_snapshot["COD_SOC"],
@@ -308,8 +316,8 @@ def build_fact_effectif(personnel, societe, d_temps):
             "code_categ": df_snapshot["COD_CATEG"],
             "code_cat": df_snapshot["COD_CAT"],
             "code_grade": df_snapshot["COD_GRAD"],
-            "code_etat_act": df_snapshot["ETAT_ACT"],
             "code_sexe": df_snapshot["SEXE"],
+            "code_axe": df_snapshot["COD_AXE"],
             "nb_agent": 1,
             "age": ((snapshot - df_snapshot["DAT_NAIS"]).dt.days / 365.25).round().astype("Int64"),
             "anciennete_jours": (snapshot - df_snapshot["DAT_EMB"]).dt.days.astype("Int64"),
@@ -371,7 +379,7 @@ def build_fact_conge(dem_cng, justif, personnel):
     fact["est_justifie"] = fact["nb_justificatifs"] > 0
 
     fact = fact.rename(columns={
-        "COD_SOC": "code_soc",
+        "COD_SOC": "code_etablissement",
         "DAT_DEBUT": "date_debut",
         "DAT_FIN": "date_fin",
         "MAT_PERS": "matricule",
@@ -387,7 +395,7 @@ def build_fact_conge(dem_cng, justif, personnel):
     fact = fact[[
         "date_debut",
         "date_fin",
-        "code_soc",
+        "code_etablissement",
         "matricule",
         "code_service",
         "cle_service_source",
@@ -400,7 +408,7 @@ def build_fact_conge(dem_cng, justif, personnel):
     ]]
 
     fact = fact.drop_duplicates(
-        subset=["code_soc", "matricule", "date_debut", "date_fin", "code_motif_conge"]
+        subset=["code_etablissement", "matricule", "date_debut", "date_fin", "code_motif_conge"]
     )
 
     return fact
@@ -452,11 +460,11 @@ def build_fact_pointage_retard(pointer, retard, personnel):
         "MAT_PERS": "matricule",
         "COD_SERV": "code_service",
         "TYP_POINT": "code_type_pointage", 
-        "COD_SOC": "code_soc",
+        "COD_SOC": "code_etablissement",
     })
 
     fact = fact[[
-        "date_point", "matricule", "code_soc", "code_service", "cle_service_source", "code_type_pointage",
+        "date_point", "matricule", "code_etablissement", "code_service", "cle_service_source", "code_type_pointage",
         "code_etat_retard", "nb_pointage", "ret_min", "duree_tot"
     ]]
 
@@ -510,19 +518,20 @@ def run_transform(extracted_data: dict) -> dict:
     service = extracted_data["service"]
     grade = extracted_data["grade"]
     typ_conge = extracted_data["typ_conge"]
-    etat_paie = extracted_data["etat_paie"]
     motif_j = extracted_data["motif_j"]
     societe = extracted_data["societe"]
     adr_pers = extracted_data["adr_pers"]
+    metier = extracted_data["metier"]
+    axe = extracted_data["axe"]
 
     dims = build_dimensions(
         personnel, dem_cng, pointer,
         gouvernorat, service, grade,
-        typ_conge, etat_paie, motif_j, societe
+        typ_conge, motif_j, societe, metier, axe
     )
 
     facts = {
-        "f_effectif_snapshot": build_fact_effectif(personnel, societe, dims["d_temps"]),
+        "f_effectif_snapshot": build_fact_effectif(personnel, societe, dims["d_temps"], metier),
         "f_demande_conge": build_fact_conge(dem_cng, justif, personnel),
         "f_pointage_retard": build_fact_pointage_retard(pointer, retard, personnel),
     }

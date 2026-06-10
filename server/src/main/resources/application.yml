@@ -45,6 +45,7 @@ spring:
       max-request-size: 3MB
 
 app:
+  config-encryption-key: ${APP_CONFIG_ENCRYPTION_KEY:}
   news:
     feed-url: ${NEWS_FEED_URL:https://santetunisie.rns.tn/fr/toutes-les-actualites?format=feed&type=rss}
     timeout-ms: ${NEWS_TIMEOUT_MS:10000}

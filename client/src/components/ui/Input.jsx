@@ -34,7 +34,7 @@ const Input = ({
           type={inputType}
           className={`w-full px-4 py-3 border rounded-lg text-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-transparent transition-all duration-200 ${
             error ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-gray-50'
-          } ${isPassword ? 'pr-10' : ''} ${Icon ? 'pl-10' : ''}`}
+          } disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed ${isPassword ? 'pr-10' : ''} ${Icon ? 'pl-10' : ''}`}
           {...props}
         />
         {isPassword && (

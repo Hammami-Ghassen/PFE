@@ -15,6 +15,7 @@ import DashboardPage from './pages/dashboard/DashboardPage';
 import PowerBIDashboard from './pages/dashboard/PowerBIDashboard';
 import UsersListPage from './pages/admin/UsersListPage';
 import MAJRequestsPage from './pages/admin/MAJRequestsPage';
+import OtpSettingsPage from './pages/admin/OtpSettingsPage';
 import MyLeaveRequestsPage from './pages/leave/MyLeaveRequestsPage';
 import LeaveValidationPage from './pages/leave/LeaveValidationPage';
 import ChatPage from './pages/chat/ChatPage';
@@ -70,6 +71,7 @@ function App() {
               <Route element={<AdminRoute />}>
                 <Route path="/admin/users" element={<UsersListPage />} />
                 <Route path="/admin/mise-a-jour" element={<MAJRequestsPage />} />
+                <Route path="/admin/otp-settings" element={<OtpSettingsPage />} />
               </Route>
             </Route>
           </Route>

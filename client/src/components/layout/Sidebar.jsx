@@ -10,6 +10,7 @@ import {
   ClipboardDocumentCheckIcon,
   ArrowRightOnRectangleIcon,
   ChatBubbleLeftRightIcon,
+  Cog6ToothIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import Logo from './Logo';
@@ -26,6 +27,7 @@ const navItems = [
   { label: 'Mes demandes de congé', to: '/leave/my-requests', icon: CalendarDaysIcon, roles: [ROLES.AGENT, ROLES.DIRECTEUR] },
   { label: 'Validation congés', to: '/leave/validation', icon: ClipboardDocumentCheckIcon, roles: [ROLES.DIRECTEUR] },
   { label: 'Personnel', to: '/admin/users', icon: UsersIcon, roles: [ROLES.ADMIN] },
+  { label: 'OTP SMTP', to: '/admin/otp-settings', icon: Cog6ToothIcon, roles: [ROLES.ADMIN] },
   { label: 'Demandes de mise à jour', to: '/admin/mise-a-jour', icon: ClipboardDocumentListIcon, roles: [ROLES.ADMIN] },
 ];
 

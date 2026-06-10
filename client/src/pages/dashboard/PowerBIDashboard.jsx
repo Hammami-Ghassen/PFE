@@ -11,7 +11,7 @@ const withPowerBIFilter = (url, codSoc) => {
   }
 
   const separator = url.includes('?') ? '&' : '?';
-  const filter = `d_societe/code_societe eq '${codSoc}'`;
+  const filter = `d_etablissement/code_etablissement eq '${codSoc}'`;
   const encodedFilter = encodeURIComponent(filter).replace(/'/g, '%27');
 
   return `${url}${separator}filter=${encodedFilter}`;

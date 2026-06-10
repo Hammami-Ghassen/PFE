@@ -12,6 +12,7 @@ const pageTitles = {
   '/admin/mise-a-jour': 'Demandes de mise à jour',
   '/home': 'Accueil',
   '/chat': 'Messagerie',
+  '/admin/otp-settings': 'Configuration SMTP',
 };
 
 const DashboardLayout = () => {

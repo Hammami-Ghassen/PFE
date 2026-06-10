@@ -71,6 +71,7 @@ class OtpAuthServiceTest {
 
         when(personnelRepository.findById(matPers)).thenReturn(Optional.of(personnel));
         when(adrPersRepository.findById(matPers)).thenReturn(Optional.of(adrPers));
+        when(otpStoreService.isOtpRequestAllowed(matPers)).thenReturn(true);
 
         otpAuthService.requestOtp(matPers, OtpChannel.EMAIL);
 

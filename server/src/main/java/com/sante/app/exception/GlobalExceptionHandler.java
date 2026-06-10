@@ -5,6 +5,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.RedisConnectionFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.mail.MailException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -65,6 +66,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleRedisUnavailable(RedisConnectionFailureException ex) {
         log.error("Redis indisponible: {}", ex.getMessage());
         return errorResponse(HttpStatus.SERVICE_UNAVAILABLE, "Service OTP temporairement indisponible (Redis inaccessible).");
+    }
+
+    @ExceptionHandler(MailException.class)
+    public ResponseEntity<ApiResponse<Void>> handleMailUnavailable(MailException ex) {
+        log.error("Service email OTP indisponible: {}", ex.getMessage());
+        return errorResponse(HttpStatus.SERVICE_UNAVAILABLE, "Service email OTP temporairement indisponible.");
     }
 
     @ExceptionHandler(Exception.class)

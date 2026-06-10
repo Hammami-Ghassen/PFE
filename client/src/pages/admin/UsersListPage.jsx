@@ -4,7 +4,6 @@ import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { getEstablishments, getUsers, updatePersonnelRole } from '../../services/userService';
 import usePersonnelPagination, { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import useEstablishments from '../../hooks/useEstablishments';
-import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import Spinner from '../../components/ui/Spinner';
 import {

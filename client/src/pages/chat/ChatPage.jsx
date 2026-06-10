@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { format } from 'date-fns';
-import { fr } from 'date-fns/locale';
 import { PaperClipIcon, PaperAirplaneIcon, DocumentIcon, ArrowDownTrayIcon, ChatBubbleLeftIcon, UserGroupIcon, UserIcon, MagnifyingGlassIcon, BriefcaseIcon } from '@heroicons/react/24/outline';
 import useAuth from '../../hooks/useAuth';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
@@ -78,6 +77,7 @@ export default function ChatPage() {
             setContacts(prev => prev.map(c => c.matPers === activeContact.matPers ? { ...c, unreadCount: 0 } : c));
             chat.markAsRead(activeContact.matPers).catch(console.error);
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeContact]);
 
     useEffect(() => {

@@ -8,8 +8,20 @@ def run_extract() -> dict[str, pd.DataFrame]:
         SELECT
             "COD_SOC", "MAT_PERS", "NOM_PERS", "PREN_PERS",
             "SEXE", "DAT_EMB", "DAT_NAIS",
-            "COD_SERV", "COD_GOUV", "COD_CATEG", "COD_CAT", "COD_GRAD", "ETAT_ACT", "COD_USER"
+            "COD_SERV", "COD_GOUV", "COD_CATEG", "COD_CAT", "COD_GRAD", "ETAT_ACT", "COD_USER", "COD_METIER"
         FROM public."PERSONNEL"
+    """, engine)
+
+    metier = pd.read_sql_query("""
+    SELECT
+        "COD_METIER", "COD_AXE"
+    FROM public."METIER"
+    """, engine)
+
+    axe = pd.read_sql_query("""
+    SELECT
+        "COD_AXE", "LIB_AXE"
+    FROM public."AXE"
     """, engine)
 
     typ_conge = pd.read_sql_query("""
@@ -44,11 +56,6 @@ def run_extract() -> dict[str, pd.DataFrame]:
     FROM public."GRADE"
 """, engine)
     
-    etat_paie = pd.read_sql_query("""
-    SELECT
-        "COD_ETAT", "LIB_ETAT"
-    FROM public."ETAT_PAIE"
-""", engine)
     
     motif_j = pd.read_sql_query("""
     SELECT
@@ -100,8 +107,9 @@ def run_extract() -> dict[str, pd.DataFrame]:
         "service": service,
         "grade": grade,
         "typ_conge": typ_conge,
-        "etat_paie": etat_paie,
         "motif_j": motif_j,
         "societe": societe,
-        "adr_pers": adr_pers
+        "adr_pers": adr_pers,
+        "metier": metier,
+        "axe": axe
     }

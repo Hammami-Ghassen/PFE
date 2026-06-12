@@ -21,17 +21,44 @@ public interface PersonnelRepository extends JpaRepository<Personnel, String> {
                             p."COD_USER" AS codUser,
                             p."COD_SOC" AS codSoc,
                             s."LIB_SOC" AS libSoc,
-                            a."ADR_ELECTRONIQUE" AS adrElectronique,
-                            a."TEL_PORT_PERS" AS telPortPers
+                            MAX(a."ADR_ELECTRONIQUE") AS adrElectronique,
+                            MAX(a."TEL_PORT_PERS") AS telPortPers
                      FROM "PERSONNEL" p
                      LEFT JOIN "SOCIETE" s ON s."COD_SOC" = p."COD_SOC"
                      LEFT JOIN "ADR_PERS" a ON a."MAT_PERS" = p."MAT_PERS"
-                     WHERE (:search IS NULL OR p."MAT_PERS" ILIKE CONCAT('%', :search, '%'))
+                     WHERE (:search IS NULL
+                            OR p."MAT_PERS" ILIKE CONCAT('%', :search, '%')
+                            OR p."NOM_PERS" ILIKE CONCAT('%', :search, '%')
+                            OR p."PREN_PERS" ILIKE CONCAT('%', :search, '%')
+                            OR CONCAT_WS(' ', p."PREN_PERS", p."NOM_PERS") ILIKE CONCAT('%', :search, '%')
+                            OR EXISTS (
+                                SELECT 1
+                                FROM "ADR_PERS" ax
+                                WHERE ax."MAT_PERS" = p."MAT_PERS"
+                                  AND (
+                                      ax."ADR_ELECTRONIQUE" ILIKE CONCAT('%', :search, '%')
+                                      OR ax."TEL_PORT_PERS" ILIKE CONCAT('%', :search, '%')
+                                  )
+                            ))
                        AND (:codSoc IS NULL OR p."COD_SOC" = :codSoc)
+                     GROUP BY p."MAT_PERS", p."NOM_PERS", p."PREN_PERS", p."COD_USER", p."COD_SOC", s."LIB_SOC"
                      """, countQuery = """
                      SELECT COUNT(*)
                      FROM "PERSONNEL" p
-                     WHERE (:search IS NULL OR p."MAT_PERS" ILIKE CONCAT('%', :search, '%'))
+                     WHERE (:search IS NULL
+                            OR p."MAT_PERS" ILIKE CONCAT('%', :search, '%')
+                            OR p."NOM_PERS" ILIKE CONCAT('%', :search, '%')
+                            OR p."PREN_PERS" ILIKE CONCAT('%', :search, '%')
+                            OR CONCAT_WS(' ', p."PREN_PERS", p."NOM_PERS") ILIKE CONCAT('%', :search, '%')
+                            OR EXISTS (
+                                SELECT 1
+                                FROM "ADR_PERS" ax
+                                WHERE ax."MAT_PERS" = p."MAT_PERS"
+                                  AND (
+                                      ax."ADR_ELECTRONIQUE" ILIKE CONCAT('%', :search, '%')
+                                      OR ax."TEL_PORT_PERS" ILIKE CONCAT('%', :search, '%')
+                                  )
+                            ))
                        AND (:codSoc IS NULL OR p."COD_SOC" = :codSoc)
                      """, nativeQuery = true)
        Page<PersonnelAdminProjection> searchPersonnel(@Param("search") String search,

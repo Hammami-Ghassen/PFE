@@ -38,6 +38,9 @@ public class WebSocketSecurityConfig implements WebSocketMessageBrokerConfigurer
                         if (jwtTokenProvider.validateToken(token) && "access".equals(jwtTokenProvider.getTokenType(token))) {
                             String subject = jwtTokenProvider.getSubjectFromToken(token);
                             String role = jwtTokenProvider.getRoleFromToken(token);
+                            if ("ADMIN".equals(role)) {
+                                throw new IllegalArgumentException("Acces chat interdit pour les administrateurs");
+                            }
                             UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(
                                     subject, null, Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                             );

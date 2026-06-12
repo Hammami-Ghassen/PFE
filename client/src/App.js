@@ -2,7 +2,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 
-import useAuth from './hooks/useAuth';
 import PersistLogin from './components/auth/PersistLogin';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute';
@@ -41,7 +40,9 @@ function App() {
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/home" element={<HomePage />} />
-              <Route path="/chat" element={<ChatPage />} />
+              <Route element={<RoleRoute allowedRoles={[ROLES.AGENT, ROLES.DIRECTEUR]} />}>
+                <Route path="/chat" element={<ChatPage />} />
+              </Route>
 
               <Route element={<RoleRoute allowedRoles={[ROLES.AGENT, ROLES.DIRECTEUR]} />}>
                 <Route path="/dashboard" element={<DashboardPage />} />

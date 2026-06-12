@@ -11,6 +11,16 @@ export const getEstablishments = async (axiosPrivate) => {
   return response.data.data;
 };
 
+export const getUserDetails = async (axiosPrivate, matPers) => {
+  const response = await axiosPrivate.get(`/admin/personnel/${matPers}`);
+  return response.data.data;
+};
+
+export const updatePersonnel = async (axiosPrivate, matPers, payload) => {
+  const response = await axiosPrivate.patch(`/admin/personnel/${matPers}`, payload);
+  return response.data.data;
+};
+
 export const updatePersonnelRole = async (axiosPrivate, matPers, codUser) => {
   const response = await axiosPrivate.patch(`/admin/personnel/${matPers}/role`, { codUser });
   return response.data.data;

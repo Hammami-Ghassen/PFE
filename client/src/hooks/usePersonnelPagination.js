@@ -22,19 +22,18 @@ const usePersonnelPagination = (fetchUsers, pageSize = 50) => {
   const [search, setSearch] = useState('');
   const [codSoc, setCodSoc] = useState('');
 
-  const inFlightKeyRef = useRef(null);
+  const requestSeqRef = useRef(0);
 
   const fetchPersonnel = useCallback(() => {
-    const requestKey = `${page}|${search}|${codSoc}|${pageSize}`;
-    if (inFlightKeyRef.current === requestKey) {
-      return;
-    }
-
-    inFlightKeyRef.current = requestKey;
+    const requestSeq = requestSeqRef.current + 1;
+    requestSeqRef.current = requestSeq;
     setLoading(true);
 
     fetchUsers({ page, size: pageSize, search, codSoc })
       .then((personnelPage) => {
+        if (requestSeq !== requestSeqRef.current) {
+          return;
+        }
         setData(personnelPage);
         if (personnelPage.totalPages > 0 && page >= personnelPage.totalPages) {
           setPage(personnelPage.totalPages - 1);
@@ -44,8 +43,9 @@ const usePersonnelPagination = (fetchUsers, pageSize = 50) => {
         // Error toasts are handled by caller-provided fetchUsers; hook keeps state cleanup centralized.
       })
       .finally(() => {
-        inFlightKeyRef.current = null;
-        setLoading(false);
+        if (requestSeq === requestSeqRef.current) {
+          setLoading(false);
+        }
       });
   }, [codSoc, fetchUsers, page, pageSize, search]);
 
@@ -53,14 +53,33 @@ const usePersonnelPagination = (fetchUsers, pageSize = 50) => {
     fetchPersonnel();
   }, [fetchPersonnel]);
 
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      const normalizedSearch = searchInput.trim();
+      if (normalizedSearch !== search) {
+        setPage(0);
+        setSearch(normalizedSearch);
+      }
+    }, 350);
+
+    return () => clearTimeout(timeoutId);
+  }, [search, searchInput]);
+
   const submitSearch = (event) => {
     event.preventDefault();
     setPage(0);
-    setSearch(searchInput.trim().toUpperCase());
+    setSearch(searchInput.trim());
   };
 
   const selectEstablishment = (value) => {
     setCodSoc(value);
+    setPage(0);
+  };
+
+  const resetFilters = () => {
+    setSearchInput('');
+    setSearch('');
+    setCodSoc('');
     setPage(0);
   };
 
@@ -74,6 +93,7 @@ const usePersonnelPagination = (fetchUsers, pageSize = 50) => {
     setSearchInput,
     submitSearch,
     selectEstablishment,
+    resetFilters,
     refresh: fetchPersonnel,
   };
 };

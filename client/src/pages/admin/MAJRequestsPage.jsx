@@ -7,11 +7,13 @@ import {
   reviewCorrectionRequest,
 } from '../../services/MAJService';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
+import Button from '../../components/ui/Button';
+import Modal from '../../components/ui/Modal';
 import Spinner from '../../components/ui/Spinner';
 import StatCard from '../../components/ui/StatCard';
-import { 
-  ClipboardDocumentCheckIcon, 
-  CheckCircleIcon, 
+import {
+  ClipboardDocumentCheckIcon,
+  CheckCircleIcon,
   XCircleIcon,
   ArrowDownRightIcon,
   CheckIcon,
@@ -23,15 +25,15 @@ const PAGE_SIZE = 50;
 
 const statusFilters = [
   { value: 'PENDING', label: 'En attente' },
-  { value: 'APPROVED', label: 'Approuvées' },
-  { value: 'REJECTED', label: 'Rejetées' },
+  { value: 'APPROVED', label: 'Approuvees' },
+  { value: 'REJECTED', label: 'Rejetees' },
   { value: '', label: 'Tous les statuts' },
 ];
 
 const statusLabels = {
   PENDING: 'EN ATTENTE',
-  APPROVED: 'APPROUVÉE',
-  REJECTED: 'REJETÉE',
+  APPROVED: 'APPROUVEE',
+  REJECTED: 'REJETEE',
 };
 
 const statusClassNames = {
@@ -41,9 +43,9 @@ const statusClassNames = {
 };
 
 const formatDate = (value) => {
-  if (!value) return '—';
+  if (!value) return '-';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '—';
+  if (Number.isNaN(date.getTime())) return '-';
   return date.toLocaleString('fr-TN', {
     year: 'numeric',
     month: '2-digit',
@@ -62,18 +64,20 @@ const MAJRequestsPage = () => {
   const [loading, setLoading] = useState(true);
   const [reviewingId, setReviewingId] = useState(null);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [reviewModalRequest, setReviewModalRequest] = useState(null);
+  const [reviewModalStatus, setReviewModalStatus] = useState(null);
 
   const loadRequests = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getCorrectionRequests(axiosPrivate, {
         page: 0,
-        size: 10000, // Fetch a large number to ensure all are loaded
-        status: '', // Fetch all statuses
+        size: 10000,
+        status: '',
       });
       setAllRequests(response.content || []);
     } catch {
-      toast.error('Erreur lors du chargement des demandes de mise à jour.');
+      toast.error('Erreur lors du chargement des demandes de mise a jour.');
     } finally {
       setLoading(false);
     }
@@ -86,7 +90,7 @@ const MAJRequestsPage = () => {
   const filteredRequests = allRequests.filter(
     (request) => statusFilter === '' || request.statut === statusFilter
   );
-  
+
   const totalElements = filteredRequests.length;
   const totalPages = Math.ceil(totalElements / PAGE_SIZE);
   const paginatedRequests = filteredRequests.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -96,19 +100,35 @@ const MAJRequestsPage = () => {
     setPage(0);
   };
 
+  const openReviewModal = (request, status) => {
+    setReviewModalRequest(request);
+    setReviewModalStatus(status);
+  };
+
+  const closeReviewModal = () => {
+    if (reviewingId) return;
+    setReviewModalRequest(null);
+    setReviewModalStatus(null);
+  };
+
   const handleReview = async (id, status) => {
     setReviewingId(id);
     try {
       await reviewCorrectionRequest(axiosPrivate, id, status);
-      toast.success(
-        status === 'APPROVED' ? 'Demande validée.' : 'Demande rejetée.'
-      );
+      toast.success(status === 'APPROVED' ? 'Demande validee.' : 'Demande rejetee.');
+      setReviewModalRequest(null);
+      setReviewModalStatus(null);
       await loadRequests();
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Mise à jour impossible.');
+      toast.error(err?.response?.data?.message || 'Mise a jour impossible.');
     } finally {
       setReviewingId(null);
     }
+  };
+
+  const confirmReview = () => {
+    if (!reviewModalRequest || !reviewModalStatus) return;
+    handleReview(reviewModalRequest.id, reviewModalStatus);
   };
 
   const handleDownload = async (id) => {
@@ -124,7 +144,7 @@ const MAJRequestsPage = () => {
       link.remove();
       window.URL.revokeObjectURL(objectUrl);
     } catch (err) {
-      toast.error(err?.response?.data?.message || 'Téléchargement impossible.');
+      toast.error(err?.response?.data?.message || 'Telechargement impossible.');
     } finally {
       setDownloadingId(null);
     }
@@ -144,13 +164,13 @@ const MAJRequestsPage = () => {
           accentColor="bg-blue-50 text-blue-600"
         />
         <StatCard
-          title="APPROUVÉES"
+          title="APPROUVEES"
           value={approvedCount}
           icon={CheckCircleIcon}
           accentColor="bg-green-50 text-green-600"
         />
         <StatCard
-          title="REJETÉES"
+          title="REJETEES"
           value={rejectedCount}
           icon={XCircleIcon}
           accentColor="bg-red-50 text-red-600"
@@ -160,19 +180,17 @@ const MAJRequestsPage = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="px-6 py-5 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <h3 className="text-lg font-bold text-gray-800">Demandes en attente</h3>
-          <div className="flex gap-3">
-            <select
-              value={statusFilter}
-              onChange={handleStatusFilterChange}
-              className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-700 min-w-[150px]"
-            >
-              {statusFilters.map((statusOption) => (
-                <option key={statusOption.label} value={statusOption.value}>
-                  {statusOption.label}
-                </option>
-              ))}
-            </select>
-          </div>
+          <select
+            value={statusFilter}
+            onChange={handleStatusFilterChange}
+            className="px-3 py-2 border border-gray-300 rounded-md text-sm bg-white text-gray-700 min-w-[150px]"
+          >
+            {statusFilters.map((statusOption) => (
+              <option key={statusOption.label} value={statusOption.value}>
+                {statusOption.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {loading ? (
@@ -185,10 +203,10 @@ const MAJRequestsPage = () => {
               <thead>
                 <tr className="bg-gray-50/80 text-gray-500 text-xs font-bold uppercase tracking-widest border-b border-gray-200">
                   <th className="px-6 py-4 text-left">DEMANDEUR</th>
-                  <th className="px-6 py-4 text-left">CHAMP À METTRE À JOUR</th>
+                  <th className="px-6 py-4 text-left">CHAMP A METTRE A JOUR</th>
                   <th className="px-6 py-4 text-left">CHANGEMENT</th>
                   <th className="px-6 py-4 text-left">DATE SOUMISSION</th>
-                  <th className="px-6 py-4 text-center">PIÈCE JOINTE</th>
+                  <th className="px-6 py-4 text-center">PIECE JOINTE</th>
                   <th className="px-6 py-4 text-right">ACTIONS</th>
                 </tr>
               </thead>
@@ -196,7 +214,7 @@ const MAJRequestsPage = () => {
                 {paginatedRequests.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="text-center py-12 text-gray-400">
-                      Aucune demande de mise à jour.
+                      Aucune demande de mise a jour.
                     </td>
                   </tr>
                 ) : (
@@ -211,7 +229,7 @@ const MAJRequestsPage = () => {
                               {request.fullName ? request.fullName.substring(0, 2).toUpperCase() : 'U'}
                             </div>
                             <div className="flex flex-col">
-                              <span className="text-sm">{request.fullName || '—'}</span>
+                              <span className="text-sm">{request.fullName || '-'}</span>
                               <span className="text-xs text-gray-500 font-normal">ID: {request.matPers}</span>
                             </div>
                           </div>
@@ -224,11 +242,11 @@ const MAJRequestsPage = () => {
                         <td className="px-6 py-4">
                           <div className="flex flex-col text-sm">
                             <span className="text-gray-400 line-through decoration-red-400/50 decoration-2">
-                              {request.ancienneValeur || '—'}
+                              {request.ancienneValeur || '-'}
                             </span>
                             <div className="flex items-center gap-2 mt-0.5 font-medium text-gray-800 bg-gray-50 max-w-max px-2 py-0.5 rounded shadow-sm border border-gray-100">
                               <ArrowDownRightIcon className="w-3 h-3 text-red-500" strokeWidth={3} />
-                              {request.nouvelleValeur || '—'}
+                              {request.nouvelleValeur || '-'}
                             </div>
                           </div>
                         </td>
@@ -238,7 +256,7 @@ const MAJRequestsPage = () => {
                             className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors rounded-md hover:bg-blue-50 disabled:opacity-30"
                             disabled={!request.hasAttachment || downloadingId === request.id}
                             onClick={() => handleDownload(request.id)}
-                            title="Télécharger la pièce jointe"
+                            title="Telecharger la piece jointe"
                           >
                             <DocumentArrowDownIcon className="w-5 h-5 mx-auto" />
                           </button>
@@ -247,16 +265,18 @@ const MAJRequestsPage = () => {
                           {isPending ? (
                             <div className="flex items-center justify-end gap-3">
                               <button
-                                onClick={() => handleReview(request.id, 'REJECTED')}
+                                onClick={() => openReviewModal(request, 'REJECTED')}
                                 className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-md hover:bg-red-50"
                                 disabled={reviewingId === request.id}
+                                title="Verifier et refuser"
                               >
                                 <XMarkIcon className="w-5 h-5" />
                               </button>
                               <button
-                                onClick={() => handleReview(request.id, 'APPROVED')}
+                                onClick={() => openReviewModal(request, 'APPROVED')}
                                 className="p-1.5 text-gray-400 hover:text-green-600 transition-colors rounded-md hover:bg-green-50"
                                 disabled={reviewingId === request.id}
+                                title="Verifier et accepter"
                               >
                                 <CheckIcon className="w-5 h-5" />
                               </button>
@@ -285,7 +305,7 @@ const MAJRequestsPage = () => {
                 disabled={page === 0}
                 className="px-3 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
               >
-                ←
+                &lt;
               </button>
               {buildPageWindow(page, totalPages).map((pageIndex, index, pages) => (
                 <React.Fragment key={pageIndex}>
@@ -311,12 +331,89 @@ const MAJRequestsPage = () => {
                 disabled={page >= totalPages - 1}
                 className="px-3 py-1 rounded border border-gray-200 hover:bg-gray-50 disabled:opacity-40"
               >
-                →
+                &gt;
               </button>
             </div>
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={Boolean(reviewModalRequest)}
+        onClose={closeReviewModal}
+        title={reviewModalStatus === 'APPROVED' ? 'Verifier avant acceptation' : 'Verifier avant refus'}
+        maxWidthClass="max-w-3xl"
+        footer={(
+          <>
+            <Button variant="secondary" onClick={closeReviewModal} disabled={Boolean(reviewingId)}>
+              Annuler
+            </Button>
+            <Button
+              variant={reviewModalStatus === 'REJECTED' ? 'danger' : 'primary'}
+              onClick={confirmReview}
+              loading={reviewingId === reviewModalRequest?.id}
+              disabled={!reviewModalRequest}
+            >
+              {reviewModalStatus === 'APPROVED' ? 'Confirmer accepter' : 'Confirmer refuser'}
+            </Button>
+          </>
+        )}
+      >
+        {!reviewModalRequest ? (
+          <div className="py-8 text-center text-gray-500">Aucune demande selectionnee.</div>
+        ) : (
+          <div className="space-y-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Demandeur</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{reviewModalRequest.fullName || '-'}</p>
+                <p className="text-xs text-gray-600">Matricule : {reviewModalRequest.matPers}</p>
+              </div>
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Soumission</p>
+                <p className="mt-1 text-sm font-semibold text-gray-900">{formatDate(reviewModalRequest.dateDemande)}</p>
+                <p className="text-xs text-gray-600">Statut : {statusLabels[reviewModalRequest.statut] || reviewModalRequest.statut}</p>
+              </div>
+            </div>
+
+            <div className="border border-gray-200 rounded-lg p-4 bg-white">
+              <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Champ cible</p>
+              <p className="mt-1 inline-flex max-w-max rounded bg-blue-100/60 px-2 py-1 text-xs font-semibold text-blue-800">
+                {reviewModalRequest.attributCible}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="border border-red-100 rounded-lg p-4 bg-red-50/40">
+                <p className="text-xs uppercase tracking-wider text-red-700 font-semibold">Ancienne valeur</p>
+                <p className="mt-2 text-sm text-gray-800 break-words">{reviewModalRequest.ancienneValeur || '-'}</p>
+              </div>
+              <div className="border border-green-100 rounded-lg p-4 bg-green-50/50">
+                <p className="text-xs uppercase tracking-wider text-green-700 font-semibold">Nouvelle valeur</p>
+                <p className="mt-2 text-sm font-semibold text-gray-900 break-words">{reviewModalRequest.nouvelleValeur || '-'}</p>
+              </div>
+            </div>
+
+            <div className="border border-gray-200 rounded-lg p-4 bg-gray-50 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold">Piece jointe</p>
+                <p className="mt-1 text-sm text-gray-700">
+                  {reviewModalRequest.hasAttachment ? 'Piece justificative disponible' : 'Aucune piece jointe'}
+                </p>
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => handleDownload(reviewModalRequest.id)}
+                loading={downloadingId === reviewModalRequest.id}
+                disabled={!reviewModalRequest.hasAttachment || downloadingId === reviewModalRequest.id}
+              >
+                Telecharger
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

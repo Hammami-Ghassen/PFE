@@ -8,6 +8,9 @@ import org.springframework.data.repository.query.Param;
 
 public interface AdrPersRepository extends JpaRepository<AdrPers, String> {
 
+	@Query(value = "SELECT COUNT(*) FROM \"ADR_PERS\" WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
+	long countByMatPers(@Param("matPers") String matPers);
+
 	@Query(value = "SELECT \"RUE\" FROM \"ADR_PERS\" WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
 	String findRueByMatPers(@Param("matPers") String matPers);
 
@@ -28,4 +31,14 @@ public interface AdrPersRepository extends JpaRepository<AdrPers, String> {
 	@Modifying
 	@Query(value = "UPDATE \"ADR_PERS\" SET \"ADR_ELECTRONIQUE\" = :email WHERE \"MAT_PERS\" = :matPers", nativeQuery = true)
 	int updateAdrElectronique(@Param("matPers") String matPers, @Param("email") String email);
+
+	@Modifying
+	@Query(value = """
+			INSERT INTO "ADR_PERS" ("COD_SOC", "MAT_PERS", "NUM_ADR", "ADR_ELECTRONIQUE", "TEL_PORT_PERS")
+			VALUES (:codSoc, :matPers, 1, :email, :telephone)
+			""", nativeQuery = true)
+	int insertContactRow(@Param("codSoc") String codSoc,
+			@Param("matPers") String matPers,
+			@Param("email") String email,
+			@Param("telephone") String telephone);
 }

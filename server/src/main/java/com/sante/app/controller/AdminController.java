@@ -1,7 +1,9 @@
 package com.sante.app.controller;
 
+import com.sante.app.dto.request.UpdatePersonnelAdminRequest;
 import com.sante.app.dto.request.UpdatePersonnelRoleRequest;
 import com.sante.app.dto.response.ApiResponse;
+import com.sante.app.dto.response.AuthProfileResponse;
 import com.sante.app.dto.response.EstablishmentResponse;
 import com.sante.app.dto.response.PersonnelAdminResponse;
 import com.sante.app.service.AdminService;
@@ -25,33 +27,46 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/admin/personnel")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-@Tag(name = "Administration Personnel", description = "Recherche et gestion des rôles (legacy PERSONNEL)")
+@Tag(name = "Administration Personnel", description = "Recherche et gestion du personnel legacy")
 public class AdminController {
 
-    private final AdminService AdminService;
+    private final AdminService adminService;
 
     @GetMapping
-    @Operation(summary = "Rechercher le personnel par MAT_PERS et COD_SOC")
+    @Operation(summary = "Rechercher le personnel")
     public ResponseEntity<ApiResponse<Page<PersonnelAdminResponse>>> search(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String codSoc,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "50") int size) {
-        return ResponseEntity.ok(ApiResponse.success(AdminService.searchPersonnel(search, codSoc, page, size)));
+        return ResponseEntity.ok(ApiResponse.success(adminService.searchPersonnel(search, codSoc, page, size)));
+    }
+
+    @GetMapping("/{matPers}")
+    @Operation(summary = "Inspecter le profil complet d'un personnel")
+    public ResponseEntity<ApiResponse<AuthProfileResponse>> details(@PathVariable String matPers) {
+        return ResponseEntity.ok(ApiResponse.success(adminService.getPersonnelProfile(matPers)));
+    }
+
+    @PatchMapping("/{matPers}")
+    @Operation(summary = "Mettre a jour le role et les coordonnees d'un personnel")
+    public ResponseEntity<ApiResponse<PersonnelAdminResponse>> updatePersonnel(
+            @PathVariable String matPers,
+            @Valid @RequestBody UpdatePersonnelAdminRequest request) {
+        return ResponseEntity.ok(ApiResponse.success("Personnel mis a jour", adminService.updatePersonnel(matPers, request)));
     }
 
     @PatchMapping("/{matPers}/role")
-    @Operation(summary = "Mettre à jour COD_USER d'un personnel")
+    @Operation(summary = "Mettre a jour COD_USER d'un personnel")
     public ResponseEntity<ApiResponse<PersonnelAdminResponse>> updateRole(
             @PathVariable String matPers,
             @Valid @RequestBody UpdatePersonnelRoleRequest request) {
-        // Record accessor keeps request handling concise while service owns normalization/validation.
-        return ResponseEntity.ok(ApiResponse.success("Rôle mis à jour", AdminService.updateRole(matPers, request.codUser())));
+        return ResponseEntity.ok(ApiResponse.success("Role mis a jour", adminService.updateRole(matPers, request.codUser())));
     }
 
     @GetMapping("/establishments")
-    @Operation(summary = "Lister les établissements SOCIETE")
+    @Operation(summary = "Lister les etablissements SOCIETE")
     public ResponseEntity<ApiResponse<List<EstablishmentResponse>>> establishments() {
-        return ResponseEntity.ok(ApiResponse.success(AdminService.establishments()));
+        return ResponseEntity.ok(ApiResponse.success(adminService.establishments()));
     }
 }

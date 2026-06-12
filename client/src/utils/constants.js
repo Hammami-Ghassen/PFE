@@ -5,11 +5,3 @@ export const ROLES = {
   DIRECTEUR: 'DIRECTEUR',
   AGENT: 'AGENT',
 };
-
-export const DEFAULT_ROUTE_BY_ROLE = {
-  [ROLES.ADMIN]: '/admin/users',
-  [ROLES.DIRECTEUR]: '/home',
-  [ROLES.AGENT]: '/home',
-};
-
-export const getDefaultRouteForRole = (role) => DEFAULT_ROUTE_BY_ROLE[role] || '/home';

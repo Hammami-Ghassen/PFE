@@ -24,7 +24,7 @@ import java.util.stream.Stream;
 import com.sante.app.model.NotificationType;
 import com.sante.app.model.legacy.Societe;
 import java.util.Map;
-import java.util.function.Function;
+
 
 @Service
 @RequiredArgsConstructor

@@ -19,7 +19,7 @@ import java.security.cert.X509Certificate;
 public class NewsScraperService {
     private static final Logger log = LoggerFactory.getLogger(NewsScraperService.class);
     private static final String URL = "https://santetunisie.rns.tn/fr/toutes-les-actualites?format=feed&type=rss";
-    private static final int TIMEOUT_MS = 5000;
+    private static final int TIMEOUT_MS = 25000;
 
     private static void setTrustAllCerts() {
         try {

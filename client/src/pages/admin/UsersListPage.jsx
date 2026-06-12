@@ -100,20 +100,6 @@ const UsersListPage = () => {
           </select>
         </div>
 
-        <div className="w-full md:w-48 flex flex-col gap-1.5 shrink-0">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Rôle / Grade</label>
-          <select disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed">
-            <option>Tous les rôles</option>
-          </select>
-        </div>
-
-        <div className="w-full md:w-48 flex flex-col gap-1.5 shrink-0">
-          <label className="text-xs font-bold uppercase tracking-wider text-gray-500">Statut</label>
-          <select disabled className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed">
-            <option>Tous les statuts</option>
-          </select>
-        </div>
-
         <button 
           onClick={() => { setSearchInput(''); selectEstablishment(''); }}
           type="button" 
@@ -136,7 +122,6 @@ const UsersListPage = () => {
                   <th className="px-5 py-4 text-left font-bold min-w-[250px]">Agent</th>
                   <th className="px-5 py-4 text-left font-bold">Établissement</th>
                   <th className="px-5 py-4 text-left font-bold">Contact</th>
-                  <th className="px-5 py-4 text-left font-bold">Statut</th>
                   <th className="px-5 py-4 text-right font-bold w-24">Actions</th>
                 </tr>
               </thead>
@@ -184,12 +169,7 @@ const UsersListPage = () => {
                           ) : null}
                         </div>
                       </td>
-                      <td className="px-5 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-green-50 text-green-700 border border-green-200/50 shadow-sm">
-                          <span className="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span>
-                          Utilisateur actif
-                        </span>
-                      </td>
+
                       <td className="px-5 py-4 whitespace-nowrap text-right">
                         <div className="inline-flex items-center">
                           <select

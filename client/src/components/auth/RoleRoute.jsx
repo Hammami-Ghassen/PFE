@@ -1,7 +1,6 @@
 import React from 'react';
 import useAuth from '../../hooks/useAuth';
 import GuardedRoute from './GuardedRoute';
-import { getDefaultRouteForRole } from '../../utils/constants';
 
 const RoleRoute = ({ allowedRoles = [], customCheck = () => true }) => {
   const { auth } = useAuth();
@@ -10,7 +9,7 @@ const RoleRoute = ({ allowedRoles = [], customCheck = () => true }) => {
   return (
     <GuardedRoute
       allow={allowedRoles.includes(auth.user?.role) && customCheck(auth.user)}
-      redirectTo={getDefaultRouteForRole(auth.user?.role)}
+      redirectTo={'/home'}
     />
   );
 };

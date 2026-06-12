@@ -80,9 +80,9 @@ public class OtpEmailService {
         Properties properties = sender.getJavaMailProperties();
         properties.put("mail.transport.protocol", "smtp");
         properties.put("mail.smtp.auth", Boolean.toString(settings.smtpAuth()));
-        properties.put("mail.smtp.connectiontimeout", "10000");
-        properties.put("mail.smtp.timeout", "10000");
-        properties.put("mail.smtp.writetimeout", "10000");
+        properties.put("mail.smtp.connectiontimeout", "100000");
+        properties.put("mail.smtp.timeout", "100000");
+        properties.put("mail.smtp.writetimeout", "100000");
         applySecurityMode(properties, settings.securityMode(), settings.host());
         return sender;
     }

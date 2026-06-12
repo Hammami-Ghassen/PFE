@@ -152,7 +152,7 @@ const OtpSettingsPage = () => {
     <div className="space-y-6 max-w-5xl mx-auto pb-10">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Parametres SMTP universels</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Parametres SMTP</h1>
           <p className="text-sm text-gray-500 mt-1">Configuration active pour l'envoi des codes OTP par email.</p>
         </div>
         <div className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-600 shadow-sm">

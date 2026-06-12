@@ -1,0 +1,154 @@
+\set ON_ERROR_STOP on
+
+BEGIN;
+
+CREATE TEMP TABLE tmp_gouvernorat (
+    "COD_GOUV" varchar(4),
+    "LIB_GOUV" varchar(40)
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_societe (
+    "COD_SOC" varchar(255),
+    "LIB_SOC" varchar(255)
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_delegation (
+    "COD_DELEG" varchar(4),
+    "LIB_DELEG" varchar(60),
+    "COD_GOUV" varchar(4)
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_service (
+    "COD_SERV" varchar(10),
+    "COD_SOC" varchar(4),
+    "LIB_SERV" varchar(120),
+    "SER_COD_SERV" varchar(10)
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_poste_trav (
+    "COD_POST" varchar(15),
+    "LIB_POST" varchar(200)
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_grade (
+    "COD_GRAD" varchar(4),
+    "COD_CAT" varchar(4),
+    "COD_CATEG" varchar(4),
+    "LIB_GRAD" varchar(60)
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_motif_j (
+    "COD_M" varchar(4),
+    "TYP_CNG" varchar(4),
+    "LIB_MOT" varchar(60),
+    "SEXE" varchar(1),
+    "REQUIRES_ATTACHMENT" boolean,
+    "MAX_DAYS_PER_YEAR" integer,
+    "MAX_DAYS_PER_CAREER" integer,
+    "DEDUCTS_FROM_BALANCE" boolean,
+    "IS_HALF_PAY" boolean
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_jours_feriers (
+    "COD_FERIE" varchar(255),
+    "REGIME_TRAV" varchar(1),
+    "LIB_FERIE" varchar(255),
+    "DAT_FERIER" varchar(255)
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_personnel (
+    "MAT_PERS" varchar(255),
+    "COD_USER" varchar(255),
+    "COD_SOC" varchar(255),
+    "PREN_PERS" varchar(255),
+    "NOM_PERS" varchar(255),
+    "SEXE" varchar(1)
+) ON COMMIT DROP;
+
+CREATE TEMP TABLE tmp_adr_pers (
+    "MAT_PERS" varchar(255),
+    "ADR_ELECTRONIQUE" varchar(255),
+    "TEL_PORT_PERS" varchar(255)
+) ON COMMIT DROP;
+
+\copy tmp_gouvernorat ("COD_GOUV", "LIB_GOUV") FROM 'csv/gouvernorat.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_societe ("COD_SOC", "LIB_SOC") FROM 'csv/societe.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_delegation ("COD_DELEG", "LIB_DELEG", "COD_GOUV") FROM 'csv/delegation.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_service ("COD_SERV", "COD_SOC", "LIB_SERV", "SER_COD_SERV") FROM 'csv/service.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_poste_trav ("COD_POST", "LIB_POST") FROM 'csv/poste_trav.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_grade ("COD_GRAD", "COD_CAT", "COD_CATEG", "LIB_GRAD") FROM 'csv/grade.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_motif_j ("COD_M", "TYP_CNG", "LIB_MOT", "SEXE", "REQUIRES_ATTACHMENT", "MAX_DAYS_PER_YEAR", "MAX_DAYS_PER_CAREER", "DEDUCTS_FROM_BALANCE", "IS_HALF_PAY") FROM 'csv/motif_j.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_jours_feriers ("COD_FERIE", "REGIME_TRAV", "LIB_FERIE", "DAT_FERIER") FROM 'csv/jours_feriers.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_personnel ("MAT_PERS", "COD_USER", "COD_SOC", "PREN_PERS", "NOM_PERS", "SEXE") FROM 'csv/personnel.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+\copy tmp_adr_pers ("MAT_PERS", "ADR_ELECTRONIQUE", "TEL_PORT_PERS") FROM 'csv/adr_pers.csv' WITH (FORMAT csv, HEADER true, ENCODING 'WIN1252')
+
+INSERT INTO "GOUVERNORAT" ("COD_GOUV", "LIB_GOUV")
+SELECT "COD_GOUV", "LIB_GOUV"
+FROM tmp_gouvernorat
+ON CONFLICT ("COD_GOUV") DO NOTHING;
+
+INSERT INTO "SOCIETE" ("COD_SOC", "LIB_SOC")
+SELECT "COD_SOC", "LIB_SOC"
+FROM tmp_societe
+ON CONFLICT ("COD_SOC") DO NOTHING;
+
+INSERT INTO "DELEGATION" ("COD_GOUV", "COD_DELEG", "LIB_DELEG")
+SELECT "COD_GOUV", "COD_DELEG", "LIB_DELEG"
+FROM tmp_delegation
+ON CONFLICT ("COD_DELEG") DO NOTHING;
+
+INSERT INTO "SERVICE" ("COD_SOC", "COD_SERV", "SER_COD_SERV", "LIB_SERV")
+SELECT "COD_SOC", "COD_SERV", NULLIF("SER_COD_SERV", ''), "LIB_SERV"
+FROM tmp_service
+ON CONFLICT ("COD_SOC", "COD_SERV") DO NOTHING;
+
+INSERT INTO "POSTE_TRAV" ("COD_METIER", "COD_POST", "LIB_POST")
+SELECT '' AS "COD_METIER", "COD_POST", "LIB_POST"
+FROM tmp_poste_trav
+ON CONFLICT ("COD_POST") DO NOTHING;
+
+INSERT INTO "GRADE" ("COD_CATEG", "COD_CAT", "COD_GRAD", "LIB_GRAD")
+SELECT "COD_CATEG", "COD_CAT", "COD_GRAD", "LIB_GRAD"
+FROM tmp_grade
+ON CONFLICT ("COD_CATEG", "COD_CAT", "COD_GRAD") DO NOTHING;
+
+INSERT INTO "MOTIF_J" (
+    "COD_M",
+    "TYP_CNG",
+    "LIB_MOT",
+    "SEXE",
+    "REQUIRES_ATTACHMENT",
+    "MAX_DAYS_PER_YEAR",
+    "MAX_DAYS_PER_CAREER",
+    "DEDUCTS_FROM_BALANCE",
+    "IS_HALF_PAY"
+)
+SELECT
+    "COD_M",
+    NULLIF("TYP_CNG", ''),
+    "LIB_MOT",
+    NULLIF("SEXE", ''),
+    COALESCE("REQUIRES_ATTACHMENT", false),
+    "MAX_DAYS_PER_YEAR",
+    "MAX_DAYS_PER_CAREER",
+    COALESCE("DEDUCTS_FROM_BALANCE", false),
+    COALESCE("IS_HALF_PAY", false)
+FROM tmp_motif_j
+ON CONFLICT ("COD_M") DO NOTHING;
+
+INSERT INTO "JOURS_FERIERS" ("COD_FERIE", "LIB_FERIE", "DAT_FERIER")
+SELECT "COD_FERIE", "LIB_FERIE", "DAT_FERIER"
+FROM tmp_jours_feriers
+ON CONFLICT ("COD_FERIE") DO NOTHING;
+
+INSERT INTO "PERSONNEL" ("COD_SOC", "MAT_PERS", "NOM_PERS", "PREN_PERS", "SEXE", "COD_USER")
+SELECT "COD_SOC", "MAT_PERS", "NOM_PERS", "PREN_PERS", NULLIF("SEXE", ''), "COD_USER"
+FROM tmp_personnel
+ON CONFLICT ("MAT_PERS") DO NOTHING;
+
+INSERT INTO "ADR_PERS" ("MAT_PERS", "ADR_ELECTRONIQUE", "TEL_PORT_PERS")
+SELECT "MAT_PERS", "ADR_ELECTRONIQUE", "TEL_PORT_PERS"
+FROM tmp_adr_pers
+ON CONFLICT ("MAT_PERS") DO NOTHING;
+
+COMMIT;

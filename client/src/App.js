@@ -19,12 +19,7 @@ import OtpSettingsPage from './pages/admin/OtpSettingsPage';
 import MyLeaveRequestsPage from './pages/leave/MyLeaveRequestsPage';
 import LeaveValidationPage from './pages/leave/LeaveValidationPage';
 import ChatPage from './pages/chat/ChatPage';
-import { getDefaultRouteForRole, ROLES } from './utils/constants';
-
-const DefaultRouteRedirect = () => {
-  const { auth } = useAuth();
-  return <Navigate to={getDefaultRouteForRole(auth.user?.role)} replace />;
-};
+import { ROLES } from './utils/constants';
 
 function App() {
   return (
@@ -44,7 +39,7 @@ function App() {
         <Route element={<PersistLogin />}>
           <Route element={<ProtectedRoute />}>
             <Route element={<DashboardLayout />}>
-              <Route path="/" element={<DefaultRouteRedirect />} />
+              <Route path="/" element={<Navigate to="/home" replace />} />
               <Route path="/home" element={<HomePage />} />
               <Route path="/chat" element={<ChatPage />} />
 

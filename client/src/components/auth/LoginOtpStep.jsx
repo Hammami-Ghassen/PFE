@@ -3,7 +3,7 @@ import Input from '../ui/Input';
 import Button from '../ui/Button';
 import { LockClosedIcon, ArrowPathIcon } from '@heroicons/react/24/outline';
 
-const LoginOtpStep = ({ otp, onOtpChange, onBack, onResend, resendTimer }) => (
+const LoginOtpStep = ({ otp, onOtpChange, onBack, onResend, resendTimer, requestBlocked = false }) => (
   <div className="space-y-4">
     <Input
       id="otp"
@@ -24,9 +24,9 @@ const LoginOtpStep = ({ otp, onOtpChange, onBack, onResend, resendTimer }) => (
         <button
           type="button"
           onClick={onResend}
-          disabled={resendTimer > 0}
+          disabled={resendTimer > 0 || requestBlocked}
           className={`font-semibold transition-colors flex items-center gap-1 ${
-            resendTimer > 0 ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-700'
+            resendTimer > 0 || requestBlocked ? 'text-gray-400 cursor-not-allowed' : 'text-red-600 hover:text-red-700'
           }`}
         >
           {resendTimer > 0 ? (

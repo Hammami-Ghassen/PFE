@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 public class OtpStoreService {
 
     private static final int OTP_TTL_SECONDS = 300;
+    private static final int OTP_REQUEST_WINDOW_SECONDS = 60;
+    private static final int MAX_OTP_REQUESTS_PER_WINDOW = 3;
 
     private final StringRedisTemplate redisTemplate;
 
@@ -48,15 +50,15 @@ public class OtpStoreService {
     }
 
     public boolean isBlocked(String matPers) {
-        return getFailedAttempts(matPers) >= 5;
+        return getFailedAttempts(matPers) >= 3;
     }
 
     public boolean isOtpRequestAllowed(String matPers) {
         String key = "otp_request_limit:" + matPers;
-        if (Boolean.TRUE.equals(redisTemplate.hasKey(key))) {
-            return false;
+        Long requestCount = redisTemplate.opsForValue().increment(key);
+        if (requestCount != null && requestCount == 1L) {
+            redisTemplate.expire(key, Duration.ofSeconds(OTP_REQUEST_WINDOW_SECONDS));
         }
-        redisTemplate.opsForValue().set(key, "1", Duration.ofSeconds(60));
-        return true;
+        return requestCount != null && requestCount <= MAX_OTP_REQUESTS_PER_WINDOW;
     }
 }

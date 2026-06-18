@@ -9,7 +9,15 @@ import LeaveBalanceCard from '../../components/ui/LeaveBalanceCard';
 import useAxiosPrivate from '../../hooks/useAxiosPrivate';
 import { buildPageWindow } from '../../hooks/usePersonnelPagination';
 import { formatDate } from '../../utils/helpers';
-import { isLeaveAttachmentRequired } from './leaveRequestRules';
+import {
+  calculateBusinessDays,
+  calculateCalendarDays,
+  getTodayInputValue,
+  isCalendarLimitMotif,
+  isLeaveAttachmentRequired,
+  isPastInputDate,
+  normalizeHolidayDayMonth,
+} from './leaveRequestRules';
 import {
   createLeaveRequest,
   getCurrentLeaveBalance,
@@ -47,45 +55,6 @@ const statusClassNames = {
   N: 'bg-red-100 text-red-700',
 };
 
-const normalizeHolidayDayMonth = (value) => {
-  if (!value || typeof value !== 'string') return null;
-  const normalized = value.trim();
-  return /^\d{2}\/\d{2}$/.test(normalized) ? normalized : null;
-};
-
-const toDayMonth = (date) => {
-  const day = String(date.getDate()).padStart(2, '0');
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  return `${day}/${month}`;
-};
-
-const calculateBusinessDays = (startDate, endDate, holidaysSet) => {
-  if (!startDate || !endDate) return 0;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return 0;
-
-  let days = 0;
-  for (let current = new Date(start); current <= end; current.setDate(current.getDate() + 1)) {
-    const dayOfWeek = current.getDay();
-    const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
-    const isHoliday = holidaysSet.has(toDayMonth(current));
-    if (!isWeekend && !isHoliday) {
-      days += 1;
-    }
-  }
-
-  return days;
-};
-
-const calculateCalendarDays = (startDate, endDate) => {
-  if (!startDate || !endDate) return 0;
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start > end) return 0;
-  return Math.floor((end - start) / (1000 * 60 * 60 * 24)) + 1;
-};
-
 const formatBalanceValue = (value) => {
   if (value === null || value === undefined) return '0';
   const parsed = Number.parseFloat(value);
@@ -95,6 +64,7 @@ const formatBalanceValue = (value) => {
 
 const MyLeaveRequestsPage = () => {
   const axiosPrivate = useAxiosPrivate();
+  const todayInputValue = useMemo(() => getTodayInputValue(), []);
 
   const [data, setData] = useState({
     content: [],
@@ -248,7 +218,7 @@ const MyLeaveRequestsPage = () => {
 
   const isBalanceDeductingMotif = Boolean(selectedMotif?.deductsFromBalance);
   const hasInsufficientBalance = isBalanceDeductingMotif && requestedBusinessDays > availableBalance;
-  const usesCalendarLimit = ['04', '05', '50'].includes(form.codeM);
+  const usesCalendarLimit = isCalendarLimitMotif(form.codeM);
   const requestedLimitDays = usesCalendarLimit ? requestedCalendarDays : requestedBusinessDays;
   const remainingDays = Number.parseFloat(selectedEntitlement?.remainingDaysYear ?? selectedEntitlement?.remainingDaysCareer ?? NaN);
   const hasRemainingLimit = !Number.isNaN(remainingDays);
@@ -282,8 +252,17 @@ const MyLeaveRequestsPage = () => {
 
   const handleFormChange = (event) => {
     const { name, value } = event.target;
-    setForm((current) => ({ ...current, [name]: value }));
-    setFormErrors((current) => ({ ...current, [name]: null }));
+    setForm((current) => {
+      if (name === 'dateDebut' && current.dateFin && value && value > current.dateFin) {
+        return { ...current, dateDebut: value, dateFin: '' };
+      }
+      return { ...current, [name]: value };
+    });
+    setFormErrors((current) => ({
+      ...current,
+      [name]: null,
+      ...(name === 'dateDebut' ? { dateFin: null } : {}),
+    }));
     setSubmitError('');
   };
 
@@ -306,16 +285,22 @@ const MyLeaveRequestsPage = () => {
     if (form.dateDebut && form.dateFin && form.dateDebut > form.dateFin) {
       errors.dateFin = 'La date de fin doit etre >= date de debut.';
     }
+    if (isPastInputDate(form.dateDebut, todayInputValue)) {
+      errors.dateDebut = 'La date de debut ne peut pas etre dans le passe.';
+    }
+    if (isPastInputDate(form.dateFin, todayInputValue)) {
+      errors.dateFin = 'La date de fin ne peut pas etre dans le passe.';
+    }
     if (!form.codeM) {
       errors.codeM = 'Le motif est obligatoire.';
     }
-    if (requestedBusinessDays <= 0) {
-      errors.dateFin = 'La demande doit contenir au moins 1 jour ouvrable.';
+    if (!errors.dateFin && requestedLimitDays <= 0) {
+      errors.dateFin = 'Date invalide !';
     }
-    if (hasInsufficientBalance) {
+    if (!errors.dateFin && hasInsufficientBalance) {
       errors.dateFin = 'La duree demandee depasse votre solde disponible.';
     }
-    if (hasExceededEntitlement) {
+    if (!errors.dateFin && hasExceededEntitlement) {
       errors.dateFin = 'La duree demandee depasse le plafond restant pour ce motif.';
     }
     if (isAttachmentRequired && !form.attachment) {
@@ -568,6 +553,7 @@ const MyLeaveRequestsPage = () => {
                   name="dateDebut"
                   type="date"
                   value={form.dateDebut}
+                  min={todayInputValue}
                   onChange={handleFormChange}
                   className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
                     formErrors.dateDebut ? 'border-red-400' : 'border-gray-300'
@@ -584,6 +570,7 @@ const MyLeaveRequestsPage = () => {
                   name="dateFin"
                   type="date"
                   value={form.dateFin}
+                  min={form.dateDebut || todayInputValue}
                   onChange={handleFormChange}
                   className={`w-full px-3 py-2.5 border rounded-lg text-sm bg-white focus:outline-none focus:ring-2 focus:ring-ministere-500 focus:border-ministere-500 ${
                     formErrors.dateFin ? 'border-red-400' : 'border-gray-300'

@@ -7,6 +7,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import com.sante.app.dto.request.OtpChannel;
@@ -79,6 +80,19 @@ class OtpAuthServiceTest {
         verify(otpStoreService).storeOtpHash(eq(matPers), anyString());
         verify(otpEmailService).sendOtp(eq("ali@example.com"), eq(matPers), otpCaptor.capture());
         assertTrue(otpCaptor.getValue().matches("\\d{6}"));
+    }
+
+    @Test
+    void requestOtp_rejectsAfterRequestLimitWithAdminContactMessage() {
+        String matPers = "00091651";
+        when(otpStoreService.isOtpRequestAllowed(matPers)).thenReturn(false);
+
+        BadRequestException exception = assertThrows(
+                BadRequestException.class,
+                () -> otpAuthService.requestOtp(matPers, OtpChannel.EMAIL));
+
+        assertEquals("Veuillez contacter l'admin pour obtenir votre matricule", exception.getMessage());
+        verifyNoInteractions(personnelRepository, adrPersRepository, otpEmailService);
     }
 
     @Test

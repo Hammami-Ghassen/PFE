@@ -23,6 +23,7 @@ export const AuthProvider = ({ children }) => {
       firstName,
       lastName,
       fullName,
+      
     };
   }, []);
 

@@ -2,7 +2,7 @@ import React from 'react';
 import Input from '../ui/Input';
 import { UserIcon, DevicePhoneMobileIcon, EnvelopeIcon } from '@heroicons/react/24/outline';
 
-const LoginMatPersStep = ({ matPers, channel, onMatPersChange, onChannelChange }) => (
+const LoginMatPersStep = ({ matPers, channel, onMatPersChange, onChannelChange, requestBlocked = false }) => (
   <div className="space-y-4">
     <Input
       id="matPers"
@@ -22,6 +22,7 @@ const LoginMatPersStep = ({ matPers, channel, onMatPersChange, onChannelChange }
         id="channel"
         value={channel}
         onChange={onChannelChange}
+        disabled={requestBlocked}
         className="w-full pl-10 px-4 py-3 border border-gray-200 bg-gray-50 rounded-lg text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-ministere-500 appearance-none"
       >
         <option value="EMAIL">Recevoir OTP par Email</option>

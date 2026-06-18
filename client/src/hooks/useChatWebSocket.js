@@ -5,8 +5,7 @@ import useAuth from './useAuth';
 
 const useChatWebSocket = (onMessageReceived) => {
     const { auth } = useAuth();
-    const config = window.ENV || process.env;
-    const apiUrl = config.REACT_APP_API_URL || 'http://localhost:8080/api';
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:8080/api';
     const wsUrl = apiUrl.replace('/api', '/ws-chat');
 
     const [connected, setConnected] = useState(false);

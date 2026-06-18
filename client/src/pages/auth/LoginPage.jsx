@@ -10,6 +10,8 @@ import Alert from '../../components/ui/Alert';
 import LoginMatPersStep from '../../components/auth/LoginMatPersStep';
 import LoginOtpStep from '../../components/auth/LoginOtpStep';
 
+const ADMIN_CONTACT_MESSAGE = "Veuillez contacter l'admin pour obtenir votre matricule";
+
 const LoginPage = () => {
   const [step, setStep] = useState(1);
   const [matPers, setMatPers] = useState('');
@@ -18,6 +20,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+  const [blockedMatPers, setBlockedMatPers] = useState('');
 
   const { setSession } = useAuth();
   const navigate = useNavigate();
@@ -34,8 +37,25 @@ const LoginPage = () => {
     return () => clearInterval(interval);
   }, [resendTimer]);
 
+  const normalizedMatPers = matPers.trim();
+  const requestBlocked = blockedMatPers === normalizedMatPers && normalizedMatPers.length > 0;
+
+  const handleMatPersChange = (e) => {
+    const nextMatPers = e.target.value.replace(/\D/g, '');
+    setMatPers(nextMatPers);
+    if (blockedMatPers && blockedMatPers === nextMatPers) {
+      setError(ADMIN_CONTACT_MESSAGE);
+    } else if (blockedMatPers) {
+      setError('');
+    }
+  };
+
   const handleResendOtp = useCallback(async () => {
     if (resendTimer > 0) return;
+    if (requestBlocked) {
+      setError(ADMIN_CONTACT_MESSAGE);
+      return;
+    }
     setError('');
     const id = toast.loading('Renvoi de l\'OTP...');
     try {
@@ -44,13 +64,22 @@ const LoginPage = () => {
       setResendTimer(60);
     } catch (err) {
       toast.error('Échec du renvoi de l\'OTP.', { id });
-      setError(err?.response?.data?.message || 'Impossible de renvoyer l\'OTP.');
+      const msg = err?.response?.data?.message || 'Impossible de renvoyer l\'OTP.';
+      if (msg === ADMIN_CONTACT_MESSAGE) {
+        setBlockedMatPers(normalizedMatPers);
+      }
+      setError(msg);
     }
-  }, [resendTimer, matPers, channel]);
+  }, [resendTimer, requestBlocked, matPers, channel, normalizedMatPers]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (requestBlocked) {
+      setError(ADMIN_CONTACT_MESSAGE);
+      return;
+    }
 
     if (!/^\d{8}$/.test(matPers)) {
       setError('MAT_PERS doit contenir exactement 8 chiffres.');
@@ -77,6 +106,9 @@ const LoginPage = () => {
       }
     } catch (err) {
       const msg = err?.response?.data?.message || 'Impossible de se connecter.';
+      if (msg === ADMIN_CONTACT_MESSAGE) {
+        setBlockedMatPers(normalizedMatPers);
+      }
       setError(msg);
     } finally {
       setLoading(false);
@@ -162,8 +194,9 @@ const LoginPage = () => {
               <LoginMatPersStep
                 matPers={matPers}
                 channel={channel}
-                onMatPersChange={(e) => setMatPers(e.target.value.replace(/\D/g, ''))}
+                onMatPersChange={handleMatPersChange}
                 onChannelChange={(e) => setChannel(e.target.value)}
+                requestBlocked={requestBlocked}
               />
             ) : (
               <LoginOtpStep
@@ -172,10 +205,11 @@ const LoginPage = () => {
                 onBack={() => { setStep(1); setResendTimer(0); }}
                 onResend={handleResendOtp}
                 resendTimer={resendTimer}
+                requestBlocked={requestBlocked}
               />
             )}
 
-            <Button type="submit" loading={loading} variant="danger" className="w-full font-semibold" size="lg">
+            <Button type="submit" loading={loading} disabled={requestBlocked} variant="danger" className="w-full font-semibold" size="lg">
               {step === 1 ? 'Se connecter' : 'Vérifier OTP'}
             </Button>
             

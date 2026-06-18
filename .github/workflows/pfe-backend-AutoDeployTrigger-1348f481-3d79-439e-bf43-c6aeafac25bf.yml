@@ -7,8 +7,8 @@ on:
     branches: 
       [ main ]
     paths:
-    - '**'
-    - '.github/workflows/pfe-backend-AutoDeployTrigger-1348f481-3d79-439e-bf43-c6aeafac25bf.yml'
+      - '**'
+      - '.github/workflows/pfe-backend-AutoDeployTrigger-1348f481-3d79-439e-bf43-c6aeafac25bf.yml'
 
   # Allow manual trigger 
   workflow_dispatch:
@@ -19,7 +19,7 @@ jobs:
 
     steps:
       - name: Checkout to the branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Azure Login
         uses: azure/login@v2
@@ -30,16 +30,10 @@ jobs:
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}/server
-          _dockerfilePathKey_: _dockerfilePath_
-          _targetLabelKey_: _targetLabel_
+          dockerfilePath: Dockerfile  # Looks directly inside the appSourcePath (/server) for the Dockerfile
           registryUrl: docker.io
           registryUsername: ${{ secrets.PFEBACKEND_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.PFEBACKEND_REGISTRY_PASSWORD }}
           containerAppName: pfe-backend
           resourceGroup: pfe-spring-backend_group
-          imageToBuild: ghassenhammami/ghassenhammami/grh-msp-server:${{ github.sha }}
-          
-            
-
-     
-
+          imageToBuild: docker.io/ghassenhammami/grh-msp-server:${{ github.sha }}

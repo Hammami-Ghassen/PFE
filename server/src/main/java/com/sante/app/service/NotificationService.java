@@ -7,6 +7,7 @@ import com.sante.app.repository.NotificationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -29,6 +30,11 @@ public class NotificationService {
                 .build();
         notificationRepository.save(notification);
         log.info("Created notification for user {}: {}", matPers, message);
+    }
+
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    public void createNotificationInNewTransaction(String matPers, String message, NotificationType type) {
+        createNotification(matPers, message, type);
     }
 
     @Transactional(readOnly = true)

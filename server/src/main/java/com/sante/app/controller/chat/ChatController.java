@@ -46,11 +46,22 @@ public class ChatController {
         return ApiResponse.success("Messages marked as read", null);
     }
 
+    @PostMapping("/messages")
+    public ApiResponse<ChatMessageDTO> sendMessage(@RequestBody ChatMessageRequest chatMessage, Authentication authentication) {
+        String senderId = authentication.getName();
+        ChatMessageDTO savedMsg = chatService.processAndSaveMessage(senderId, chatMessage);
+        broadcastMessage(savedMsg);
+        return ApiResponse.success("Message sent successfully", savedMsg);
+    }
+
     @MessageMapping("/chat")
     public void processMessage(@Payload ChatMessageRequest chatMessage, Principal principal) {
         String senderId = principal.getName();
         ChatMessageDTO savedMsg = chatService.processAndSaveMessage(senderId, chatMessage);
+        broadcastMessage(savedMsg);
+    }
 
+    private void broadcastMessage(ChatMessageDTO savedMsg) {
         List<String> recipients = chatService.getTargetRecipients(savedMsg);
         for(String recipientId : recipients) {
             messagingTemplate.convertAndSendToUser(

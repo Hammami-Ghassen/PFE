@@ -116,27 +116,16 @@ export default function ChatPage() {
         if (e) e.preventDefault();
         if (!newMessage.trim() || !activeContact) return;
 
+        const content = newMessage.trim();
         try {
-            chatWs.sendMessage(activeContact.matPers, newMessage);
-            
-            // Optimistic update
-            const optimisticMsg = {
-                id: Date.now(),
-                senderId: auth.user.matPers,
-                senderName: auth.user.prenom + " " + auth.user.nom || auth.user.matPers,
-                recipientId: activeContact.matPers.startsWith("ROOM_") ? null : activeContact.matPers,
-                roomId: activeContact.matPers.startsWith("ROOM_") ? activeContact.matPers : null,
-                content: newMessage,
-                timestamp: new Date().toISOString(),
-                type: 'TEXT'
-            };
-            setMessages(prev => [...prev, optimisticMsg]);
-            setContacts(prev => prev.map(c => 
-                c.matPers === activeContact.matPers ? { ...c, lastMessage: optimisticMsg } : c
-            ));
-            
             setNewMessage('');
+            const savedMessage = await chat.sendMessage({
+                recipientId: activeContact.matPers,
+                content,
+            });
+            handleMessageReceived(savedMessage);
         } catch (err) {
+            setNewMessage(content);
             toast.error("Erreur lors de l'envoi.");
         }
     };
@@ -153,10 +142,13 @@ export default function ChatPage() {
         try {
             setUploading(true);
             const attachmentId = await chat.uploadFile(file);
-            chatWs.sendMessage(activeContact.matPers, "Pièce jointe", 'FILE', attachmentId);
-            // For now, refreshing history to get the file metadata optimally
-            // Wait a small delay to let backend save and WS to echo or just refetch
-            setTimeout(() => loadMessages(activeContact.matPers), 500);
+            const savedMessage = await chat.sendMessage({
+                recipientId: activeContact.matPers,
+                content: "Pièce jointe",
+                type: 'FILE',
+                attachmentId,
+            });
+            handleMessageReceived(savedMessage);
         } catch (err) {
             if (err.response?.data?.message) {
                 toast.error(err.response.data.message);

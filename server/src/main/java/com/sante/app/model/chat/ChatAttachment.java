@@ -21,9 +21,6 @@ public class ChatAttachment {
     @JoinColumn(name = "\"MESSAGE_ID\"")
     private ChatMessage message;
 
-    @Column(name = "\"FILE_PATH\"", nullable = false)
-    private String filePath;
-
     @Column(name = "\"FILE_NAME\"", nullable = false)
     private String fileName;
 
@@ -32,4 +29,8 @@ public class ChatAttachment {
     
     @Column(name = "\"FILE_SIZE\"")
     private Long fileSize;
+
+    @Basic(fetch = FetchType.LAZY)
+    @Column(name = "\"CONTENT\"", nullable = false)
+    private byte[] content;
 }

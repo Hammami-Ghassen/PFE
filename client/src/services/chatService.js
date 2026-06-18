@@ -14,6 +14,16 @@ const chatService = (axiosPrivate) => ({
         return response.data.data;
     },
 
+    sendMessage: async ({ recipientId, content, type = 'TEXT', attachmentId = null }) => {
+        const response = await axiosPrivate.post('/chat/messages', {
+            recipientId,
+            content,
+            type,
+            attachmentId,
+        });
+        return response.data.data;
+    },
+
     uploadFile: async (file) => {
         const formData = new FormData();
         formData.append('file', file);

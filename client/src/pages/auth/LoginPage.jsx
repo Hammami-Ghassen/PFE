@@ -127,13 +127,13 @@ const LoginPage = () => {
           />
           <div>
             <h2 className="text-xl font-bold tracking-wider">MINISTÈRE</h2>
-            <h3 className="text-lg font-light tracking-widest text-slate-300">DE LA SANTÉ</h3>
+            <h3 className="text-xl font-bold tracking-wider">DE LA SANTÉ</h3>
           </div>
         </div>
 
-        <h1 className="text-2xl font-semibold mb-3">GESTION DES COMPÉTENCES HUMAINES</h1>
+        <h1 className="text-2xl font-semibold mb-3">GRH_MSP</h1>
         <p className="text-slate-400 text-sm leading-relaxed mb-10">
-          La plateforme digitale de référence pour la gestion, l'évaluation et le suivi des ressources humaines du ministère.
+          Une plateforme décisionnelle pour l'analyse des données du personnel de santé en Tunisie.
         </p>
 
         <div className="space-y-3 mt-4 flex-1">
@@ -143,16 +143,7 @@ const LoginPage = () => {
             </div>
             <div>
               <p className="font-medium text-sm">Gestion du Personnel</p>
-              <p className="text-xs text-slate-400 line-clamp-1">Suivi administratif et dossiers individuels</p>
-            </div>
-          </div>
-          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors">
-            <div className="bg-white/10 p-2 rounded-lg text-white">
-              <ChartBarIcon className="w-5 h-5" />
-            </div>
-            <div>
-              <p className="font-medium text-sm">Outils d'Évaluation</p>
-              <p className="text-xs text-slate-400 line-clamp-1">Simulez et évaluez les postes de travail</p>
+              <p className="text-xs text-slate-400 line-clamp-1">Gestion et suivi des employés</p>
             </div>
           </div>
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors">
@@ -160,8 +151,17 @@ const LoginPage = () => {
               <AdjustmentsHorizontalIcon className="w-5 h-5" />
             </div>
             <div>
+              <p className="font-medium text-sm">Demandes de congé</p>
+              <p className="text-xs text-slate-400 line-clamp-1">Gestion et suivi des demandes de congé</p>
+            </div>
+          </div>
+          <div className="bg-white/5 border border-white/10 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors">
+            <div className="bg-white/10 p-2 rounded-lg text-white">
+              <ChartBarIcon className="w-5 h-5" />
+            </div>
+            <div>
               <p className="font-medium text-sm">Tableau de Bord</p>
-              <p className="text-xs text-slate-400 line-clamp-1">Indicateurs en temps réel des ressources</p>
+              <p className="text-xs text-slate-400 line-clamp-1">Améliorer la prise dedécision</p>
             </div>
           </div>
         </div>
@@ -174,7 +174,7 @@ const LoginPage = () => {
       {/* Right Panel: Login Form / Hero Image */}
       <div className="flex-1 relative flex items-center justify-center bg-gray-50 md:bg-transparent">
         {/* Background Image Setup */}
-        <div 
+        <div
           className="absolute inset-0 z-0 bg-cover bg-center"
           style={{ backgroundImage: "url('/bg.jpg')" }}
         />
@@ -212,8 +212,8 @@ const LoginPage = () => {
             <Button type="submit" loading={loading} disabled={requestBlocked} variant="danger" className="w-full font-semibold" size="lg">
               {step === 1 ? 'Se connecter' : 'Vérifier OTP'}
             </Button>
-            
-            
+
+
           </form>
         </div>
       </div>
